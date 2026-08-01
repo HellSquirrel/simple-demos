@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- Source for the social preview card (random-post-button-src.png composed
+     onto a 1200x630 canvas). Regenerate with:
+     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+       --headless=new --disable-gpu --hide-scrollbars \
+       --user-data-dir=/tmp/og-chrome \
+       --window-size=1200,630 \
+       --screenshot=public/random-post-button/og.png \
+       og/random-post-button.html -->
+<html lang="en">
+  <meta charset="utf-8" />
+  <style>
+    * {
+      margin: 0;
+    }
+    body {
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      font-family: system-ui, sans-serif;
+      background: radial-gradient(70rem 40rem at 50% -14rem, #221f3a, transparent),
+        #141419;
+    }
+    img {
+      width: 940px;
+      border-radius: 26px;
+      box-shadow: 0 2px 8px #00000066, 0 24px 64px #00000059,
+        0 0 0 1px #ffffff14;
+    }
+    p {
+      font-size: 23px;
+      font-weight: 600;
+      color: #a2a2b0;
+      letter-spacing: 0.01em;
+    }
+    b {
+      color: #8f7dff;
+    }
+  </style>
+  <img src="random-post-button-src.png" alt="" />
+  <p><b>acorns.nutlore.me</b> · a random-post button in pure HTML &amp; CSS</p>
+</html>

@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A Random-Post Button, Now With One (1) Link</title>
+  <meta
+    name="description"
+    content="A button that links to a random post — in HTML &amp; CSS only. Three ways to fake random(): the clock, the scrollbar, or your mouse path. Plus a rolling 3D die."
+  />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://acorns.nutlore.me/random-post-button/" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141419" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Simple Demos" />
+  <meta property="og:title" content="A Random-Post Button, Now With One (1) Link" />
+  <meta
+    property="og:description"
+    content="A button that links to a random post — in HTML &amp; CSS only. Three ways to fake random(): the clock, the scrollbar, or your mouse path. Plus a rolling 3D die."
+  />
+  <meta property="og:url" content="https://acorns.nutlore.me/random-post-button/" />
+  <meta property="og:image" content="https://acorns.nutlore.me/random-post-button/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta
+    property="og:image:alt"
+    content="A tumbling 3D die captioned ROLLING… next to a purple Random post button"
+  />
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    /* ---------- page chrome ---------- */
+    :root {
+      color-scheme: light dark;
+      --accent: light-dark(#4f39fa, #8f7dff);
+      --accent-strong: light-dark(#3d28d8, #a99bff);
+      --surface: light-dark(#ffffff, #1d1d24);
+      --edge: light-dark(#e6e6ec, #2e2e38);
+      --ink-soft: light-dark(#42424c, #d2d2dd);
+      --ink-faint: light-dark(#70707a, #a2a2b0);
+    }
+    body {
+      font: 16px/1.6 system-ui, sans-serif;
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 3rem 1.25rem 6rem;
+      background: radial-gradient(
+          60rem 30rem at 50% -10rem,
+          light-dark(#eeebff, #221f3a),
+          transparent
+        ),
+        light-dark(#fafafa, #141419);
+      color: light-dark(#1a1a1f, #e8e8ec);
+    }
+    h1 {
+      font-size: clamp(1.7rem, 5vw, 2.2rem);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      scroll-margin-top: 1.5rem;
+      background: linear-gradient(
+        90deg,
+        var(--accent-strong),
+        light-dark(#8b31c9, #d68fff)
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    h2 {
+      font-size: 1.15rem;
+      margin: 3rem 0 0.5rem;
+      letter-spacing: -0.01em;
+      scroll-margin-top: 1.5rem;
+    }
+    p {
+      color: var(--ink-soft);
+      margin: 0.5rem 0 1rem;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--edge);
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 1px 2px light-dark(#0000000a, #00000040),
+        0 8px 24px light-dark(#00000008, #00000030);
+    }
+    .caption {
+      font-size: 0.85rem;
+      color: var(--ink-faint);
+      margin-top: 0.9rem;
+    }
+    /* clear the die caption hanging from the moat grid above */
+    .p-pointer .caption {
+      margin-top: 1.75rem;
+    }
+    .explainer a,
+    .caption a,
+    body > p a {
+      color: var(--accent);
+      text-underline-offset: 3px;
+    }
+    ol.explainer,
+    .explainer ol {
+      color: var(--ink-soft);
+      padding-left: 1.4rem;
+      margin: 0.5rem 0 1rem;
+    }
+    ol.explainer li,
+    .explainer li {
+      margin: 0.4rem 0;
+    }
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--edge);
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.55;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+    }
+    code {
+      font-size: 0.9em;
+      background: light-dark(#ececf1, #2a2a33);
+      padding: 0.1em 0.35em;
+      border-radius: 0.3em;
+    }
+    /* ---------- hero row: dice + button ---------- */
+    /* the caption hangs below the die out of flow, so the row is just
+       die + button — centered against each other, no phantom width or
+       height from the caption */
+    .hero-row {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem; /* room for the hanging caption */
+    }
+    .dice-slot {
+      position: relative;
+    }
+    .dice-caption {
+      position: absolute;
+      top: calc(100% + 1.4rem);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+    .dice-caption {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin: 0;
+    }
+    .dice-caption::after {
+      content: "rolling…";
+    }
+    .p-clock:has(.rp-hero:is(:hover, :focus-within)) .dice-caption::after {
+      content: "locked in";
+    }
+    .p-scroll .dice-caption::after {
+      content: "scroll to roll";
+    }
+    .p-pointer .dice-caption::after {
+      content: "cross the moat";
+    }
+    .p-pointer:has(.rpz:is(:hover, .fakehover)) .dice-caption::after {
+      content: "rolling…";
+    }
+    .p-pointer:has(.rp-pointer nav a:hover) .dice-caption::after {
+      content: "locked in";
+    }
+
+    /* ---------- the 3D status die ----------
+     Genuinely rolling: the spin angle loops while the rotation axis itself
+     drifts on three incommensurate periods, so the tumble never visibly
+     repeats. The same hover/focus that freezes the pick freezes the die. */
+    @property --spin {
+      syntax: "<angle>";
+      inherits: false;
+      initial-value: 0deg;
+    }
+    @property --rx {
+      syntax: "<number>";
+      inherits: false;
+      initial-value: 1;
+    }
+    @property --ry {
+      syntax: "<number>";
+      inherits: false;
+      initial-value: 1;
+    }
+    @property --rz {
+      syntax: "<number>";
+      inherits: false;
+      initial-value: 0.4;
+    }
+    .dice-scene {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto;
+      perspective: 420px;
+    }
+    /* constant tilt so the cube's edges stay visible while faces snap */
+    .dice-tilt {
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transform: rotateX(-22deg) rotateY(26deg);
+    }
+    .dice {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transform: rotate3d(var(--rx), var(--ry), var(--rz), var(--spin));
+      animation: rp-spin 2.6s linear infinite,
+        rp-drift-x 7.1s ease-in-out infinite alternate,
+        rp-drift-y 5.3s ease-in-out infinite alternate,
+        rp-drift-z 8.9s ease-in-out infinite alternate;
+      --pip: #23232a;
+    }
+    /* faces are double-sided white panels: their backs fill every corner
+       gap with die-white. Only the pip layer is one-sided. */
+    .dice i {
+      position: absolute;
+      inset: 0;
+      border-radius: 9px;
+      background-color: #f6f5ef;
+      transform-style: preserve-3d; /* lets ::after join the 3D context */
+    }
+    /* pips + edge shading live on a front-only overlay, so they can never
+       ghost through from the far side of the cube */
+    .dice i::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: inset 0 0 0 2px #00000018, inset 0 -6px 12px #00000012;
+      backface-visibility: hidden;
+    }
+    .dice .f1 {
+      transform: translateZ(32px);
+    }
+    .dice .f1::after {
+      background-image: radial-gradient(6px at 50% 50%, var(--pip) 98%, #0000);
+    }
+    .dice .f2 {
+      transform: rotateY(90deg) translateZ(32px);
+    }
+    .dice .f2::after {
+      background-image: radial-gradient(6px at 27% 27%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 73% 73%, var(--pip) 98%, #0000);
+    }
+    .dice .f3 {
+      transform: rotateY(180deg) translateZ(32px);
+    }
+    .dice .f3::after {
+      background-image: radial-gradient(6px at 27% 27%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 50% 50%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 73% 73%, var(--pip) 98%, #0000);
+    }
+    .dice .f4 {
+      transform: rotateY(-90deg) translateZ(32px);
+    }
+    .dice .f4::after {
+      background-image: radial-gradient(6px at 27% 27%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 73% 27%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 27% 73%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 73% 73%, var(--pip) 98%, #0000);
+    }
+    .dice .f5 {
+      transform: rotateX(90deg) translateZ(32px);
+    }
+    .dice .f5::after {
+      background-image: radial-gradient(6px at 27% 27%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 73% 27%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 50% 50%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 27% 73%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 73% 73%, var(--pip) 98%, #0000);
+    }
+    .dice .f6 {
+      transform: rotateX(-90deg) translateZ(32px);
+    }
+    .dice .f6::after {
+      background-image: radial-gradient(6px at 30% 25%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 30% 50%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 30% 75%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 70% 25%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 70% 50%, var(--pip) 98%, #0000),
+        radial-gradient(6px at 70% 75%, var(--pip) 98%, #0000);
+    }
+
+    /* the roll: a fast spin around an axis that itself wanders.
+     --rx never crosses zero, so the axis vector can never degenerate */
+    @keyframes rp-spin {
+      to {
+        --spin: 360deg;
+      }
+    }
+    @keyframes rp-drift-x {
+      from {
+        --rx: 0.35;
+      }
+      to {
+        --rx: 1;
+      }
+    }
+    @keyframes rp-drift-y {
+      from {
+        --ry: -1;
+      }
+      to {
+        --ry: 1;
+      }
+    }
+    @keyframes rp-drift-z {
+      from {
+        --rz: -0.7;
+      }
+      to {
+        --rz: 0.7;
+      }
+    }
+
+    /* the same interaction that freezes the pick freezes that panel's die */
+    .p-clock:has(.rp-hero:is(:hover, :focus-within)) .dice {
+      animation-play-state: paused;
+    }
+    /* option 3's die mirrors its seed: still until the pointer enters the
+       moat, rolling while a zone is hovered, still again on the button */
+    .p-pointer .dice {
+      animation-play-state: paused;
+    }
+    .p-pointer:has(.rpz:is(:hover, .fakehover)) .dice {
+      animation-play-state: running;
+    }
+    /* option 2's die rolls with the scrollbar, like its pick. Finite
+       iteration counts (infinite doesn't map onto a progress-based
+       timeline) — five spins per page, axis wobbling on odd counts */
+    .p-scroll .dice {
+      animation: rp-spin 1s linear 5 both,
+        rp-drift-x 1s ease-in-out 4 alternate both,
+        rp-drift-y 1s ease-in-out 3 alternate both,
+        rp-drift-z 1s ease-in-out 6 alternate both;
+      animation-timeline: scroll(root block);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .dice {
+        animation-play-state: paused;
+      }
+      .dice-caption::after {
+        content: "ready";
+      }
+    }
+
+    /* ---------- the archive: click results land + light up here ---------- */
+    .archive {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+      gap: 0.5rem;
+    }
+    .archive article {
+      padding: 0.6rem 1rem;
+      border: 1px solid var(--edge);
+      border-radius: 0.6rem;
+      background: var(--surface);
+      scroll-margin-top: 1.5rem;
+    }
+    .archive h3 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    .archive article:target {
+      border-color: var(--accent);
+      background: light-dark(#eeebff, #262042);
+      box-shadow: 0 0 0 3px light-dark(#4f39fa22, #8f7dff2e);
+    }
+    .archive article:target h3::after {
+      content: " ← the dice landed here";
+      color: var(--accent);
+      font-size: 0.82rem;
+    }
+    .rp-back {
+      display: inline-block;
+      margin-top: 1.5rem;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--accent);
+    }
+    .rp-back:hover {
+      text-decoration: underline;
+    }
+
+    /* ---------- shared button look + layer 0: static fallback ----------
+     All 12 links are stacked in one grid cell; hidden ones take no space,
+     steal no clicks, and — because visibility: hidden — do not exist for
+     the Tab key or the accessibility tree. */
+    .rp-btn {
+      display: inline-grid;
+    }
+    .rp-btn a {
+      grid-area: 1 / 1;
+      visibility: hidden;
+      padding: 0.85rem 1.7rem;
+      border-radius: 0.7rem;
+      background: linear-gradient(
+        180deg,
+        light-dark(#6350fb, #7a68ff),
+        light-dark(#4f39fa, #5d49f0)
+      );
+      box-shadow: 0 2px 6px light-dark(#4f39fa4d, #00000066),
+        inset 0 1px 0 #ffffff2e;
+      color: #fff;
+      font-weight: 650;
+      text-decoration: none;
+    }
+    .rp-btn a:hover {
+      filter: brightness(1.08);
+    }
+    .rp-btn a:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
+    }
+    /* Layer 0 — no animation support at all: one working button, first post */
+    .rp-btn a:first-child {
+      visibility: visible;
+    }
+
+    /* every link's slot in the 12-step cycle */
+    .rp-btn a:nth-child(1) {
+      --d: 0;
+    }
+    .rp-btn a:nth-child(2) {
+      --d: 1;
+    }
+    .rp-btn a:nth-child(3) {
+      --d: 2;
+    }
+    .rp-btn a:nth-child(4) {
+      --d: 3;
+    }
+    .rp-btn a:nth-child(5) {
+      --d: 4;
+    }
+    .rp-btn a:nth-child(6) {
+      --d: 5;
+    }
+    .rp-btn a:nth-child(7) {
+      --d: 6;
+    }
+    .rp-btn a:nth-child(8) {
+      --d: 7;
+    }
+    .rp-btn a:nth-child(9) {
+      --d: 8;
+    }
+    .rp-btn a:nth-child(10) {
+      --d: 9;
+    }
+    .rp-btn a:nth-child(11) {
+      --d: 10;
+    }
+    .rp-btn a:nth-child(12) {
+      --d: 11;
+    }
+
+    /* ---------- layer 1: the infinite cycle (Chrome, Safari, Firefox) ----
+     Each link runs the same keyframes, visible for exactly 1/12 of the
+     3s cycle, staggered by -250ms per slot. The windows tile the cycle:
+     at any instant exactly one link is visible. Reaching for the button
+     (hover or keyboard focus) pauses every animation at once — that
+     frozen instant is the pick. No if(), no sibling-index(), no random(). */
+    @keyframes rp-cycle {
+      from {
+        visibility: visible;
+      }
+      8.33333%,
+      to {
+        visibility: hidden;
+      }
+    }
+    .rp-hero a {
+      animation: rp-cycle 3s infinite;
+      animation-delay: calc(var(--d, 0) * -250ms);
+    }
+    .rp-hero:hover a,
+    .rp-hero:focus-within a {
+      animation-play-state: paused;
+    }
+
+    /* ---------- exhibit B: scroll position as the seed ------------------
+     Each link is active only inside its slice of the document scroll range
+     (animation-range), visible mid-slice, hidden at the edges. Slices
+     overlap by 0.3% so the button never blinks out at a boundary —
+     overlapping twins stack pixel-perfect in the same cell. */
+    @keyframes rp-window {
+      from,
+      to {
+        visibility: hidden;
+      }
+      1%,
+      99% {
+        visibility: visible;
+      }
+    }
+    @supports (animation-timeline: scroll()) {
+      .rp-scroll a {
+        animation: rp-window auto linear both;
+        animation-timeline: scroll(root block);
+        animation-range: calc(var(--d, 0) * 8.3333% - 0.3%)
+          calc((var(--d, 0) + 1) * 8.3333% + 0.3%);
+      }
+    }
+
+    /* ---------- exhibit C: pointer path as the seed (CSS latch) ---------
+     Twelve inert aria-hidden moat zones around one real link. While a zone
+     is hovered, only its link is visible. When the pointer leaves the moat,
+     every link's return to its resting state is delayed ~11 days —
+     so the last zone crossed stays latched. */
+    @supports selector(:has(a)) {
+      .rp-pointer {
+        display: inline-grid;
+        grid-template:
+          "die z1  z2  z3  z4  z5 " 32px
+          "die z12 btn btn btn z6 " auto
+          "die z11 z10 z9  z8  z7 " 32px
+          / auto 32px auto auto auto 32px;
+        /* top moat overlays the panel's top padding so the button's top
+           inset matches the other panels; the die column sits flush at the
+           left padding, and the left moat doubles as the die/button gap.
+           Bottom stays in flow so the caption below never overlaps zones. */
+        margin: -2rem 0 0;
+      }
+      .rp-pointer > nav {
+        grid-area: btn;
+        justify-self: center;
+      }
+      .rp-pointer .dice-slot {
+        grid-area: die;
+        align-self: center;
+      }
+
+      .rpz:nth-child(1) {
+        grid-area: z1;
+      }
+      .rpz:nth-child(2) {
+        grid-area: z2;
+      }
+      .rpz:nth-child(3) {
+        grid-area: z3;
+      }
+      .rpz:nth-child(4) {
+        grid-area: z4;
+      }
+      .rpz:nth-child(5) {
+        grid-area: z5;
+      }
+      .rpz:nth-child(6) {
+        grid-area: z6;
+      }
+      .rpz:nth-child(7) {
+        grid-area: z7;
+      }
+      .rpz:nth-child(8) {
+        grid-area: z8;
+      }
+      .rpz:nth-child(9) {
+        grid-area: z9;
+      }
+      .rpz:nth-child(10) {
+        grid-area: z10;
+      }
+      .rpz:nth-child(11) {
+        grid-area: z11;
+      }
+      .rpz:nth-child(12) {
+        grid-area: z12;
+      }
+
+      /* the memory: changes back to resting visibility are delayed ~11 days */
+      .rp-pointer nav a {
+        transition: visibility 0s 999999s;
+      }
+
+      /* while any zone is hovered: everything hides, instantly… */
+      .rp-pointer:has(.rpz:is(:hover, .fakehover)) nav a {
+        visibility: hidden;
+        transition: none;
+      }
+      /* …except the link matching the hovered zone.
+       (.fakehover lets automated tests drive the latch.) */
+      .rp-pointer:has(.rpz:nth-child(1):is(:hover, .fakehover))
+        nav
+        a:nth-child(1) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(2):is(:hover, .fakehover))
+        nav
+        a:nth-child(2) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(3):is(:hover, .fakehover))
+        nav
+        a:nth-child(3) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(4):is(:hover, .fakehover))
+        nav
+        a:nth-child(4) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(5):is(:hover, .fakehover))
+        nav
+        a:nth-child(5) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(6):is(:hover, .fakehover))
+        nav
+        a:nth-child(6) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(7):is(:hover, .fakehover))
+        nav
+        a:nth-child(7) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(8):is(:hover, .fakehover))
+        nav
+        a:nth-child(8) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(9):is(:hover, .fakehover))
+        nav
+        a:nth-child(9) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(10):is(:hover, .fakehover))
+        nav
+        a:nth-child(10) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(11):is(:hover, .fakehover))
+        nav
+        a:nth-child(11) {
+        visibility: visible;
+        transition: none;
+      }
+      .rp-pointer:has(.rpz:nth-child(12):is(:hover, .fakehover))
+        nav
+        a:nth-child(12) {
+        visibility: visible;
+        transition: none;
+      }
+    }
+  </style>
+
+  <h1 id="top">A Random-Post Button, Now With One (1) Link</h1>
+  <section class="explainer">
+    <p>
+      Is it possible to create a button that links to a <em>random</em> post —
+      in HTML and CSS only? Inspired by
+      <a
+        href="https://master.dev/blog/a-button-that-links-to-a-random-post-in-html-css-only/"
+        >“A Button That Links to a Random Post in HTML &amp; CSS Only”</a
+      >
+      by Chris Coyier, where a button-shaped area is secretly dozens of tiny
+      links and <em>where</em> you click picks the post. Delightfully cursed.
+      This page continues the game with one extra house rule: same zero
+      JavaScript, but maybe — <em>just maybe</em> — a screen reader could walk
+      away having met one link instead of all twelve. No promises.
+    </p>
+    <p>
+      <strong>The idea:</strong> put all the links together, but keep only
+      <em>one</em> element visible — and pick that element (pseudo-)randomly.
+      Stack the links in a single grid cell, hide them all, and let an
+      infinite animation decide which one exists right now:
+    </p>
+    <pre><code>&lt;nav class="random-post" aria-label="Random post"&gt;
+  &lt;a href="/post-1/"&gt;Random post&lt;/a&gt;
+  &lt;a href="/post-2/"&gt;Random post&lt;/a&gt;
+  &lt;!-- …one per post --&gt;
+&lt;/nav&gt;
+
+/* stack all the links in one spot, hide them all */
+.random-post   { display: inline-grid; }
+.random-post a { grid-area: 1 / 1; visibility: hidden; }
+
+/* the pseudo-random part: each link exists for 1/12 of the cycle */
+@keyframes cycle {
+  from        { visibility: visible; }
+  8.3333%, to { visibility: hidden; }
+}
+.random-post a              { animation: cycle 3s infinite; }
+.random-post a:nth-child(2) { animation-delay: -0.25s; }
+.random-post a:nth-child(3) { animation-delay: -0.5s; }
+/* …one slot per link */
+
+/* reaching for the button freezes the roll */
+.random-post:is(:hover, :focus-within) a { animation-play-state: paused; }</code></pre>
+    <p>
+      Links with <code>visibility: hidden</code> take up no space, receive no
+      clicks, and are skipped by the Tab key and screen readers. At any
+      moment, exactly one link is rendered. The other eleven are a rumor.
+    </p>
+  </section>
+
+  <h2>The seed — where does the randomness come from?</h2>
+  <p>
+    CSS is getting a real
+    <a
+      href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/random"
+      ><code>random()</code></a
+    >
+    function. It currently ships in roughly one browser, which in CSS years
+    means “soon”. Until then, the seed is whatever never stops changing —
+    sampled at the moment the user interacts. Three seeds, three demos below:
+  </p>
+  <ol class="explainer">
+    <li>
+      <strong>The clock</strong> — an infinite animation cycles through the
+      links; hovering or focusing the button freezes the pick (Option 1).
+    </li>
+    <li>
+      <strong>The scrollbar</strong> — how far you've scrolled picks the link
+      (Option 2).
+    </li>
+    <li>
+      <strong>Your mouse path</strong> — the last hover zone your pointer
+      crossed picks it, and a CSS latch remembers (Option 3).
+    </li>
+  </ol>
+
+  <h2 id="roll">Option 1 — the clock is the dice</h2>
+  <p>
+    The cycle runs four times a second — the die tumbles while it runs, and
+    both freeze the moment you reach for the button. Your reaction time is
+    the RNG.
+  </p>
+
+  <section class="panel p-clock">
+    <div class="hero-row">
+      <div class="dice-slot" aria-hidden="true">
+        <div class="dice-scene">
+          <div class="dice-tilt">
+            <div class="dice">
+              <i class="f1"></i><i class="f2"></i><i class="f3"></i>
+              <i class="f4"></i><i class="f5"></i><i class="f6"></i>
+            </div>
+          </div>
+        </div>
+        <p class="dice-caption"></p>
+      </div>
+      <nav class="rp-btn rp-hero" aria-label="Random post">
+        <a href="#anchor-positioning">Random post</a>
+        <a href="#view-transitions">Random post</a>
+        <a href="#scroll-driven-animations">Random post</a>
+        <a href="#container-queries">Random post</a>
+        <a href="#has-selector">Random post</a>
+        <a href="#popover-api">Random post</a>
+        <a href="#subgrid">Random post</a>
+        <a href="#color-mix">Random post</a>
+        <a href="#text-wrap-balance">Random post</a>
+        <a href="#dialog-element">Random post</a>
+        <a href="#nesting">Random post</a>
+        <a href="#interpolate-size">Random post</a>
+      </nav>
+    </div>
+  </section>
+
+  <h2>Option 2 — the scrollbar is the dice</h2>
+  <p>
+    Each link only exists inside its slice of the page's scroll range (<code
+      >animation-timeline: scroll(root)</code
+    >
+    + <code>animation-range</code>): the scroll position at click time is the
+    pick. The accessibility tree only changes while the user scrolls. The die
+    is scroll-driven too — yes, this is farming entropy from your mouse wheel.
+  </p>
+  <section class="panel p-scroll">
+    <div class="hero-row">
+      <div class="dice-slot" aria-hidden="true">
+        <div class="dice-scene">
+          <div class="dice-tilt">
+            <div class="dice">
+              <i class="f1"></i><i class="f2"></i><i class="f3"></i>
+              <i class="f4"></i><i class="f5"></i><i class="f6"></i>
+            </div>
+          </div>
+        </div>
+        <p class="dice-caption"></p>
+      </div>
+      <nav class="rp-btn rp-scroll" aria-label="Random post">
+      <a href="#anchor-positioning">Random post</a>
+      <a href="#view-transitions">Random post</a>
+      <a href="#scroll-driven-animations">Random post</a>
+      <a href="#container-queries">Random post</a>
+      <a href="#has-selector">Random post</a>
+      <a href="#popover-api">Random post</a>
+      <a href="#subgrid">Random post</a>
+      <a href="#color-mix">Random post</a>
+      <a href="#text-wrap-balance">Random post</a>
+      <a href="#dialog-element">Random post</a>
+        <a href="#nesting">Random post</a>
+        <a href="#interpolate-size">Random post</a>
+      </nav>
+    </div>
+  </section>
+
+  <h2>Option 3 — your mouse path is the dice</h2>
+  <p>
+    Twelve inert <code>aria-hidden</code> hover zones form a moat around
+    <em>one</em> real link. The last zone the pointer crossed is remembered by
+    a CSS latch — a transition with an ~11-day delay, which is what we call
+    state management now. Keyboard and screen reader users see one link.
+  </p>
+  <section class="panel p-pointer">
+    <div class="rp-pointer">
+      <i class="rpz" aria-hidden="true"></i
+      ><i class="rpz" aria-hidden="true"></i>
+      <i class="rpz" aria-hidden="true"></i
+      ><i class="rpz" aria-hidden="true"></i>
+      <i class="rpz" aria-hidden="true"></i
+      ><i class="rpz" aria-hidden="true"></i>
+      <i class="rpz" aria-hidden="true"></i
+      ><i class="rpz" aria-hidden="true"></i>
+      <i class="rpz" aria-hidden="true"></i
+      ><i class="rpz" aria-hidden="true"></i>
+      <i class="rpz" aria-hidden="true"></i
+      ><i class="rpz" aria-hidden="true"></i>
+      <nav class="rp-btn" aria-label="Random post">
+        <a href="#anchor-positioning">Random post</a>
+        <a href="#view-transitions">Random post</a>
+        <a href="#scroll-driven-animations">Random post</a>
+        <a href="#container-queries">Random post</a>
+        <a href="#has-selector">Random post</a>
+        <a href="#popover-api">Random post</a>
+        <a href="#subgrid">Random post</a>
+        <a href="#color-mix">Random post</a>
+        <a href="#text-wrap-balance">Random post</a>
+        <a href="#dialog-element">Random post</a>
+        <a href="#nesting">Random post</a>
+        <a href="#interpolate-size">Random post</a>
+      </nav>
+      <div class="dice-slot" aria-hidden="true">
+        <div class="dice-scene">
+          <div class="dice-tilt">
+            <div class="dice">
+              <i class="f1"></i><i class="f2"></i><i class="f3"></i>
+              <i class="f4"></i><i class="f5"></i><i class="f6"></i>
+            </div>
+          </div>
+        </div>
+        <p class="dice-caption"></p>
+      </div>
+    </div>
+    <p class="caption">
+      Approach the button from different directions, then click — the post
+      changes with the approach path. Mouse only; keyboard users get Option 1.
+    </p>
+  </section>
+
+  <h2>The archive</h2>
+  <p>
+    Every button above rolls one of these twelve posts — the winner lights up:
+  </p>
+  <section class="archive">
+    <article id="anchor-positioning"><h3>Anchor positioning</h3></article>
+    <article id="view-transitions"><h3>View transitions</h3></article>
+    <article id="scroll-driven-animations">
+      <h3>Scroll-driven animations</h3>
+    </article>
+    <article id="container-queries"><h3>Container queries</h3></article>
+    <article id="has-selector"><h3>The :has() selector</h3></article>
+    <article id="popover-api"><h3>Popover API</h3></article>
+    <article id="subgrid"><h3>Subgrid</h3></article>
+    <article id="color-mix"><h3>color-mix()</h3></article>
+    <article id="text-wrap-balance"><h3>text-wrap: balance</h3></article>
+    <article id="dialog-element"><h3>The dialog element</h3></article>
+    <article id="nesting"><h3>CSS nesting</h3></article>
+    <article id="interpolate-size"><h3>interpolate-size</h3></article>
+  </section>
+
+  <a class="rp-back" href="#roll">↑ Go back — roll again</a>
+
+  <p class="caption" style="margin-top: 3rem">
+    A CSS-only riff on
+    <a
+      href="https://master.dev/blog/a-button-that-links-to-a-random-post-in-html-css-only/"
+      >“A Button That Links to a Random Post in HTML &amp; CSS Only”</a
+    >
+    by Chris Coyier, played with one extra house rule: only one link may be
+    visible at a time.
+  </p>
+
+</html>
