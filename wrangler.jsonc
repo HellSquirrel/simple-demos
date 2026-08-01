@@ -1,8 +1,12 @@
 {
   "name": "simple-demos",
   "compatibility_date": "2026-08-01",
+  "workers_dev": true,
   "assets": {
     "directory": "./public",
     "not_found_handling": "404-page"
-  }
+  },
+  "routes": [
+    { "pattern": "acorns.nutlore.me", "custom_domain": true }
+  ]
 }
