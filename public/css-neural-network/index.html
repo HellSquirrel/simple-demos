@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A Neural Network in Pure CSS, Training Included</title>
+  <meta
+    name="description"
+    content="CSS already knows sin(). This fish has to learn it — and the learning happens in your browser: the CSS cascade runs 80 steps of gradient descent at page load, no JavaScript anywhere."
+  />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://acorns.nutlore.me/css-neural-network/" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141419" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Simple Demos" />
+  <meta property="og:title" content="A Neural Network in Pure CSS, Training Included" />
+  <meta
+    property="og:description"
+    content="CSS already knows sin(). This fish has to learn it — and the learning happens in your browser: the CSS cascade runs 80 steps of gradient descent at page load, no JavaScript anywhere."
+  />
+  <meta property="og:url" content="https://acorns.nutlore.me/css-neural-network/" />
+  <meta property="og:image" content="https://acorns.nutlore.me/css-neural-network/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta
+    property="og:image:alt"
+    content="Two emoji fish over a sine wave in a dark tank: one swims the true curve, one swims a neural network's approximation, joined by an error bar."
+  />
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    /* ---------- page chrome ---------- */
+    :root {
+      color-scheme: light dark;
+      --accent: light-dark(#4f39fa, #8f7dff);
+      --accent-strong: light-dark(#3d28d8, #a99bff);
+      --surface: light-dark(#ffffff, #1d1d24);
+      --edge: light-dark(#e6e6ec, #2e2e38);
+      --ink-soft: light-dark(#42424c, #d2d2dd);
+      --ink-faint: light-dark(#70707a, #a2a2b0);
+    }
+    body {
+      font: 16px/1.6 system-ui, sans-serif;
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 3rem 1.25rem 6rem;
+      background: radial-gradient(
+          60rem 30rem at 50% -10rem,
+          light-dark(#eeebff, #221f3a),
+          transparent
+        ),
+        light-dark(#fafafa, #141419);
+      color: light-dark(#1a1a1f, #e8e8ec);
+    }
+    h1 {
+      font-size: clamp(1.7rem, 5vw, 2.2rem);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      scroll-margin-top: 1.5rem;
+      background: linear-gradient(
+        90deg,
+        var(--accent-strong),
+        light-dark(#8b31c9, #d68fff)
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    h2 {
+      font-size: 1.15rem;
+      margin: 3rem 0 0.5rem;
+      letter-spacing: -0.01em;
+      scroll-margin-top: 1.5rem;
+    }
+    p {
+      color: var(--ink-soft);
+      margin: 0.5rem 0 1rem;
+    }
+    code {
+      font: 0.85em/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: light-dark(#eeeef3, #26262f);
+      border-radius: 4px;
+      padding: 0.1em 0.35em;
+    }
+    pre.panel {
+      overflow-x: auto;
+      padding: 1rem 1.25rem;
+      line-height: 1.55;
+    }
+    pre.panel code {
+      background: none;
+      padding: 0;
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--edge);
+      border-radius: 14px;
+    }
+    a {
+      color: var(--accent);
+    }
+    footer {
+      margin-top: 4rem;
+      font-size: 0.9rem;
+      color: var(--ink-faint);
+    }
+    .small {
+      font-size: 0.85rem;
+      color: var(--ink-faint);
+    }
+
+    /* ---------- registered properties (generated) ---------- */
+    /* gen:props */
+      @property --u1a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --p1a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v1a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mu1a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mp1a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mv1a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --u2a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --p2a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v2a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mu2a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mp2a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mv2a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --u3a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --p3a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v3a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mu3a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mp3a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mv3a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --u4a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --p4a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v4a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mu4a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mp4a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mv4a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --u5a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --p5a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v5a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mu5a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mp5a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mv5a { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --u1b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --p1b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v1b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mu1b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mp1b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mv1b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --u2b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --p2b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v2b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mu2b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mp2b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mv2b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --u3b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --p3b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v3b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mu3b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mp3b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mv3b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --u4b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --p4b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v4b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mu4b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mp4b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mv4b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --u5b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --p5b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v5b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mu5b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mp5b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mv5b { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --qa { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mqa { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --qb { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --mqb { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x1 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x2 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x3 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x4 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x5 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x6 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x7 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x8 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x9 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x10 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x11 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h1x12 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x1 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x2 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x3 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x4 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x5 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x6 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x7 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x8 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x9 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x10 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x11 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h2x12 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x1 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x2 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x3 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x4 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x5 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x6 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x7 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x8 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x9 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x10 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x11 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h3x12 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x1 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x2 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x3 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x4 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x5 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x6 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x7 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x8 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x9 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x10 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x11 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h4x12 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x1 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x2 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x3 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x4 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x5 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x6 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x7 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x8 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x9 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x10 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x11 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --h5x12 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r1 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r2 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r3 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r4 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r5 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r6 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r7 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r8 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r9 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r10 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r11 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --r12 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --L { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --ys { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --yt { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --ysv { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --xi { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --Li { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --Ld1 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --Ld2 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --Ld3 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --x { syntax: "<number>"; inherits: false; initial-value: 0; }
+/* /gen:props */
+
+    /* ---------- the training loop itself (generated) ---------- */
+    /* gen:trainer */
+      /* theta_0 — random init, printed by generate.mjs, never trained offline */
+      :root {
+        --u1b: 4.270716034593239; --p1b: -2.981027155018006; --v1b: -0.24889608656424347;
+        --u2b: 3.441427722604887; --p2b: -2.0211002266589624; --v2b: -0.6904279598506619;
+        --u3b: -1.2052945040975325; --p3b: 0.3416163578679748; --v3b: 0.15443667210517842;
+        --u4b: 5.720336485203596; --p4b: -5.364627226431433; --v4b: 0.43981932341557634;
+        --u5b: -5.437006141491729; --p5b: 1.5605430006630003; --v5b: -0.4021295511322707;
+        --qb: 0;
+      }
+
+      /* THE TRAINING LOOP. One rule per generation parity; the nested DOM
+         below runs them 80 times. Each element computes one full-batch
+         gradient-descent-with-momentum step from its parent's weights. */
+      .st { display: contents; }
+      .st.a {
+        --h1x1: max(0, var(--u1b) * 0.041666666666666664 + var(--p1b));
+        --h1x2: max(0, var(--u1b) * 0.125 + var(--p1b));
+        --h1x3: max(0, var(--u1b) * 0.20833333333333334 + var(--p1b));
+        --h1x4: max(0, var(--u1b) * 0.2916666666666667 + var(--p1b));
+        --h1x5: max(0, var(--u1b) * 0.375 + var(--p1b));
+        --h1x6: max(0, var(--u1b) * 0.4583333333333333 + var(--p1b));
+        --h1x7: max(0, var(--u1b) * 0.5416666666666666 + var(--p1b));
+        --h1x8: max(0, var(--u1b) * 0.625 + var(--p1b));
+        --h1x9: max(0, var(--u1b) * 0.7083333333333334 + var(--p1b));
+        --h1x10: max(0, var(--u1b) * 0.7916666666666666 + var(--p1b));
+        --h1x11: max(0, var(--u1b) * 0.875 + var(--p1b));
+        --h1x12: max(0, var(--u1b) * 0.9583333333333334 + var(--p1b));
+        --h2x1: max(0, var(--u2b) * 0.041666666666666664 + var(--p2b));
+        --h2x2: max(0, var(--u2b) * 0.125 + var(--p2b));
+        --h2x3: max(0, var(--u2b) * 0.20833333333333334 + var(--p2b));
+        --h2x4: max(0, var(--u2b) * 0.2916666666666667 + var(--p2b));
+        --h2x5: max(0, var(--u2b) * 0.375 + var(--p2b));
+        --h2x6: max(0, var(--u2b) * 0.4583333333333333 + var(--p2b));
+        --h2x7: max(0, var(--u2b) * 0.5416666666666666 + var(--p2b));
+        --h2x8: max(0, var(--u2b) * 0.625 + var(--p2b));
+        --h2x9: max(0, var(--u2b) * 0.7083333333333334 + var(--p2b));
+        --h2x10: max(0, var(--u2b) * 0.7916666666666666 + var(--p2b));
+        --h2x11: max(0, var(--u2b) * 0.875 + var(--p2b));
+        --h2x12: max(0, var(--u2b) * 0.9583333333333334 + var(--p2b));
+        --h3x1: max(0, var(--u3b) * 0.041666666666666664 + var(--p3b));
+        --h3x2: max(0, var(--u3b) * 0.125 + var(--p3b));
+        --h3x3: max(0, var(--u3b) * 0.20833333333333334 + var(--p3b));
+        --h3x4: max(0, var(--u3b) * 0.2916666666666667 + var(--p3b));
+        --h3x5: max(0, var(--u3b) * 0.375 + var(--p3b));
+        --h3x6: max(0, var(--u3b) * 0.4583333333333333 + var(--p3b));
+        --h3x7: max(0, var(--u3b) * 0.5416666666666666 + var(--p3b));
+        --h3x8: max(0, var(--u3b) * 0.625 + var(--p3b));
+        --h3x9: max(0, var(--u3b) * 0.7083333333333334 + var(--p3b));
+        --h3x10: max(0, var(--u3b) * 0.7916666666666666 + var(--p3b));
+        --h3x11: max(0, var(--u3b) * 0.875 + var(--p3b));
+        --h3x12: max(0, var(--u3b) * 0.9583333333333334 + var(--p3b));
+        --h4x1: max(0, var(--u4b) * 0.041666666666666664 + var(--p4b));
+        --h4x2: max(0, var(--u4b) * 0.125 + var(--p4b));
+        --h4x3: max(0, var(--u4b) * 0.20833333333333334 + var(--p4b));
+        --h4x4: max(0, var(--u4b) * 0.2916666666666667 + var(--p4b));
+        --h4x5: max(0, var(--u4b) * 0.375 + var(--p4b));
+        --h4x6: max(0, var(--u4b) * 0.4583333333333333 + var(--p4b));
+        --h4x7: max(0, var(--u4b) * 0.5416666666666666 + var(--p4b));
+        --h4x8: max(0, var(--u4b) * 0.625 + var(--p4b));
+        --h4x9: max(0, var(--u4b) * 0.7083333333333334 + var(--p4b));
+        --h4x10: max(0, var(--u4b) * 0.7916666666666666 + var(--p4b));
+        --h4x11: max(0, var(--u4b) * 0.875 + var(--p4b));
+        --h4x12: max(0, var(--u4b) * 0.9583333333333334 + var(--p4b));
+        --h5x1: max(0, var(--u5b) * 0.041666666666666664 + var(--p5b));
+        --h5x2: max(0, var(--u5b) * 0.125 + var(--p5b));
+        --h5x3: max(0, var(--u5b) * 0.20833333333333334 + var(--p5b));
+        --h5x4: max(0, var(--u5b) * 0.2916666666666667 + var(--p5b));
+        --h5x5: max(0, var(--u5b) * 0.375 + var(--p5b));
+        --h5x6: max(0, var(--u5b) * 0.4583333333333333 + var(--p5b));
+        --h5x7: max(0, var(--u5b) * 0.5416666666666666 + var(--p5b));
+        --h5x8: max(0, var(--u5b) * 0.625 + var(--p5b));
+        --h5x9: max(0, var(--u5b) * 0.7083333333333334 + var(--p5b));
+        --h5x10: max(0, var(--u5b) * 0.7916666666666666 + var(--p5b));
+        --h5x11: max(0, var(--u5b) * 0.875 + var(--p5b));
+        --h5x12: max(0, var(--u5b) * 0.9583333333333334 + var(--p5b));
+        --r1: calc(var(--v1b) * var(--h1x1) + var(--v2b) * var(--h2x1) + var(--v3b) * var(--h3x1) + var(--v4b) * var(--h4x1) + var(--v5b) * var(--h5x1) + var(--qb) - 0.25881904510252074);
+        --r2: calc(var(--v1b) * var(--h1x2) + var(--v2b) * var(--h2x2) + var(--v3b) * var(--h3x2) + var(--v4b) * var(--h4x2) + var(--v5b) * var(--h5x2) + var(--qb) - 0.7071067811865475);
+        --r3: calc(var(--v1b) * var(--h1x3) + var(--v2b) * var(--h2x3) + var(--v3b) * var(--h3x3) + var(--v4b) * var(--h4x3) + var(--v5b) * var(--h5x3) + var(--qb) - 0.9659258262890683);
+        --r4: calc(var(--v1b) * var(--h1x4) + var(--v2b) * var(--h2x4) + var(--v3b) * var(--h3x4) + var(--v4b) * var(--h4x4) + var(--v5b) * var(--h5x4) + var(--qb) - 0.9659258262890683);
+        --r5: calc(var(--v1b) * var(--h1x5) + var(--v2b) * var(--h2x5) + var(--v3b) * var(--h3x5) + var(--v4b) * var(--h4x5) + var(--v5b) * var(--h5x5) + var(--qb) - 0.7071067811865476);
+        --r6: calc(var(--v1b) * var(--h1x6) + var(--v2b) * var(--h2x6) + var(--v3b) * var(--h3x6) + var(--v4b) * var(--h4x6) + var(--v5b) * var(--h5x6) + var(--qb) - 0.258819045102521);
+        --r7: calc(var(--v1b) * var(--h1x7) + var(--v2b) * var(--h2x7) + var(--v3b) * var(--h3x7) + var(--v4b) * var(--h4x7) + var(--v5b) * var(--h5x7) + var(--qb) - -0.25881904510252035);
+        --r8: calc(var(--v1b) * var(--h1x8) + var(--v2b) * var(--h2x8) + var(--v3b) * var(--h3x8) + var(--v4b) * var(--h4x8) + var(--v5b) * var(--h5x8) + var(--qb) - -0.7071067811865475);
+        --r9: calc(var(--v1b) * var(--h1x9) + var(--v2b) * var(--h2x9) + var(--v3b) * var(--h3x9) + var(--v4b) * var(--h4x9) + var(--v5b) * var(--h5x9) + var(--qb) - -0.9659258262890683);
+        --r10: calc(var(--v1b) * var(--h1x10) + var(--v2b) * var(--h2x10) + var(--v3b) * var(--h3x10) + var(--v4b) * var(--h4x10) + var(--v5b) * var(--h5x10) + var(--qb) - -0.9659258262890684);
+        --r11: calc(var(--v1b) * var(--h1x11) + var(--v2b) * var(--h2x11) + var(--v3b) * var(--h3x11) + var(--v4b) * var(--h4x11) + var(--v5b) * var(--h5x11) + var(--qb) - -0.7071067811865477);
+        --r12: calc(var(--v1b) * var(--h1x12) + var(--v2b) * var(--h2x12) + var(--v3b) * var(--h3x12) + var(--v4b) * var(--h4x12) + var(--v5b) * var(--h5x12) + var(--qb) - -0.2588190451025207);
+        --mu1a: calc(0.9 * var(--mu1b) - 0.049999999999999996 * var(--v1b) * (var(--r1)*sign(var(--h1x1))*0.041666666666666664 + var(--r2)*sign(var(--h1x2))*0.125 + var(--r3)*sign(var(--h1x3))*0.20833333333333334 + var(--r4)*sign(var(--h1x4))*0.2916666666666667 + var(--r5)*sign(var(--h1x5))*0.375 + var(--r6)*sign(var(--h1x6))*0.4583333333333333 + var(--r7)*sign(var(--h1x7))*0.5416666666666666 + var(--r8)*sign(var(--h1x8))*0.625 + var(--r9)*sign(var(--h1x9))*0.7083333333333334 + var(--r10)*sign(var(--h1x10))*0.7916666666666666 + var(--r11)*sign(var(--h1x11))*0.875 + var(--r12)*sign(var(--h1x12))*0.9583333333333334));
+        --mp1a: calc(0.9 * var(--mp1b) - 0.049999999999999996 * var(--v1b) * (var(--r1)*sign(var(--h1x1)) + var(--r2)*sign(var(--h1x2)) + var(--r3)*sign(var(--h1x3)) + var(--r4)*sign(var(--h1x4)) + var(--r5)*sign(var(--h1x5)) + var(--r6)*sign(var(--h1x6)) + var(--r7)*sign(var(--h1x7)) + var(--r8)*sign(var(--h1x8)) + var(--r9)*sign(var(--h1x9)) + var(--r10)*sign(var(--h1x10)) + var(--r11)*sign(var(--h1x11)) + var(--r12)*sign(var(--h1x12))));
+        --mv1a: calc(0.9 * var(--mv1b) - 0.049999999999999996 * (var(--r1)*var(--h1x1) + var(--r2)*var(--h1x2) + var(--r3)*var(--h1x3) + var(--r4)*var(--h1x4) + var(--r5)*var(--h1x5) + var(--r6)*var(--h1x6) + var(--r7)*var(--h1x7) + var(--r8)*var(--h1x8) + var(--r9)*var(--h1x9) + var(--r10)*var(--h1x10) + var(--r11)*var(--h1x11) + var(--r12)*var(--h1x12)));
+        --u1a: calc(var(--u1b) + var(--mu1a));
+        --p1a: calc(var(--p1b) + var(--mp1a));
+        --v1a: calc(var(--v1b) + var(--mv1a));
+        --mu2a: calc(0.9 * var(--mu2b) - 0.049999999999999996 * var(--v2b) * (var(--r1)*sign(var(--h2x1))*0.041666666666666664 + var(--r2)*sign(var(--h2x2))*0.125 + var(--r3)*sign(var(--h2x3))*0.20833333333333334 + var(--r4)*sign(var(--h2x4))*0.2916666666666667 + var(--r5)*sign(var(--h2x5))*0.375 + var(--r6)*sign(var(--h2x6))*0.4583333333333333 + var(--r7)*sign(var(--h2x7))*0.5416666666666666 + var(--r8)*sign(var(--h2x8))*0.625 + var(--r9)*sign(var(--h2x9))*0.7083333333333334 + var(--r10)*sign(var(--h2x10))*0.7916666666666666 + var(--r11)*sign(var(--h2x11))*0.875 + var(--r12)*sign(var(--h2x12))*0.9583333333333334));
+        --mp2a: calc(0.9 * var(--mp2b) - 0.049999999999999996 * var(--v2b) * (var(--r1)*sign(var(--h2x1)) + var(--r2)*sign(var(--h2x2)) + var(--r3)*sign(var(--h2x3)) + var(--r4)*sign(var(--h2x4)) + var(--r5)*sign(var(--h2x5)) + var(--r6)*sign(var(--h2x6)) + var(--r7)*sign(var(--h2x7)) + var(--r8)*sign(var(--h2x8)) + var(--r9)*sign(var(--h2x9)) + var(--r10)*sign(var(--h2x10)) + var(--r11)*sign(var(--h2x11)) + var(--r12)*sign(var(--h2x12))));
+        --mv2a: calc(0.9 * var(--mv2b) - 0.049999999999999996 * (var(--r1)*var(--h2x1) + var(--r2)*var(--h2x2) + var(--r3)*var(--h2x3) + var(--r4)*var(--h2x4) + var(--r5)*var(--h2x5) + var(--r6)*var(--h2x6) + var(--r7)*var(--h2x7) + var(--r8)*var(--h2x8) + var(--r9)*var(--h2x9) + var(--r10)*var(--h2x10) + var(--r11)*var(--h2x11) + var(--r12)*var(--h2x12)));
+        --u2a: calc(var(--u2b) + var(--mu2a));
+        --p2a: calc(var(--p2b) + var(--mp2a));
+        --v2a: calc(var(--v2b) + var(--mv2a));
+        --mu3a: calc(0.9 * var(--mu3b) - 0.049999999999999996 * var(--v3b) * (var(--r1)*sign(var(--h3x1))*0.041666666666666664 + var(--r2)*sign(var(--h3x2))*0.125 + var(--r3)*sign(var(--h3x3))*0.20833333333333334 + var(--r4)*sign(var(--h3x4))*0.2916666666666667 + var(--r5)*sign(var(--h3x5))*0.375 + var(--r6)*sign(var(--h3x6))*0.4583333333333333 + var(--r7)*sign(var(--h3x7))*0.5416666666666666 + var(--r8)*sign(var(--h3x8))*0.625 + var(--r9)*sign(var(--h3x9))*0.7083333333333334 + var(--r10)*sign(var(--h3x10))*0.7916666666666666 + var(--r11)*sign(var(--h3x11))*0.875 + var(--r12)*sign(var(--h3x12))*0.9583333333333334));
+        --mp3a: calc(0.9 * var(--mp3b) - 0.049999999999999996 * var(--v3b) * (var(--r1)*sign(var(--h3x1)) + var(--r2)*sign(var(--h3x2)) + var(--r3)*sign(var(--h3x3)) + var(--r4)*sign(var(--h3x4)) + var(--r5)*sign(var(--h3x5)) + var(--r6)*sign(var(--h3x6)) + var(--r7)*sign(var(--h3x7)) + var(--r8)*sign(var(--h3x8)) + var(--r9)*sign(var(--h3x9)) + var(--r10)*sign(var(--h3x10)) + var(--r11)*sign(var(--h3x11)) + var(--r12)*sign(var(--h3x12))));
+        --mv3a: calc(0.9 * var(--mv3b) - 0.049999999999999996 * (var(--r1)*var(--h3x1) + var(--r2)*var(--h3x2) + var(--r3)*var(--h3x3) + var(--r4)*var(--h3x4) + var(--r5)*var(--h3x5) + var(--r6)*var(--h3x6) + var(--r7)*var(--h3x7) + var(--r8)*var(--h3x8) + var(--r9)*var(--h3x9) + var(--r10)*var(--h3x10) + var(--r11)*var(--h3x11) + var(--r12)*var(--h3x12)));
+        --u3a: calc(var(--u3b) + var(--mu3a));
+        --p3a: calc(var(--p3b) + var(--mp3a));
+        --v3a: calc(var(--v3b) + var(--mv3a));
+        --mu4a: calc(0.9 * var(--mu4b) - 0.049999999999999996 * var(--v4b) * (var(--r1)*sign(var(--h4x1))*0.041666666666666664 + var(--r2)*sign(var(--h4x2))*0.125 + var(--r3)*sign(var(--h4x3))*0.20833333333333334 + var(--r4)*sign(var(--h4x4))*0.2916666666666667 + var(--r5)*sign(var(--h4x5))*0.375 + var(--r6)*sign(var(--h4x6))*0.4583333333333333 + var(--r7)*sign(var(--h4x7))*0.5416666666666666 + var(--r8)*sign(var(--h4x8))*0.625 + var(--r9)*sign(var(--h4x9))*0.7083333333333334 + var(--r10)*sign(var(--h4x10))*0.7916666666666666 + var(--r11)*sign(var(--h4x11))*0.875 + var(--r12)*sign(var(--h4x12))*0.9583333333333334));
+        --mp4a: calc(0.9 * var(--mp4b) - 0.049999999999999996 * var(--v4b) * (var(--r1)*sign(var(--h4x1)) + var(--r2)*sign(var(--h4x2)) + var(--r3)*sign(var(--h4x3)) + var(--r4)*sign(var(--h4x4)) + var(--r5)*sign(var(--h4x5)) + var(--r6)*sign(var(--h4x6)) + var(--r7)*sign(var(--h4x7)) + var(--r8)*sign(var(--h4x8)) + var(--r9)*sign(var(--h4x9)) + var(--r10)*sign(var(--h4x10)) + var(--r11)*sign(var(--h4x11)) + var(--r12)*sign(var(--h4x12))));
+        --mv4a: calc(0.9 * var(--mv4b) - 0.049999999999999996 * (var(--r1)*var(--h4x1) + var(--r2)*var(--h4x2) + var(--r3)*var(--h4x3) + var(--r4)*var(--h4x4) + var(--r5)*var(--h4x5) + var(--r6)*var(--h4x6) + var(--r7)*var(--h4x7) + var(--r8)*var(--h4x8) + var(--r9)*var(--h4x9) + var(--r10)*var(--h4x10) + var(--r11)*var(--h4x11) + var(--r12)*var(--h4x12)));
+        --u4a: calc(var(--u4b) + var(--mu4a));
+        --p4a: calc(var(--p4b) + var(--mp4a));
+        --v4a: calc(var(--v4b) + var(--mv4a));
+        --mu5a: calc(0.9 * var(--mu5b) - 0.049999999999999996 * var(--v5b) * (var(--r1)*sign(var(--h5x1))*0.041666666666666664 + var(--r2)*sign(var(--h5x2))*0.125 + var(--r3)*sign(var(--h5x3))*0.20833333333333334 + var(--r4)*sign(var(--h5x4))*0.2916666666666667 + var(--r5)*sign(var(--h5x5))*0.375 + var(--r6)*sign(var(--h5x6))*0.4583333333333333 + var(--r7)*sign(var(--h5x7))*0.5416666666666666 + var(--r8)*sign(var(--h5x8))*0.625 + var(--r9)*sign(var(--h5x9))*0.7083333333333334 + var(--r10)*sign(var(--h5x10))*0.7916666666666666 + var(--r11)*sign(var(--h5x11))*0.875 + var(--r12)*sign(var(--h5x12))*0.9583333333333334));
+        --mp5a: calc(0.9 * var(--mp5b) - 0.049999999999999996 * var(--v5b) * (var(--r1)*sign(var(--h5x1)) + var(--r2)*sign(var(--h5x2)) + var(--r3)*sign(var(--h5x3)) + var(--r4)*sign(var(--h5x4)) + var(--r5)*sign(var(--h5x5)) + var(--r6)*sign(var(--h5x6)) + var(--r7)*sign(var(--h5x7)) + var(--r8)*sign(var(--h5x8)) + var(--r9)*sign(var(--h5x9)) + var(--r10)*sign(var(--h5x10)) + var(--r11)*sign(var(--h5x11)) + var(--r12)*sign(var(--h5x12))));
+        --mv5a: calc(0.9 * var(--mv5b) - 0.049999999999999996 * (var(--r1)*var(--h5x1) + var(--r2)*var(--h5x2) + var(--r3)*var(--h5x3) + var(--r4)*var(--h5x4) + var(--r5)*var(--h5x5) + var(--r6)*var(--h5x6) + var(--r7)*var(--h5x7) + var(--r8)*var(--h5x8) + var(--r9)*var(--h5x9) + var(--r10)*var(--h5x10) + var(--r11)*var(--h5x11) + var(--r12)*var(--h5x12)));
+        --u5a: calc(var(--u5b) + var(--mu5a));
+        --p5a: calc(var(--p5b) + var(--mp5a));
+        --v5a: calc(var(--v5b) + var(--mv5a));
+        --mqa: calc(0.9 * var(--mqb) - 0.049999999999999996 * (var(--r1) + var(--r2) + var(--r3) + var(--r4) + var(--r5) + var(--r6) + var(--r7) + var(--r8) + var(--r9) + var(--r10) + var(--r11) + var(--r12)));
+        --qa: calc(var(--qb) + var(--mqa));
+      }
+      .st.b {
+        --h1x1: max(0, var(--u1a) * 0.041666666666666664 + var(--p1a));
+        --h1x2: max(0, var(--u1a) * 0.125 + var(--p1a));
+        --h1x3: max(0, var(--u1a) * 0.20833333333333334 + var(--p1a));
+        --h1x4: max(0, var(--u1a) * 0.2916666666666667 + var(--p1a));
+        --h1x5: max(0, var(--u1a) * 0.375 + var(--p1a));
+        --h1x6: max(0, var(--u1a) * 0.4583333333333333 + var(--p1a));
+        --h1x7: max(0, var(--u1a) * 0.5416666666666666 + var(--p1a));
+        --h1x8: max(0, var(--u1a) * 0.625 + var(--p1a));
+        --h1x9: max(0, var(--u1a) * 0.7083333333333334 + var(--p1a));
+        --h1x10: max(0, var(--u1a) * 0.7916666666666666 + var(--p1a));
+        --h1x11: max(0, var(--u1a) * 0.875 + var(--p1a));
+        --h1x12: max(0, var(--u1a) * 0.9583333333333334 + var(--p1a));
+        --h2x1: max(0, var(--u2a) * 0.041666666666666664 + var(--p2a));
+        --h2x2: max(0, var(--u2a) * 0.125 + var(--p2a));
+        --h2x3: max(0, var(--u2a) * 0.20833333333333334 + var(--p2a));
+        --h2x4: max(0, var(--u2a) * 0.2916666666666667 + var(--p2a));
+        --h2x5: max(0, var(--u2a) * 0.375 + var(--p2a));
+        --h2x6: max(0, var(--u2a) * 0.4583333333333333 + var(--p2a));
+        --h2x7: max(0, var(--u2a) * 0.5416666666666666 + var(--p2a));
+        --h2x8: max(0, var(--u2a) * 0.625 + var(--p2a));
+        --h2x9: max(0, var(--u2a) * 0.7083333333333334 + var(--p2a));
+        --h2x10: max(0, var(--u2a) * 0.7916666666666666 + var(--p2a));
+        --h2x11: max(0, var(--u2a) * 0.875 + var(--p2a));
+        --h2x12: max(0, var(--u2a) * 0.9583333333333334 + var(--p2a));
+        --h3x1: max(0, var(--u3a) * 0.041666666666666664 + var(--p3a));
+        --h3x2: max(0, var(--u3a) * 0.125 + var(--p3a));
+        --h3x3: max(0, var(--u3a) * 0.20833333333333334 + var(--p3a));
+        --h3x4: max(0, var(--u3a) * 0.2916666666666667 + var(--p3a));
+        --h3x5: max(0, var(--u3a) * 0.375 + var(--p3a));
+        --h3x6: max(0, var(--u3a) * 0.4583333333333333 + var(--p3a));
+        --h3x7: max(0, var(--u3a) * 0.5416666666666666 + var(--p3a));
+        --h3x8: max(0, var(--u3a) * 0.625 + var(--p3a));
+        --h3x9: max(0, var(--u3a) * 0.7083333333333334 + var(--p3a));
+        --h3x10: max(0, var(--u3a) * 0.7916666666666666 + var(--p3a));
+        --h3x11: max(0, var(--u3a) * 0.875 + var(--p3a));
+        --h3x12: max(0, var(--u3a) * 0.9583333333333334 + var(--p3a));
+        --h4x1: max(0, var(--u4a) * 0.041666666666666664 + var(--p4a));
+        --h4x2: max(0, var(--u4a) * 0.125 + var(--p4a));
+        --h4x3: max(0, var(--u4a) * 0.20833333333333334 + var(--p4a));
+        --h4x4: max(0, var(--u4a) * 0.2916666666666667 + var(--p4a));
+        --h4x5: max(0, var(--u4a) * 0.375 + var(--p4a));
+        --h4x6: max(0, var(--u4a) * 0.4583333333333333 + var(--p4a));
+        --h4x7: max(0, var(--u4a) * 0.5416666666666666 + var(--p4a));
+        --h4x8: max(0, var(--u4a) * 0.625 + var(--p4a));
+        --h4x9: max(0, var(--u4a) * 0.7083333333333334 + var(--p4a));
+        --h4x10: max(0, var(--u4a) * 0.7916666666666666 + var(--p4a));
+        --h4x11: max(0, var(--u4a) * 0.875 + var(--p4a));
+        --h4x12: max(0, var(--u4a) * 0.9583333333333334 + var(--p4a));
+        --h5x1: max(0, var(--u5a) * 0.041666666666666664 + var(--p5a));
+        --h5x2: max(0, var(--u5a) * 0.125 + var(--p5a));
+        --h5x3: max(0, var(--u5a) * 0.20833333333333334 + var(--p5a));
+        --h5x4: max(0, var(--u5a) * 0.2916666666666667 + var(--p5a));
+        --h5x5: max(0, var(--u5a) * 0.375 + var(--p5a));
+        --h5x6: max(0, var(--u5a) * 0.4583333333333333 + var(--p5a));
+        --h5x7: max(0, var(--u5a) * 0.5416666666666666 + var(--p5a));
+        --h5x8: max(0, var(--u5a) * 0.625 + var(--p5a));
+        --h5x9: max(0, var(--u5a) * 0.7083333333333334 + var(--p5a));
+        --h5x10: max(0, var(--u5a) * 0.7916666666666666 + var(--p5a));
+        --h5x11: max(0, var(--u5a) * 0.875 + var(--p5a));
+        --h5x12: max(0, var(--u5a) * 0.9583333333333334 + var(--p5a));
+        --r1: calc(var(--v1a) * var(--h1x1) + var(--v2a) * var(--h2x1) + var(--v3a) * var(--h3x1) + var(--v4a) * var(--h4x1) + var(--v5a) * var(--h5x1) + var(--qa) - 0.25881904510252074);
+        --r2: calc(var(--v1a) * var(--h1x2) + var(--v2a) * var(--h2x2) + var(--v3a) * var(--h3x2) + var(--v4a) * var(--h4x2) + var(--v5a) * var(--h5x2) + var(--qa) - 0.7071067811865475);
+        --r3: calc(var(--v1a) * var(--h1x3) + var(--v2a) * var(--h2x3) + var(--v3a) * var(--h3x3) + var(--v4a) * var(--h4x3) + var(--v5a) * var(--h5x3) + var(--qa) - 0.9659258262890683);
+        --r4: calc(var(--v1a) * var(--h1x4) + var(--v2a) * var(--h2x4) + var(--v3a) * var(--h3x4) + var(--v4a) * var(--h4x4) + var(--v5a) * var(--h5x4) + var(--qa) - 0.9659258262890683);
+        --r5: calc(var(--v1a) * var(--h1x5) + var(--v2a) * var(--h2x5) + var(--v3a) * var(--h3x5) + var(--v4a) * var(--h4x5) + var(--v5a) * var(--h5x5) + var(--qa) - 0.7071067811865476);
+        --r6: calc(var(--v1a) * var(--h1x6) + var(--v2a) * var(--h2x6) + var(--v3a) * var(--h3x6) + var(--v4a) * var(--h4x6) + var(--v5a) * var(--h5x6) + var(--qa) - 0.258819045102521);
+        --r7: calc(var(--v1a) * var(--h1x7) + var(--v2a) * var(--h2x7) + var(--v3a) * var(--h3x7) + var(--v4a) * var(--h4x7) + var(--v5a) * var(--h5x7) + var(--qa) - -0.25881904510252035);
+        --r8: calc(var(--v1a) * var(--h1x8) + var(--v2a) * var(--h2x8) + var(--v3a) * var(--h3x8) + var(--v4a) * var(--h4x8) + var(--v5a) * var(--h5x8) + var(--qa) - -0.7071067811865475);
+        --r9: calc(var(--v1a) * var(--h1x9) + var(--v2a) * var(--h2x9) + var(--v3a) * var(--h3x9) + var(--v4a) * var(--h4x9) + var(--v5a) * var(--h5x9) + var(--qa) - -0.9659258262890683);
+        --r10: calc(var(--v1a) * var(--h1x10) + var(--v2a) * var(--h2x10) + var(--v3a) * var(--h3x10) + var(--v4a) * var(--h4x10) + var(--v5a) * var(--h5x10) + var(--qa) - -0.9659258262890684);
+        --r11: calc(var(--v1a) * var(--h1x11) + var(--v2a) * var(--h2x11) + var(--v3a) * var(--h3x11) + var(--v4a) * var(--h4x11) + var(--v5a) * var(--h5x11) + var(--qa) - -0.7071067811865477);
+        --r12: calc(var(--v1a) * var(--h1x12) + var(--v2a) * var(--h2x12) + var(--v3a) * var(--h3x12) + var(--v4a) * var(--h4x12) + var(--v5a) * var(--h5x12) + var(--qa) - -0.2588190451025207);
+        --mu1b: calc(0.9 * var(--mu1a) - 0.049999999999999996 * var(--v1a) * (var(--r1)*sign(var(--h1x1))*0.041666666666666664 + var(--r2)*sign(var(--h1x2))*0.125 + var(--r3)*sign(var(--h1x3))*0.20833333333333334 + var(--r4)*sign(var(--h1x4))*0.2916666666666667 + var(--r5)*sign(var(--h1x5))*0.375 + var(--r6)*sign(var(--h1x6))*0.4583333333333333 + var(--r7)*sign(var(--h1x7))*0.5416666666666666 + var(--r8)*sign(var(--h1x8))*0.625 + var(--r9)*sign(var(--h1x9))*0.7083333333333334 + var(--r10)*sign(var(--h1x10))*0.7916666666666666 + var(--r11)*sign(var(--h1x11))*0.875 + var(--r12)*sign(var(--h1x12))*0.9583333333333334));
+        --mp1b: calc(0.9 * var(--mp1a) - 0.049999999999999996 * var(--v1a) * (var(--r1)*sign(var(--h1x1)) + var(--r2)*sign(var(--h1x2)) + var(--r3)*sign(var(--h1x3)) + var(--r4)*sign(var(--h1x4)) + var(--r5)*sign(var(--h1x5)) + var(--r6)*sign(var(--h1x6)) + var(--r7)*sign(var(--h1x7)) + var(--r8)*sign(var(--h1x8)) + var(--r9)*sign(var(--h1x9)) + var(--r10)*sign(var(--h1x10)) + var(--r11)*sign(var(--h1x11)) + var(--r12)*sign(var(--h1x12))));
+        --mv1b: calc(0.9 * var(--mv1a) - 0.049999999999999996 * (var(--r1)*var(--h1x1) + var(--r2)*var(--h1x2) + var(--r3)*var(--h1x3) + var(--r4)*var(--h1x4) + var(--r5)*var(--h1x5) + var(--r6)*var(--h1x6) + var(--r7)*var(--h1x7) + var(--r8)*var(--h1x8) + var(--r9)*var(--h1x9) + var(--r10)*var(--h1x10) + var(--r11)*var(--h1x11) + var(--r12)*var(--h1x12)));
+        --u1b: calc(var(--u1a) + var(--mu1b));
+        --p1b: calc(var(--p1a) + var(--mp1b));
+        --v1b: calc(var(--v1a) + var(--mv1b));
+        --mu2b: calc(0.9 * var(--mu2a) - 0.049999999999999996 * var(--v2a) * (var(--r1)*sign(var(--h2x1))*0.041666666666666664 + var(--r2)*sign(var(--h2x2))*0.125 + var(--r3)*sign(var(--h2x3))*0.20833333333333334 + var(--r4)*sign(var(--h2x4))*0.2916666666666667 + var(--r5)*sign(var(--h2x5))*0.375 + var(--r6)*sign(var(--h2x6))*0.4583333333333333 + var(--r7)*sign(var(--h2x7))*0.5416666666666666 + var(--r8)*sign(var(--h2x8))*0.625 + var(--r9)*sign(var(--h2x9))*0.7083333333333334 + var(--r10)*sign(var(--h2x10))*0.7916666666666666 + var(--r11)*sign(var(--h2x11))*0.875 + var(--r12)*sign(var(--h2x12))*0.9583333333333334));
+        --mp2b: calc(0.9 * var(--mp2a) - 0.049999999999999996 * var(--v2a) * (var(--r1)*sign(var(--h2x1)) + var(--r2)*sign(var(--h2x2)) + var(--r3)*sign(var(--h2x3)) + var(--r4)*sign(var(--h2x4)) + var(--r5)*sign(var(--h2x5)) + var(--r6)*sign(var(--h2x6)) + var(--r7)*sign(var(--h2x7)) + var(--r8)*sign(var(--h2x8)) + var(--r9)*sign(var(--h2x9)) + var(--r10)*sign(var(--h2x10)) + var(--r11)*sign(var(--h2x11)) + var(--r12)*sign(var(--h2x12))));
+        --mv2b: calc(0.9 * var(--mv2a) - 0.049999999999999996 * (var(--r1)*var(--h2x1) + var(--r2)*var(--h2x2) + var(--r3)*var(--h2x3) + var(--r4)*var(--h2x4) + var(--r5)*var(--h2x5) + var(--r6)*var(--h2x6) + var(--r7)*var(--h2x7) + var(--r8)*var(--h2x8) + var(--r9)*var(--h2x9) + var(--r10)*var(--h2x10) + var(--r11)*var(--h2x11) + var(--r12)*var(--h2x12)));
+        --u2b: calc(var(--u2a) + var(--mu2b));
+        --p2b: calc(var(--p2a) + var(--mp2b));
+        --v2b: calc(var(--v2a) + var(--mv2b));
+        --mu3b: calc(0.9 * var(--mu3a) - 0.049999999999999996 * var(--v3a) * (var(--r1)*sign(var(--h3x1))*0.041666666666666664 + var(--r2)*sign(var(--h3x2))*0.125 + var(--r3)*sign(var(--h3x3))*0.20833333333333334 + var(--r4)*sign(var(--h3x4))*0.2916666666666667 + var(--r5)*sign(var(--h3x5))*0.375 + var(--r6)*sign(var(--h3x6))*0.4583333333333333 + var(--r7)*sign(var(--h3x7))*0.5416666666666666 + var(--r8)*sign(var(--h3x8))*0.625 + var(--r9)*sign(var(--h3x9))*0.7083333333333334 + var(--r10)*sign(var(--h3x10))*0.7916666666666666 + var(--r11)*sign(var(--h3x11))*0.875 + var(--r12)*sign(var(--h3x12))*0.9583333333333334));
+        --mp3b: calc(0.9 * var(--mp3a) - 0.049999999999999996 * var(--v3a) * (var(--r1)*sign(var(--h3x1)) + var(--r2)*sign(var(--h3x2)) + var(--r3)*sign(var(--h3x3)) + var(--r4)*sign(var(--h3x4)) + var(--r5)*sign(var(--h3x5)) + var(--r6)*sign(var(--h3x6)) + var(--r7)*sign(var(--h3x7)) + var(--r8)*sign(var(--h3x8)) + var(--r9)*sign(var(--h3x9)) + var(--r10)*sign(var(--h3x10)) + var(--r11)*sign(var(--h3x11)) + var(--r12)*sign(var(--h3x12))));
+        --mv3b: calc(0.9 * var(--mv3a) - 0.049999999999999996 * (var(--r1)*var(--h3x1) + var(--r2)*var(--h3x2) + var(--r3)*var(--h3x3) + var(--r4)*var(--h3x4) + var(--r5)*var(--h3x5) + var(--r6)*var(--h3x6) + var(--r7)*var(--h3x7) + var(--r8)*var(--h3x8) + var(--r9)*var(--h3x9) + var(--r10)*var(--h3x10) + var(--r11)*var(--h3x11) + var(--r12)*var(--h3x12)));
+        --u3b: calc(var(--u3a) + var(--mu3b));
+        --p3b: calc(var(--p3a) + var(--mp3b));
+        --v3b: calc(var(--v3a) + var(--mv3b));
+        --mu4b: calc(0.9 * var(--mu4a) - 0.049999999999999996 * var(--v4a) * (var(--r1)*sign(var(--h4x1))*0.041666666666666664 + var(--r2)*sign(var(--h4x2))*0.125 + var(--r3)*sign(var(--h4x3))*0.20833333333333334 + var(--r4)*sign(var(--h4x4))*0.2916666666666667 + var(--r5)*sign(var(--h4x5))*0.375 + var(--r6)*sign(var(--h4x6))*0.4583333333333333 + var(--r7)*sign(var(--h4x7))*0.5416666666666666 + var(--r8)*sign(var(--h4x8))*0.625 + var(--r9)*sign(var(--h4x9))*0.7083333333333334 + var(--r10)*sign(var(--h4x10))*0.7916666666666666 + var(--r11)*sign(var(--h4x11))*0.875 + var(--r12)*sign(var(--h4x12))*0.9583333333333334));
+        --mp4b: calc(0.9 * var(--mp4a) - 0.049999999999999996 * var(--v4a) * (var(--r1)*sign(var(--h4x1)) + var(--r2)*sign(var(--h4x2)) + var(--r3)*sign(var(--h4x3)) + var(--r4)*sign(var(--h4x4)) + var(--r5)*sign(var(--h4x5)) + var(--r6)*sign(var(--h4x6)) + var(--r7)*sign(var(--h4x7)) + var(--r8)*sign(var(--h4x8)) + var(--r9)*sign(var(--h4x9)) + var(--r10)*sign(var(--h4x10)) + var(--r11)*sign(var(--h4x11)) + var(--r12)*sign(var(--h4x12))));
+        --mv4b: calc(0.9 * var(--mv4a) - 0.049999999999999996 * (var(--r1)*var(--h4x1) + var(--r2)*var(--h4x2) + var(--r3)*var(--h4x3) + var(--r4)*var(--h4x4) + var(--r5)*var(--h4x5) + var(--r6)*var(--h4x6) + var(--r7)*var(--h4x7) + var(--r8)*var(--h4x8) + var(--r9)*var(--h4x9) + var(--r10)*var(--h4x10) + var(--r11)*var(--h4x11) + var(--r12)*var(--h4x12)));
+        --u4b: calc(var(--u4a) + var(--mu4b));
+        --p4b: calc(var(--p4a) + var(--mp4b));
+        --v4b: calc(var(--v4a) + var(--mv4b));
+        --mu5b: calc(0.9 * var(--mu5a) - 0.049999999999999996 * var(--v5a) * (var(--r1)*sign(var(--h5x1))*0.041666666666666664 + var(--r2)*sign(var(--h5x2))*0.125 + var(--r3)*sign(var(--h5x3))*0.20833333333333334 + var(--r4)*sign(var(--h5x4))*0.2916666666666667 + var(--r5)*sign(var(--h5x5))*0.375 + var(--r6)*sign(var(--h5x6))*0.4583333333333333 + var(--r7)*sign(var(--h5x7))*0.5416666666666666 + var(--r8)*sign(var(--h5x8))*0.625 + var(--r9)*sign(var(--h5x9))*0.7083333333333334 + var(--r10)*sign(var(--h5x10))*0.7916666666666666 + var(--r11)*sign(var(--h5x11))*0.875 + var(--r12)*sign(var(--h5x12))*0.9583333333333334));
+        --mp5b: calc(0.9 * var(--mp5a) - 0.049999999999999996 * var(--v5a) * (var(--r1)*sign(var(--h5x1)) + var(--r2)*sign(var(--h5x2)) + var(--r3)*sign(var(--h5x3)) + var(--r4)*sign(var(--h5x4)) + var(--r5)*sign(var(--h5x5)) + var(--r6)*sign(var(--h5x6)) + var(--r7)*sign(var(--h5x7)) + var(--r8)*sign(var(--h5x8)) + var(--r9)*sign(var(--h5x9)) + var(--r10)*sign(var(--h5x10)) + var(--r11)*sign(var(--h5x11)) + var(--r12)*sign(var(--h5x12))));
+        --mv5b: calc(0.9 * var(--mv5a) - 0.049999999999999996 * (var(--r1)*var(--h5x1) + var(--r2)*var(--h5x2) + var(--r3)*var(--h5x3) + var(--r4)*var(--h5x4) + var(--r5)*var(--h5x5) + var(--r6)*var(--h5x6) + var(--r7)*var(--h5x7) + var(--r8)*var(--h5x8) + var(--r9)*var(--h5x9) + var(--r10)*var(--h5x10) + var(--r11)*var(--h5x11) + var(--r12)*var(--h5x12)));
+        --u5b: calc(var(--u5a) + var(--mu5b));
+        --p5b: calc(var(--p5a) + var(--mp5b));
+        --v5b: calc(var(--v5a) + var(--mv5b));
+        --mqb: calc(0.9 * var(--mqa) - 0.049999999999999996 * (var(--r1) + var(--r2) + var(--r3) + var(--r4) + var(--r5) + var(--r6) + var(--r7) + var(--r8) + var(--r9) + var(--r10) + var(--r11) + var(--r12)));
+        --qb: calc(var(--qa) + var(--mqb));
+      }
+
+      /* riders: each shows its own step's network. .a steps carry family a. */
+      .st.a > .r {
+        --ys: calc(var(--v1a) * max(0, var(--u1a) * var(--x) + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * var(--x) + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * var(--x) + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * var(--x) + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * var(--x) + var(--p5a)) + var(--qa));
+        --L: calc((pow(var(--v1a) * max(0, var(--u1a) * 0.041666666666666664 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.041666666666666664 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.041666666666666664 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.041666666666666664 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.041666666666666664 + var(--p5a)) + var(--qa) - 0.25881904510252074, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.125 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.125 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.125 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.125 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.125 + var(--p5a)) + var(--qa) - 0.7071067811865475, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.20833333333333334 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.20833333333333334 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.20833333333333334 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.20833333333333334 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.20833333333333334 + var(--p5a)) + var(--qa) - 0.9659258262890683, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.2916666666666667 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.2916666666666667 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.2916666666666667 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.2916666666666667 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.2916666666666667 + var(--p5a)) + var(--qa) - 0.9659258262890683, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.375 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.375 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.375 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.375 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.375 + var(--p5a)) + var(--qa) - 0.7071067811865476, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.4583333333333333 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.4583333333333333 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.4583333333333333 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.4583333333333333 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.4583333333333333 + var(--p5a)) + var(--qa) - 0.258819045102521, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.5416666666666666 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.5416666666666666 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.5416666666666666 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.5416666666666666 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.5416666666666666 + var(--p5a)) + var(--qa) - -0.25881904510252035, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.625 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.625 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.625 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.625 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.625 + var(--p5a)) + var(--qa) - -0.7071067811865475, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.7083333333333334 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.7083333333333334 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.7083333333333334 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.7083333333333334 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.7083333333333334 + var(--p5a)) + var(--qa) - -0.9659258262890683, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.7916666666666666 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.7916666666666666 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.7916666666666666 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.7916666666666666 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.7916666666666666 + var(--p5a)) + var(--qa) - -0.9659258262890684, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.875 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.875 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.875 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.875 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.875 + var(--p5a)) + var(--qa) - -0.7071067811865477, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.9583333333333334 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.9583333333333334 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.9583333333333334 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.9583333333333334 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.9583333333333334 + var(--p5a)) + var(--qa) - -0.2588190451025207, 2)) / 12);
+      }
+      .st.b > .r, .track > .r {
+        --ys: calc(var(--v1b) * max(0, var(--u1b) * var(--x) + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * var(--x) + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * var(--x) + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * var(--x) + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * var(--x) + var(--p5b)) + var(--qb));
+        --L: calc((pow(var(--v1b) * max(0, var(--u1b) * 0.041666666666666664 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.041666666666666664 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.041666666666666664 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.041666666666666664 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.041666666666666664 + var(--p5b)) + var(--qb) - 0.25881904510252074, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.125 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.125 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.125 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.125 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.125 + var(--p5b)) + var(--qb) - 0.7071067811865475, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.20833333333333334 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.20833333333333334 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.20833333333333334 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.20833333333333334 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.20833333333333334 + var(--p5b)) + var(--qb) - 0.9659258262890683, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.2916666666666667 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.2916666666666667 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.2916666666666667 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.2916666666666667 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.2916666666666667 + var(--p5b)) + var(--qb) - 0.9659258262890683, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.375 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.375 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.375 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.375 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.375 + var(--p5b)) + var(--qb) - 0.7071067811865476, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.4583333333333333 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.4583333333333333 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.4583333333333333 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.4583333333333333 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.4583333333333333 + var(--p5b)) + var(--qb) - 0.258819045102521, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.5416666666666666 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.5416666666666666 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.5416666666666666 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.5416666666666666 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.5416666666666666 + var(--p5b)) + var(--qb) - -0.25881904510252035, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.625 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.625 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.625 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.625 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.625 + var(--p5b)) + var(--qb) - -0.7071067811865475, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.7083333333333334 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.7083333333333334 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.7083333333333334 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.7083333333333334 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.7083333333333334 + var(--p5b)) + var(--qb) - -0.9659258262890683, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.7916666666666666 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.7916666666666666 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.7916666666666666 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.7916666666666666 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.7916666666666666 + var(--p5b)) + var(--qb) - -0.9659258262890684, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.875 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.875 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.875 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.875 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.875 + var(--p5b)) + var(--qb) - -0.7071067811865477, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.9583333333333334 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.9583333333333334 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.9583333333333334 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.9583333333333334 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.9583333333333334 + var(--p5b)) + var(--qb) - -0.2588190451025207, 2)) / 12);
+      }
+
+      /* replay clock: 81 slots x 0.16s + 4.8s hold = 17.76s */
+      .r {
+        animation:
+          reveal 17.76s linear infinite,
+          swim 7s linear infinite;
+        animation-delay: calc(var(--si) * 0.16s), 0s;
+      }
+      @keyframes reveal {
+        0%, 0.9009% { visibility: visible; }
+        0.9010%, 100% { visibility: hidden; }
+      }
+      .r.last { animation-name: lastreveal, swim; }
+      @keyframes lastreveal {
+        0%, 27.9279% { visibility: visible; }
+        27.9280%, 100% { visibility: hidden; }
+      }
+/* /gen:trainer */
+
+    /* ---------- the aquarium ---------- */
+    .sea {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      overflow: hidden;
+      background: linear-gradient(
+        light-dark(#cfe9ff, #16233c),
+        light-dark(#9dcdf2, #0c1a30) 55%,
+        light-dark(#7db8e8, #081221)
+      );
+      border-radius: 14px;
+      border: 1px solid light-dark(#b5d5ef, #24324d);
+    }
+    .track {
+      position: absolute;
+      inset: 0 28px;
+    }
+
+    /* one shared clock: --x sweeps [0,1]; each animated element runs its own
+       copy in phase (the property is non-inherited so the trainer never
+       recalcs during the swim) */
+    @keyframes swim {
+      from { --x: 0; }
+      to   { --x: 1; }
+    }
+
+    /* static wave path: each dot evaluates sin() at its own x */
+    .wave i {
+      --w: calc(var(--i) / 63);
+      position: absolute;
+      left: calc(var(--w) * 100%);
+      top: calc(150px - sin(var(--w) * 2 * pi) * 78px);
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: light-dark(#5a94c7, #3d5a86);
+    }
+
+    /* the teacher: born knowing sin() */
+    .fish.teacher {
+      --yt: calc(sin(var(--x) * 2 * pi));
+      position: absolute;
+      left: calc(var(--x) * 100%);
+      top: 150px;
+      font-size: 27px;
+      line-height: 1;
+      margin: -14px 0 0 -14px;
+      transform: translateY(calc(var(--yt) * -78px)) scaleX(-1);
+      animation: swim 7s linear infinite;
+    }
+
+    /* riders: one full-track layer per training step; the reveal clock lives
+       in the generated block (its timing depends on the step count). The
+       rider's own step weights arrive by inheritance; its generated rule
+       computes --ys and --L from them. */
+    .r {
+      position: absolute;
+      inset: 0;
+      visibility: hidden;
+      /* bridge the non-inherited clock to children and pseudos */
+      --xi: calc(var(--x));
+      /* a lost fish still can't leave the tank */
+      --ysv: clamp(-1.55, var(--ys), 1.55);
+      --yt: calc(sin(var(--x) * 2 * pi));
+      --err: abs(var(--yt) - var(--ys));
+      /* scoreboard digits carved out of the cascade-computed loss */
+      --Li:  round(down, var(--L), 1);
+      --Ld1: mod(round(down, calc(var(--L) * 10), 1), 10);
+      --Ld2: mod(round(down, calc(var(--L) * 100), 1), 10);
+      --Ld3: mod(round(down, calc(var(--L) * 1000), 1), 10);
+    }
+
+    /* the student fish: rides the network output of its step */
+    .r::before {
+      content: "🐠";
+      position: absolute;
+      left: calc(var(--xi) * 100%);
+      top: 150px;
+      font-size: 27px;
+      line-height: 1;
+      margin: -14px 0 0 -14px;
+      transform: translateY(calc(var(--ysv) * -78px)) scaleX(-1);
+      filter: drop-shadow(0 0 7px rgba(120, 220, 255, 0.55));
+    }
+
+    /* vertical bar between the fish = current error, green when small */
+    .r > b {
+      position: absolute;
+      left: calc(var(--xi) * 100%);
+      top: 150px;
+      width: 2px;
+      margin-left: -1px;
+      transform: translateY(calc(max(var(--yt), var(--ysv)) * -78px));
+      height: calc(abs(var(--yt) - var(--ysv)) * 78px);
+      background: color-mix(in oklch, #38e08a, #ff5470 calc(min(1, var(--err)) * 100%));
+      border-radius: 1px;
+    }
+
+    /* live scoreboard: step index + this step's cascade-computed loss */
+    .r::after {
+      counter-reset: ep calc(var(--si)) li calc(var(--Li)) d1 calc(var(--Ld1))
+        d2 calc(var(--Ld2)) d3 calc(var(--Ld3));
+      content: "step " counter(ep) "  ·  loss " counter(li) "." counter(d1) counter(d2) counter(d3);
+      position: absolute;
+      bottom: 12px;
+      left: 16px;
+      font: 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: light-dark(#31597e, #8fa8cf);
+      white-space: pre;
+    }
+
+    /* ambience */
+    .bubble {
+      position: absolute;
+      bottom: -12px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      border: 1px solid light-dark(rgba(255, 255, 255, 0.65), rgba(160, 200, 240, 0.4));
+      animation: rise 9s linear infinite;
+    }
+    .bubble:nth-child(2) { left: 72%; width: 5px; height: 5px; animation-duration: 7s; animation-delay: -3s; }
+    .bubble:nth-child(3) { left: 34%; width: 4px; height: 4px; animation-duration: 11s; animation-delay: -6s; }
+    .bubble:first-child  { left: 12%; }
+    @keyframes rise {
+      to { translate: 8px -320px; opacity: 0; }
+    }
+
+    /* the demo pauses so you can lean in */
+    .demo:has(#freeze:checked) .sea *,
+    .sea:hover * {
+      animation-play-state: paused;
+    }
+
+    /* ---------- winter ---------- */
+    /* frost blooms over the glass (a transition, so it works while the
+       animations underneath are paused) */
+    .sea::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      border-radius: inherit;
+      background:
+        radial-gradient(130% 65% at 50% -25%, rgba(240, 250, 255, 0.5), transparent 62%),
+        radial-gradient(95% 55% at -12% 112%, rgba(228, 244, 255, 0.4), transparent 58%),
+        radial-gradient(95% 55% at 112% 112%, rgba(228, 244, 255, 0.4), transparent 58%);
+      opacity: 0;
+      backdrop-filter: blur(0px) brightness(1) saturate(1);
+      transition: opacity 0.8s ease, backdrop-filter 0.8s ease;
+    }
+    .demo:has(#freeze:checked) .sea::after {
+      opacity: 1;
+      backdrop-filter: blur(1.5px) brightness(1.1) saturate(0.72);
+    }
+
+    /* icicles slide down from the rim */
+    .ice {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      z-index: 4;
+      pointer-events: none;
+      background: linear-gradient(
+        light-dark(rgba(228, 244, 255, 0.98), rgba(245, 252, 255, 0.95)),
+        light-dark(rgba(178, 216, 246, 0.75), rgba(214, 238, 255, 0.6)) 55%,
+        light-dark(rgba(150, 198, 238, 0.4), rgba(200, 232, 255, 0.28))
+      );
+      filter: drop-shadow(0 2px 3px light-dark(rgba(30, 80, 140, 0.3), rgba(0, 10, 30, 0.4)));
+      clip-path: polygon(
+        0 0, 100% 0, 100% 30%, 97% 88%, 94.5% 32%, 91% 62%, 88% 28%,
+        84% 100%, 80.5% 30%, 77% 55%, 73% 26%, 69% 80%, 65.5% 30%, 62% 48%,
+        58% 24%, 54% 92%, 50.5% 28%, 47% 60%, 43% 24%, 39% 72%, 35.5% 28%,
+        32% 46%, 28% 22%, 24% 86%, 20.5% 28%, 17% 58%, 13% 24%, 9% 66%,
+        5.5% 26%, 2.5% 44%, 0 32%
+      );
+      translate: 0 -102%;
+      transition: translate 0.6s ease 0.1s;
+    }
+    .demo:has(#freeze:checked) .ice {
+      translate: 0 0;
+    }
+
+    /* a few flakes drift in */
+    .flake {
+      position: absolute;
+      z-index: 4;
+      pointer-events: none;
+      font-style: normal;
+      font-size: 15px;
+      line-height: 1;
+      color: light-dark(#7fb8e8, #bfe0ff);
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+      opacity: 0;
+      scale: 0.4;
+      rotate: -30deg;
+      transition: opacity 0.5s ease, scale 0.5s ease, rotate 0.5s ease;
+    }
+    .flake:nth-of-type(1) { left: 18%; top: 34%; transition-delay: 0.15s; }
+    .flake:nth-of-type(2) { left: 66%; top: 22%; font-size: 19px; transition-delay: 0.3s; }
+    .flake:nth-of-type(3) { left: 84%; top: 58%; font-size: 12px; transition-delay: 0.45s; }
+    .demo:has(#freeze:checked) .flake {
+      opacity: 0.85;
+      scale: 1;
+      rotate: 0deg;
+    }
+
+    /* controls under the tank */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.75rem 0 0;
+      font-size: 0.9rem;
+      color: var(--ink-faint);
+    }
+    .controls label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      user-select: none;
+      padding: 0.35rem 0.8rem;
+      border: 1px solid var(--edge);
+      border-radius: 999px;
+      background: var(--surface);
+    }
+    .controls input {
+      accent-color: var(--accent);
+    }
+    .controls .when-frozen,
+    .demo:has(#freeze:checked) .when-liquid {
+      display: none;
+    }
+    .demo:has(#freeze:checked) .when-frozen {
+      display: inline;
+    }
+
+    /* a still, fully-trained pond for reduced motion (the cascade still
+       trains the net at load — only the replay is skipped) */
+    @media (prefers-reduced-motion: reduce) {
+      .sea * { animation: none !important; }
+      .bubble { display: none; }
+      .r.last { visibility: visible; --x: 0.18; }
+      .fish.teacher { --x: 0.18; }
+    }
+  </style>
+  <body>
+    <h1>A Neural Network in Pure CSS, Training Included</h1>
+    <p>
+      CSS already knows <code>sin()</code> — it ships in every modern browser,
+      free of charge. The tank below contains a two-layer neural network
+      (1&thinsp;→&thinsp;5&thinsp;→&thinsp;1, ReLU) that has to <em>learn</em>
+      the sine wave anyway. And this time nobody did its homework for it:
+      when this page loads, <strong>your browser runs 80 steps of gradient
+      descent</strong> — forward passes, gradients, momentum, the lot —
+      entirely inside the CSS cascade. The 🐟 swims on the real
+      <code>sin(x)</code>. The 🐠 swims on the network’s output, step by step,
+      as it learns. The bar between them is the error. There is no JavaScript
+      on this page.
+    </p>
+
+    <div class="demo">
+      <div class="sea panel">
+        <div class="track">
+          <div class="wave">
+            <i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i>
+            <i style="--i:8"></i><i style="--i:9"></i><i style="--i:10"></i><i style="--i:11"></i><i style="--i:12"></i><i style="--i:13"></i><i style="--i:14"></i><i style="--i:15"></i>
+            <i style="--i:16"></i><i style="--i:17"></i><i style="--i:18"></i><i style="--i:19"></i><i style="--i:20"></i><i style="--i:21"></i><i style="--i:22"></i><i style="--i:23"></i>
+            <i style="--i:24"></i><i style="--i:25"></i><i style="--i:26"></i><i style="--i:27"></i><i style="--i:28"></i><i style="--i:29"></i><i style="--i:30"></i><i style="--i:31"></i>
+            <i style="--i:32"></i><i style="--i:33"></i><i style="--i:34"></i><i style="--i:35"></i><i style="--i:36"></i><i style="--i:37"></i><i style="--i:38"></i><i style="--i:39"></i>
+            <i style="--i:40"></i><i style="--i:41"></i><i style="--i:42"></i><i style="--i:43"></i><i style="--i:44"></i><i style="--i:45"></i><i style="--i:46"></i><i style="--i:47"></i>
+            <i style="--i:48"></i><i style="--i:49"></i><i style="--i:50"></i><i style="--i:51"></i><i style="--i:52"></i><i style="--i:53"></i><i style="--i:54"></i><i style="--i:55"></i>
+            <i style="--i:56"></i><i style="--i:57"></i><i style="--i:58"></i><i style="--i:59"></i><i style="--i:60"></i><i style="--i:61"></i><i style="--i:62"></i><i style="--i:63"></i>
+          </div>
+          <div class="fish teacher">🐟</div>
+          <!-- gen:dom -->
+<i class="r" style="--si:0"><b></b></i><div class="st a"><i class="r" style="--si:1"><b></b></i><div class="st b"><i class="r" style="--si:2"><b></b></i><div class="st a"><i class="r" style="--si:3"><b></b></i><div class="st b"><i class="r" style="--si:4"><b></b></i><div class="st a"><i class="r" style="--si:5"><b></b></i><div class="st b"><i class="r" style="--si:6"><b></b></i><div class="st a"><i class="r" style="--si:7"><b></b></i><div class="st b"><i class="r" style="--si:8"><b></b></i><div class="st a"><i class="r" style="--si:9"><b></b></i><div class="st b"><i class="r" style="--si:10"><b></b></i><div class="st a"><i class="r" style="--si:11"><b></b></i><div class="st b"><i class="r" style="--si:12"><b></b></i><div class="st a"><i class="r" style="--si:13"><b></b></i><div class="st b"><i class="r" style="--si:14"><b></b></i><div class="st a"><i class="r" style="--si:15"><b></b></i><div class="st b"><i class="r" style="--si:16"><b></b></i><div class="st a"><i class="r" style="--si:17"><b></b></i><div class="st b"><i class="r" style="--si:18"><b></b></i><div class="st a"><i class="r" style="--si:19"><b></b></i><div class="st b"><i class="r" style="--si:20"><b></b></i><div class="st a"><i class="r" style="--si:21"><b></b></i><div class="st b"><i class="r" style="--si:22"><b></b></i><div class="st a"><i class="r" style="--si:23"><b></b></i><div class="st b"><i class="r" style="--si:24"><b></b></i><div class="st a"><i class="r" style="--si:25"><b></b></i><div class="st b"><i class="r" style="--si:26"><b></b></i><div class="st a"><i class="r" style="--si:27"><b></b></i><div class="st b"><i class="r" style="--si:28"><b></b></i><div class="st a"><i class="r" style="--si:29"><b></b></i><div class="st b"><i class="r" style="--si:30"><b></b></i><div class="st a"><i class="r" style="--si:31"><b></b></i><div class="st b"><i class="r" style="--si:32"><b></b></i><div class="st a"><i class="r" style="--si:33"><b></b></i><div class="st b"><i class="r" style="--si:34"><b></b></i><div class="st a"><i class="r" style="--si:35"><b></b></i><div class="st b"><i class="r" style="--si:36"><b></b></i><div class="st a"><i class="r" style="--si:37"><b></b></i><div class="st b"><i class="r" style="--si:38"><b></b></i><div class="st a"><i class="r" style="--si:39"><b></b></i><div class="st b"><i class="r" style="--si:40"><b></b></i><div class="st a"><i class="r" style="--si:41"><b></b></i><div class="st b"><i class="r" style="--si:42"><b></b></i><div class="st a"><i class="r" style="--si:43"><b></b></i><div class="st b"><i class="r" style="--si:44"><b></b></i><div class="st a"><i class="r" style="--si:45"><b></b></i><div class="st b"><i class="r" style="--si:46"><b></b></i><div class="st a"><i class="r" style="--si:47"><b></b></i><div class="st b"><i class="r" style="--si:48"><b></b></i><div class="st a"><i class="r" style="--si:49"><b></b></i><div class="st b"><i class="r" style="--si:50"><b></b></i><div class="st a"><i class="r" style="--si:51"><b></b></i><div class="st b"><i class="r" style="--si:52"><b></b></i><div class="st a"><i class="r" style="--si:53"><b></b></i><div class="st b"><i class="r" style="--si:54"><b></b></i><div class="st a"><i class="r" style="--si:55"><b></b></i><div class="st b"><i class="r" style="--si:56"><b></b></i><div class="st a"><i class="r" style="--si:57"><b></b></i><div class="st b"><i class="r" style="--si:58"><b></b></i><div class="st a"><i class="r" style="--si:59"><b></b></i><div class="st b"><i class="r" style="--si:60"><b></b></i><div class="st a"><i class="r" style="--si:61"><b></b></i><div class="st b"><i class="r" style="--si:62"><b></b></i><div class="st a"><i class="r" style="--si:63"><b></b></i><div class="st b"><i class="r" style="--si:64"><b></b></i><div class="st a"><i class="r" style="--si:65"><b></b></i><div class="st b"><i class="r" style="--si:66"><b></b></i><div class="st a"><i class="r" style="--si:67"><b></b></i><div class="st b"><i class="r" style="--si:68"><b></b></i><div class="st a"><i class="r" style="--si:69"><b></b></i><div class="st b"><i class="r" style="--si:70"><b></b></i><div class="st a"><i class="r" style="--si:71"><b></b></i><div class="st b"><i class="r" style="--si:72"><b></b></i><div class="st a"><i class="r" style="--si:73"><b></b></i><div class="st b"><i class="r" style="--si:74"><b></b></i><div class="st a"><i class="r" style="--si:75"><b></b></i><div class="st b"><i class="r" style="--si:76"><b></b></i><div class="st a"><i class="r" style="--si:77"><b></b></i><div class="st b"><i class="r" style="--si:78"><b></b></i><div class="st a"><i class="r" style="--si:79"><b></b></i><div class="st b"><i class="r last" style="--si:80"><b></b></i></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div><!-- /gen:dom -->
+        </div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <i class="flake">❄</i>
+        <i class="flake">❆</i>
+        <i class="flake">❄</i>
+        <div class="ice"></div>
+      </div>
+      <div class="controls">
+        <label>
+          <input type="checkbox" id="freeze" />
+          <span class="when-liquid">❄ freeze the tank</span>
+          <span class="when-frozen">☀ thaw the tank</span>
+        </label>
+        <span>(hovering pauses it too)</span>
+      </div>
+    </div>
+
+    <h2>The training loop is the DOM</h2>
+    <p>
+      CSS is famously “Turing-complete” — with an asterisk: it has no clock.
+      A custom property can’t update itself; <code>--w:&nbsp;calc(var(--w)&nbsp;-&nbsp;…)</code>
+      is a cycle, and the cascade politely refuses. So this page does what
+      hardware designers do when they can’t loop: it <em>unrolls</em>. The
+      tank contains 80 nested <code>&lt;div&gt;</code>s — one per training
+      step — and every element computes its weights from the weights it
+      <em>inherits from its parent</em>:
+    </p>
+    <pre class="panel"><code>&lt;div class="st a"&gt;   &lt;!-- computes θ₁ from θ₀  --&gt;
+  &lt;div class="st b"&gt; &lt;!-- computes θ₂ from θ₁  --&gt;
+    &lt;div class="st a"&gt; &lt;!-- computes θ₃ from θ₂ … 80 levels deep --&gt;</code></pre>
+    <p>
+      Self-reference is dodged by ping-ponging two families of properties:
+      even generations write <code>--u1a</code> from <code>--u1b</code>, odd
+      generations write <code>--u1b</code> from <code>--u1a</code>. Which
+      means the entire trainer is <strong>two CSS rules</strong> —
+      <code>.st.a&nbsp;{…}</code> and <code>.st.b&nbsp;{…}</code> — and the
+      DOM runs them 80 times by selector matching. Each generation is one
+      honest step of full-batch gradient descent with momentum: 12 forward
+      passes (<code>max(0,&nbsp;wx+b)</code> is ReLU), residuals against
+      <code>sin()</code>, gradients with the ReLU derivative as
+      <code>sign()</code>, momentum, update:
+    </p>
+    <pre class="panel"><code>.st.a {
+  /* forward: --h3x7 = relu(u₃·x₇ + p₃), for all 5 neurons × 12 samples */
+  --h3x7: max(0, var(--u3b) * 0.5416666666666666 + var(--p3b));
+  /* residual at sample 7: net(x₇) − sin(2πx₇) */
+  --r7: calc(var(--v1b)*var(--h1x7) + … + var(--qb) - 0.13052619222005157);
+  /* momentum + update for u₃  (0.05 = lr · 2/N; sign() is ReLU′) */
+  --mu3a: calc(0.9 * var(--mu3b) - 0.05 * var(--v3b) *
+          (var(--r1)*sign(var(--h3x1))*0.041666… + … ));
+  --u3a: calc(var(--u3b) + var(--mu3a));
+  /* … ×5 neurons, ×3 parameter kinds, +1 output bias */
+}</code></pre>
+    <p>
+      Every arithmetic operation of training happens in your style engine, at
+      page load, in about a millisecond. The only numbers shipped in this file
+      are the random initial weights — and you can watch how little they know:
+      that’s the step-0 fish.
+    </p>
+
+    <h2>The replay is just visibility</h2>
+    <p>
+      Each step element carries a full-width “rider” layer that knows that
+      step’s weights by inheritance. A rider computes the network’s output at
+      the current swim position — <code>--ys</code> is five
+      <code>max()</code> calls — and puts the 🐠 there with a transform. A
+      staggered <code>animation-delay: calc(var(--si)&nbsp;*&nbsp;0.16s)</code>
+      reveals each rider for its 0.16-second slot, so the fish you watch is
+      hopping along the <em>actual optimization trajectory your browser just
+      computed</em>: 13 seconds from flailing to competence, plus a held bow
+      at step 80, forever, on loop.
+    </p>
+
+    <h2>The teacher was born knowing</h2>
+    <pre class="panel"><code>.fish.teacher {
+  --yt: calc(sin(var(--x) * 2 * pi));  /* that’s it. that’s the fish. */
+}</code></pre>
+    <p>
+      Trigonometry landed in CSS in 2023, so the 🐟 gets the answer sheet for
+      free. The dotted wave is 64 static dots, each evaluating
+      <code>sin()</code> at its own position. Talent is not fairly distributed
+      in this tank.
+    </p>
+
+    <h2>The scoreboard doesn’t cheat either</h2>
+    <p>
+      The loss in the corner is not a caption — each rider recomputes its
+      step’s mean-squared error from its own weights: twelve forward passes
+      compared against <code>sin()</code>, squared with <code>pow()</code>,
+      averaged in one <code>calc()</code>. The digits reach the screen through
+      the CSS counter trick:
+    </p>
+    <pre class="panel"><code>.r {
+  --L: calc((pow(/* net(x₁) */ - sin(x₁ · 2π), 2) + … ) / 12);
+  --Ld1: mod(round(down, calc(var(--L) * 10), 1), 10);  /* tenths digit */
+}
+.r::after {
+  counter-reset: ep calc(var(--si)) d1 calc(var(--Ld1)) /* … */;
+  content: "step " counter(ep) "  ·  loss " /* … */;
+}</code></pre>
+    <p class="small">
+      Fine print: the repetitive program text (80 nested divs, two big rules)
+      is printed by <a href="generate.mjs">generate.mjs</a>, which also picked
+      the hyperparameters and the random seed offline — printing text is
+      allowed; it’s the browser that does every multiplication. Between the
+      80 computed steps nothing is interpolated: what you see hop is the real
+      discrete trajectory. If you’ve asked your OS for reduced motion, the
+      cascade still trains the network — you just get the graduation photo
+      instead of the ceremony. Needs <code>@property</code>, trig,
+      <code>pow()</code>, <code>sign()</code> — all Baseline as of 2024.
+    </p>
+
+    <footer>
+      <a href="/">← all demos</a> · weights trained by your browser ·
+      repetitive text printed by <a href="generate.mjs">generate.mjs</a>
+    </footer>
+  </body>
+</html>
