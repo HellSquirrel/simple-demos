@@ -1,28 +1,13 @@
-// Headless tuning harness: run the wasm engine and save a strip of frames, no browser needed.
-// Prints readings at each snapshot time and writes snapshot.ppm (convert with any image tool,
-// e.g. `python3 -c "from PIL import Image; Image.open('snapshot.ppm').save('snapshot.png')"`).
+// Headless harness: run the wasm engine and save a strip of frames, no browser needed. Prints readings at each
+// snapshot time and writes snapshot.ppm (168 x 280 per frame; convert with any image tool).
 //
 // Usage:  node tools/snapshot.js
-// Env:    TIMES=0.3,2,4,8     seconds after strike to capture
+// Env:    TIMES=0.3,2,4,8     seconds after lighting to capture
 //         VIEW=0|1|2|3        camera | temperature | soot | reaction
-//         EV=0  WB=2800       exposure (EV) and white balance (K)
+//         EV=0  WB=2800       exposure (EV about the page default) and white balance (K)
 //         O2=20.9 G=1 DRAFT=1 room
-//         GUST_AT=3 GUST_V=4 GUST_DUR=0.4   optional gust (m/s, s)
-//         PIT=16              pressure sweeps per substep (all knobs below are optional; unset = engine default)
-//         ALPHA=22 NU=15.6    thermal diffusivity and kinematic viscosity at 300 K, mm^2/s (both scale as T^1.7)
-//         FUEL=0.9            wax vapour supply of the wick
-//         SOOT=1 SG=0 KRAD=1  multipliers on soot inception, soot surface growth (off by default) and radiative loss
-//         INC=0.5 ESF=20000   soot inception law: rate at 1,500 K (1/s per unit fuel) and activation temperature
-//         AS=1 QS=1           multipliers on the burn pre-exponential and the heat release per unit fuel
-//         CURL=6 SUPPLY=0.12  wick curl (cells) and vapour-supply noise; SWIRL=1 vorticity confinement
+//         GUST_AT=3 GUST_V=5 GUST_DUR=0.4   optional gust (m/s, s)
 //         FLICKER=1           after the first snapshot time, sample the light for 6 s and report sway / bob / flicker
-//         KF=0                vapour diffusivity factor 1/(1 + KF * F); ~25 is physical
-//         ENTMODE=0           1: entrainment cools only where there is air; 2: cools and adds oxygen only there
-//         SUBDT=240 CHEMSUB=1 DIFFSUB=1 STRANG=0   time integration: substeps per second, chemistry and diffusion sub-cycles, Strang splitting
-//         TIPR=14 TVAP=700 VMIX=0   wick model: glowing tip radius (cells), vapour temperature, vapour cooling per substep
-//         SOX=1               multiplier on the soot burnout rate
-//         ESO=11000 KEEP=1700 soot burnout activation temperature; the rate at KEEP kelvin is held fixed
-//         DSIG=130 DTAU=0.8 DCPL=3    room-air model: wind sigma (mm/s at draft 1x), correlation time, coupling rate
 const fs = require('fs'), path = require('path');
 (async () => {
   const bytes = fs.readFileSync(path.join(__dirname, '../engine/target/wasm32-unknown-unknown/release/flame.wasm'));
@@ -30,58 +15,42 @@ const fs = require('fs'), path = require('path');
   const w = instance.exports;
   const env = (k, d) => (process.env[k] !== undefined ? +process.env[k] : d);
   w.fl_init(); w.fl_seed(1234);
-  w.fl_set_camera(4.2 * Math.pow(2, env('EV', 0)), env('WB', 2800), 0.00022);
-  w.fl_set_room(env('O2', 20.9) / 100, env('G', 1), env('SWIRL', 1), env('DRAFT', 1));
-  // tuning knobs: applied only when given, so the engine's own defaults are what runs otherwise
-  const E = process.env;
-  if (E.PIT !== undefined) w.fl_set_solver(+E.PIT);
-  if (E.ALPHA !== undefined || E.NU !== undefined) w.fl_set_diffusion(env('ALPHA', 22), env('NU', 15.6));
-  if (E.FUEL !== undefined) w.fl_set_fuel(+E.FUEL);
-  if (E.SOOT !== undefined) w.fl_set_soot(+E.SOOT);
-  if (E.SG !== undefined) w.fl_set_growth(+E.SG);
-  if (E.INC !== undefined || E.ESF !== undefined) w.fl_set_inception(env('INC', 0.5), env('ESF', 20000));
-  if (E.KRAD !== undefined) w.fl_set_krad(+E.KRAD);
-  if (E.AS !== undefined || E.QS !== undefined) w.fl_set_chem(env('AS', 1), env('QS', 1));
-  if (E.CURL !== undefined || E.SUPPLY !== undefined) w.fl_set_wick(env('CURL', 6), env('SUPPLY', 0.12));
-  if (E.TIPR !== undefined || E.TVAP !== undefined || E.VMIX !== undefined) w.fl_set_wick_model(env('TIPR', 14), env('TVAP', 700), env('VMIX', 0));
-  if (E.KF !== undefined) w.fl_set_vapour(+E.KF);
-  if (E.ENTMODE !== undefined) w.fl_set_entrain_mode(+E.ENTMODE);
-  if (E.SUBDT !== undefined) w.fl_set_substep(1 / +E.SUBDT);
-  if (E.CHEMSUB !== undefined) w.fl_set_chem_sub(+E.CHEMSUB);
-  if (E.DIFFSUB !== undefined) w.fl_set_diff_sub(+E.DIFFSUB);
-  if (E.STRANG !== undefined) w.fl_set_strang(+E.STRANG);
-  if (E.SOX !== undefined) w.fl_set_oxidation(+E.SOX, env('ESO', 11000), 1700);
-  else if (E.ESO !== undefined) w.fl_set_oxidation(0, +E.ESO, env('KEEP', 1700));
-  if (E.DSIG !== undefined || E.DTAU !== undefined || E.DCPL !== undefined) w.fl_set_draft_model(env('DSIG', 130), env('DTAU', 0.8), env('DCPL', 3));
-  w.fl_reset(); w.fl_set_view(env('VIEW', 0)); w.fl_strike(0);
+  w.fl_set_camera(0.36 * Math.pow(2, env('EV', 0)), env('WB', 2800), 0.00022);
+  w.fl_set_room(env('O2', 20.9) / 100, env('G', 1), 1, env('DRAFT', 1));
+  w.fl_reset(); w.fl_set_view(env('VIEW', 0)); w.fl_strike();
   const times = (process.env.TIMES || '0.3,2,4,8').split(',').map(Number);
-  const u = w.fl_updims(), UW = u >>> 16, UH = u & 0xffff;
+  const d = w.fl_dims(), W = d >>> 16, H = d & 0xffff;
   const gustAt = env('GUST_AT', -1);
   let t = 0, gusted = false; const frames = [];
-  // how much does the flame dance? sample the light centroid and total light every frame for 6 s
+  const stats = () => new Float32Array(w.memory.buffer, w.fl_stats(), 16);
   const flicker = () => {
-    const st = new Float32Array(w.memory.buffer, w.fl_stats(), 24);
     const cx = [], cy = [], yy = [];
-    for (let n = 0; n < 360; n++) { w.fl_step(1 / 60); t += 1 / 60; w.fl_render(); cx.push(st[4]); cy.push(st[5]); yy.push(st[1]); }
+    for (let n = 0; n < 360; n++) { w.fl_step(1 / 60); t += 1 / 60; w.fl_render(); const st = stats(); cx.push(st[4]); cy.push(st[5]); yy.push(st[1]); }
     const sd = a => { const m = a.reduce((p, q) => p + q, 0) / a.length; return [m, Math.sqrt(a.reduce((p, q) => p + (q - m) ** 2, 0) / a.length)]; };
-    const [mx, sx] = sd(cx), [my, sy] = sd(cy), [mY, sY] = sd(yy);
+    const [, sx] = sd(cx), [, sy] = sd(cy), [mY, sY] = sd(yy);
     const range = a => Math.max(...a) - Math.min(...a);
     console.log(`dance over 6 s: sway σ ${(sx * 0.25).toFixed(2)} mm (range ${(range(cx) * 0.25).toFixed(1)}), bob σ ${(sy * 0.25).toFixed(2)} mm (range ${(range(cy) * 0.25).toFixed(1)}), flicker σ ${(100 * sY / mY).toFixed(1)} % (range ${(100 * range(yy) / mY).toFixed(0)} %)`);
   };
+  // the engine gives linear light; tone-map it here the way the page's shader does
+  const aces = x => { x = Math.max(0, x); return Math.min(1, (x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14)); };
+  const srgb = c => Math.round(255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055));
   for (const target of times) {
     while (t < target) {
-      if (gustAt >= 0 && !gusted && t >= gustAt) { w.fl_blow(env('GUST_V', 4), env('GUST_DUR', 0.4)); gusted = true; }
+      if (gustAt >= 0 && !gusted && t >= gustAt) { w.fl_blow(env('GUST_V', 5), env('GUST_DUR', 0.4)); gusted = true; }
       w.fl_step(1 / 60); t += 1 / 60;
     }
     if (process.env.FLICKER && target === times[0]) flicker();
     w.fl_render();
-    const st = new Float32Array(w.memory.buffer, w.fl_stats(), 24);
+    const st = stats();
     const phase = ['ready', 'lit', 'out'][st[7] | 0];
-    console.log(`t=${target.toFixed(2)}s  ${phase}  sootT=${st[3].toFixed(0)}K  Y=${st[1].toFixed(1)}  ember=${st[9].toFixed(0)}K  burned=${st[10].toFixed(1)} cells  radiant=${(st[13] / Math.max(1e-6, st[12]) * 100).toFixed(0)}%`);
-    frames.push(Buffer.from(new Uint8Array(w.memory.buffer, w.fl_pixels(), UW * UH * 4)));
+    console.log(`t=${target.toFixed(2)}s  ${phase}  sootT=${st[3].toFixed(0)}K  Y=${st[1].toFixed(1)}  ember=${st[9].toFixed(0)}K  radiant=${(st[12] / Math.max(1e-6, st[11]) * 100).toFixed(0)}%`);
+    const lin = new Float32Array(w.memory.buffer, w.fl_linear(), W * H * 3), tone = env('VIEW', 0) === 0;
+    const px = Buffer.alloc(W * H * 3);
+    for (let i = 0; i < W * H * 3; i++) px[i] = tone ? srgb(aces(lin[i])) : Math.round(255 * Math.min(1, Math.max(0, lin[i])));
+    frames.push(px);
   }
-  const n = frames.length, Wd = UW * n, out = Buffer.alloc(Wd * UH * 3);
-  frames.forEach((f, q) => { for (let y = 0; y < UH; y++) for (let x = 0; x < UW; x++) { const k = (x + y * UW) * 4, o = (q * UW + x + y * Wd) * 3; out[o] = f[k]; out[o + 1] = f[k + 1]; out[o + 2] = f[k + 2]; } });
-  fs.writeFileSync('snapshot.ppm', Buffer.concat([Buffer.from(`P6 ${Wd} ${UH} 255\n`), out]));
-  console.log(`wrote snapshot.ppm (${n} frames, ${UW}x${UH} each)`);
+  const n = frames.length, Wd = W * n, out = Buffer.alloc(Wd * H * 3);
+  frames.forEach((f, q) => { for (let y = 0; y < H; y++) f.copy(out, (q * W + y * Wd) * 3, y * W * 3, (y + 1) * W * 3); });
+  fs.writeFileSync('snapshot.ppm', Buffer.concat([Buffer.from(`P6 ${Wd} ${H} 255\n`), out]));
+  console.log(`wrote snapshot.ppm (${n} frames, ${W}x${H} each)`);
 })();

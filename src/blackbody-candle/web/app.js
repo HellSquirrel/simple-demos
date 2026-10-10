@@ -1,47 +1,45 @@
 (async () => {
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = id => document.getElementById(id);
+  // a custom property's value is its declaration (light-dark(...)); the canvas needs it resolved, so read it through an element
+  const probe = document.createElement('span'); probe.style.display = 'none'; document.body.appendChild(probe);
+  const css = name => { probe.style.color = `var(${name})`; return getComputedStyle(probe).color; };
+  const alpha = (rgb, a) => rgb.replace(/^rgba?\(([^)]+?)(?:,\s*[\d.]+)?\)$/, (m, c) => `rgba(${c}, ${a})`);
 
   // ---------- engine ----------
   let eng;
-  try { eng = await makeWasmEngine(WASM_B64); }
-  catch (e) { $('engNote').textContent = `WebAssembly failed to load here (${e && e.message || e}), so there is no flame.`; return; }
-  const W = eng.W, H = eng.H, UW = eng.UW, UH = eng.UH, HX = eng.headX;
-  let BLOOM = 0.015; // a camera's veiling glare: this share of the 1.5 mm Gaussian of the linear image is added back
-  const WALL = 480; // a wall this many cells (12 cm) behind the candle is what the flame lights; irradiance goes as cos(theta) / d^2
-  window.candleDebug = { setBloom: k => { BLOOM = k; }, presenter: () => !!glx }; // for tuning and checks from the console
+  try { eng = await makeEngine(WASM_B64); }
+  catch (e) { $('hint').textContent = `WebAssembly failed to load here (${e && e.message || e}).`; return; }
+  const W = eng.W, H = eng.H, HX = eng.headX;
 
-  // ---------- tone curve for colours drawn by the canvas API (glow, candle, sparks) ----------
+  // ---------- camera and room ----------
+  const CHEMI = 0.00022;  // CH*/C2* light per unit reaction rate, relative to soot
+  const EXPO0 = 0.36;     // camera exposure at 0 EV: a bright core that is not a flat clip
+  const BLOOM = 0.015;    // a camera's veiling glare: this share of the 1.5 mm Gaussian of the linear image is added back
+  const WALL = 480;       // a wall this many cells (12 cm) behind the candle is what the flame lights; irradiance goes as cos(theta) / d^2
+  const cam = { expo: EXPO0, wb: 2800 }, room = { o2: 0.209, g: 1, draft: calm ? 0 : 1 };
+  let view = 'camera';
+  eng.setCamera(cam.expo, cam.wb, CHEMI); eng.setRoom(room.o2, room.g, room.draft); eng.setView(view);
+
+  // ---------- tone curve for colours drawn by the canvas API (wall, candle, wick) ----------
   const ACES = x => { x = x < 0 ? 0 : x; const y = (x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14); return y > 1 ? 1 : y; };
   const GAM = new Uint8ClampedArray(4097);
   for (let i = 0; i <= 4096; i++) { const c = i / 4096; GAM[i] = 255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055); }
   const enc = x => GAM[(ACES(x) * 4096) | 0];
   const rgb = (l, a = 1) => `rgba(${enc(l[0])},${enc(l[1])},${enc(l[2])},${a})`;
 
-  // ---------- camera and room settings ----------
-  const CHEMI = 0.00022;               // CH*/C2* light per unit reaction rate, relative to soot
-  const EXPO0 = 0.36; // camera exposure at 0 EV, set so the core is bright but not a flat clip
-  const cam = { expo: EXPO0, wb: 2800 }, room = { o2: 0.209, g: 1, draft: calm ? 0 : 1 };
-  let view = 'camera';
-  eng.setCamera(cam.expo, cam.wb, CHEMI); eng.setRoom(room.o2, room.g, room.draft); eng.setView(view);
-
-  // ---------- canvases ----------
+  // ---------- the stage ----------
   const cv = $('flame'), ctx = cv.getContext('2d');
-  const off = document.createElement('canvas'); off.width = UW; off.height = UH;
-  const octx = off.getContext('2d');
-  const blur = document.createElement('canvas'); blur.width = Math.ceil(W / 8); blur.height = Math.ceil(H / 8); // bloom layer at 2 mm per pixel
-  const bctx = blur.getContext('2d');
   let cw = 0, ch = 0, s = 1;
   function resize() {
-    const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1); // full resolution up to 2x; a 3x phone gains nothing visible
+    const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
     cw = cv.width = Math.round(r.width * d); ch = cv.height = Math.round(r.height * d); s = cw / W;
     if (glx) glx.resize(cw, ch);
   }
 
-  // ---------- GPU presenter: the engine's linear-light field, resampled and tone-mapped per device pixel ----------
+  // ---------- GPU presenter ----------
   // The engine computes light per cell. Presenting it at display resolution is a resampling job, so it goes to the GPU:
   // Catmull-Rom over the 168 x 280 field, a small bloom from the engine's 1/4-resolution Gaussian, then ACES and sRGB.
-  // Without WebGL2 the engine's own 2x 8-bit output is drawn through the canvas instead.
   function makePresenter() {
     const cvs = document.createElement('canvas');
     const gl = cvs.getContext('webgl2', { alpha: false, antialias: false, depth: false, premultipliedAlpha: false });
@@ -101,10 +99,9 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
     };
   }
   let glx = null;
-  try { glx = makePresenter(); } catch (e) { console.warn('GPU presenter failed, using the canvas path:', e); glx = null; }
-  if (glx) eng.setOutput(1); else console.warn('WebGL2 unavailable, using the canvas path');
+  try { glx = makePresenter(); } catch (e) { console.warn('GPU presenter failed:', e); }
+  if (!glx) { $('hint').textContent = 'This demo needs WebGL2, which this browser does not offer.'; return; }
   new ResizeObserver(resize).observe(cv); resize();
-  if (glx) glx.resize(cw, ch);
 
   // light from the flame, as linear sRGB, at a point (cell coords)
   function flameLight(x, y, gain) {
@@ -114,43 +111,35 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
   }
 
   function draw() {
-    const room = view === 'camera', st = eng.stats, expo = cam.expo;
-    if (!glx) octx.putImageData(new ImageData(eng.pixels(), UW, UH), 0, 0);
+    const roomLit = view === 'camera', st = eng.stats, expo = cam.expo;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = room ? '#06090e' : '#000'; ctx.fillRect(0, 0, cw, ch);
-    if (room && st.Y > 0.05) { // the wall behind the candle, lit by the flame: E(r) = E0 · (WALL² / (WALL² + r²))^1.5, r in the wall plane
+    ctx.fillStyle = roomLit ? '#06090e' : '#000'; ctx.fillRect(0, 0, cw, ch);
+    if (roomLit && st.Y > 0.05) { // the wall behind the candle, lit by the flame: E(r) = E0 · (WALL² / (WALL² + r²))^1.5
       const R = ch * 1.3, g = ctx.createRadialGradient(st.cx * s, st.cy * s, 0, st.cx * s, st.cy * s, R);
       const l0 = flameLight(st.cx, st.cy, 0.0022 * expo);
       for (const f of [0, 0.25, 0.5, 0.75, 1]) { const d = f * R / s, e = Math.pow(WALL * WALL / (WALL * WALL + d * d), 1.5); g.addColorStop(f, rgb(l0.map(v => v * e), 1)); }
       ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0, 0, cw, ch);
       ctx.globalCompositeOperation = 'source-over';
     }
-    drawCandle(room);
-    // the flame is emissive and optically thin, so it adds
+    drawCandle(roomLit);
+    // the flame is emissive and optically thin, so it adds; the presenter's output is a 1:1 copy, nothing resamples it
     ctx.globalCompositeOperation = 'lighter';
-    if (glx) {
-      glx.present(room); // resampled and tone-mapped at device resolution: a 1:1 copy, no smoothing in between
-      ctx.drawImage(glx.canvas, 0, 0);
-    } else {
-      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(off, 0, 0, cw, ch);
-      if (room) { bctx.clearRect(0, 0, blur.width, blur.height); bctx.drawImage(off, 0, 0, blur.width, blur.height); ctx.globalAlpha = 0.35; ctx.drawImage(blur, 0, 0, cw, ch); ctx.globalAlpha = 1; }
-    }
-    drawSparks();
+    glx.present(roomLit);
+    ctx.drawImage(glx.canvas, 0, 0);
     ctx.globalCompositeOperation = 'source-over';
     drawScale();
   }
 
-  // the candle: a wax column with a wick; the wick tip glows as an opaque grey body at the ember temperature
+  // the candle: a wax column with a curled wick; the wick tip glows as an opaque grey body at the ember temperature
   const WAX_TOP = 18, WAX_HALF = 20, WICK_CURL = 6; // cells; mirror WAX_TOP, WAX_HALF and WICK_CURL in the engine
-  function drawCandle(room) {
+  function drawCandle(roomLit) {
     const st = eng.stats, expo = cam.expo;
     const hy = st.headY, top = (hy + WAX_TOP) * s, x0 = (HX - WAX_HALF) * s, ww = 2 * WAX_HALF * s;
-    const amb = room ? 0.02 : 0.05;
+    const amb = roomLit ? 0.02 : 0.05;
     // wax: ivory, lit by the flame above, fading down the column
     const g = ctx.createLinearGradient(0, top, 0, ch);
     for (const t of [0, 0.08, 0.2, 0.45, 1]) {
-      const y = hy + WAX_TOP + t * (H - hy - WAX_TOP), l = room ? flameLight(HX, y, 0.05 * expo) : [0, 0, 0];
+      const y = hy + WAX_TOP + t * (H - hy - WAX_TOP), l = roomLit ? flameLight(HX, y, 0.05 * expo) : [0, 0, 0];
       g.addColorStop(t, rgb([0.92 * (l[0] + amb), 0.86 * (l[1] + amb), 0.72 * (l[2] + amb)]));
     }
     ctx.fillStyle = g; ctx.fillRect(x0, top, ww, ch - top);
@@ -162,7 +151,7 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
     ctx.fillStyle = 'rgba(0,0,0,.25)';
     ctx.beginPath(); ctx.ellipse(HX * s, top, WAX_HALF * s, 3.2 * s, 0, 0, Math.PI * 2); ctx.fill();
     // wax is translucent: the top of the column glows with the flame's light
-    if (room && st.ember > 650) {
+    if (roomLit && st.ember > 650) {
       const l = flameLight(HX, hy + WAX_TOP, 0.12 * expo);
       const wg = ctx.createRadialGradient(HX * s, top, 0, HX * s, top, 28 * s);
       wg.addColorStop(0, rgb(l, 0.9)); wg.addColorStop(1, 'rgba(0,0,0,0)');
@@ -170,7 +159,7 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
       ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = wg; ctx.fillRect(x0, top, ww, 32 * s);
       ctx.restore();
     }
-    // wick: charred cotton, 1 mm wide, rising out of the wax and curling toward the side the engine feeds from (WICK_CURL)
+    // wick: charred cotton, 1 mm wide, rising out of the wax and curling toward the side the engine feeds from
     const tipX = (HX + WICK_CURL) * s, tipY = (hy - 1) * s;
     ctx.strokeStyle = '#0d0907'; ctx.lineWidth = 4 * s; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(HX * s, top + 2 * s);
@@ -185,20 +174,12 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
     }
   }
 
-  function drawSparks() {
-    ctx.lineCap = 'round';
-    for (const [x, y, px, py, T] of eng.sparks()) {
-      ctx.strokeStyle = rgb(eng.greyRgb(T, 6 * cam.expo), 1); ctx.lineWidth = Math.max(1, s * 0.45);
-      ctx.beginPath(); ctx.moveTo(px * s, py * s); ctx.lineTo(x * s, y * s); ctx.stroke();
-    }
-  }
-
   const INF = [[0, 0, 4], [40, 11, 84], [101, 21, 110], [159, 42, 99], [212, 72, 66], [245, 125, 21], [250, 193, 39], [252, 255, 164]];
   function drawScale() {
     const d = cw / 440, x = 14 * d, y = ch - 40 * d, len = 40 * s; // 40 cells = 10 mm
     ctx.strokeStyle = 'rgba(226,230,238,.55)'; ctx.lineWidth = Math.max(1, d);
     ctx.beginPath(); ctx.moveTo(x, y - 4 * d); ctx.lineTo(x, y); ctx.lineTo(x + len, y); ctx.lineTo(x + len, y - 4 * d); ctx.stroke();
-    ctx.fillStyle = 'rgba(226,230,238,.7)'; ctx.font = `${11 * d}px "IBM Plex Mono", monospace`;
+    ctx.fillStyle = 'rgba(226,230,238,.7)'; ctx.font = `${11 * d}px ui-monospace, Menlo, monospace`;
     ctx.fillText('10 mm', x, y - 8 * d);
     if (view === 'temp') {
       const bx = cw - 26 * d, by = 48 * d, bh = ch * 0.4;
@@ -228,36 +209,37 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
   function drawSpectrum(T) {
     const r = sc.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
     if (sc.width !== Math.round(r.width * d)) { sc.width = Math.round(r.width * d); sc.height = Math.round(r.height * d); }
+    const ink = css('--ink'), faint = css('--ink-faint'), edge = css('--edge'), soot = css('--soot');
     const w = sc.width, h = sc.height, padL = 6 * d, padR = 8 * d, padT = 14 * d, padB = 22 * d;
     const L0 = 300, L1 = 3200, X = l => padL + (l - L0) / (L1 - L0) * (w - padL - padR), Y = v => h - padB - v * (h - padT - padB);
     sctx.clearRect(0, 0, w, h);
     for (let i = 0; i < band.length - 1; i++) { sctx.fillStyle = band[i][1]; sctx.fillRect(X(band[i][0]), padT, X(band[i + 1][0]) - X(band[i][0]) + 0.5, h - padT - padB); }
-    sctx.fillStyle = '#8a94a8'; sctx.font = `${10.5 * d}px "IBM Plex Mono", monospace`;
+    sctx.fillStyle = faint; sctx.font = `${10.5 * d}px ui-monospace, Menlo, monospace`;
     sctx.fillText('visible', X(390), padT - 3 * d);
-    sctx.strokeStyle = '#253047'; sctx.lineWidth = d; sctx.beginPath(); sctx.moveTo(padL, h - padB + 0.5); sctx.lineTo(w - padR, h - padB + 0.5); sctx.stroke();
+    sctx.strokeStyle = edge; sctx.lineWidth = d; sctx.beginPath(); sctx.moveTo(padL, h - padB + 0.5); sctx.lineTo(w - padR, h - padB + 0.5); sctx.stroke();
     sctx.textAlign = 'center';
     for (const um of [0.5, 1, 1.5, 2, 2.5, 3]) { const x = X(um * 1000); sctx.fillRect(x, h - padB, d, 4 * d); sctx.fillText(um + (um === 3 ? ' µm' : ''), x, h - 6 * d); }
     sctx.textAlign = 'left';
-    if (!(T > 800)) { sctx.fillText('light the match to see its spectrum', X(1150), padT + 30 * d); return; }
-    const soot = [], bb = []; let ms = 0, mb = 0;
-    for (let l = L0; l <= L1; l += 10) { const b = planck(l, T); bb.push(b); soot.push(b / l); ms = Math.max(ms, b / l); mb = Math.max(mb, b); }
+    if (!(T > 800)) { sctx.fillText('light the candle to see its spectrum', X(1150), padT + 30 * d); return; }
+    const sootC = [], bb = []; let ms = 0, mb = 0;
+    for (let l = L0; l <= L1; l += 10) { const b = planck(l, T); bb.push(b); sootC.push(b / l); ms = Math.max(ms, b / l); mb = Math.max(mb, b); }
     sctx.beginPath(); sctx.moveTo(X(L0), Y(0));
-    soot.forEach((v, i) => sctx.lineTo(X(L0 + i * 10), Y(v / ms)));
-    sctx.lineTo(X(L1), Y(0)); sctx.closePath(); sctx.fillStyle = 'rgba(240,180,92,.18)'; sctx.fill();
-    sctx.beginPath(); soot.forEach((v, i) => (i ? sctx.lineTo : sctx.moveTo).call(sctx, X(L0 + i * 10), Y(v / ms)));
-    sctx.strokeStyle = '#f0b45c'; sctx.lineWidth = 2 * d; sctx.stroke();
+    sootC.forEach((v, i) => sctx.lineTo(X(L0 + i * 10), Y(v / ms)));
+    sctx.lineTo(X(L1), Y(0)); sctx.closePath(); sctx.fillStyle = alpha(soot, 0.18); sctx.fill();
+    sctx.beginPath(); sootC.forEach((v, i) => (i ? sctx.lineTo : sctx.moveTo).call(sctx, X(L0 + i * 10), Y(v / ms)));
+    sctx.strokeStyle = soot; sctx.lineWidth = 2 * d; sctx.stroke();
     sctx.beginPath(); bb.forEach((v, i) => (i ? sctx.lineTo : sctx.moveTo).call(sctx, X(L0 + i * 10), Y(v / mb)));
-    sctx.setLineDash([4 * d, 4 * d]); sctx.strokeStyle = '#8a94a8'; sctx.lineWidth = 1.5 * d; sctx.stroke(); sctx.setLineDash([]);
+    sctx.setLineDash([4 * d, 4 * d]); sctx.strokeStyle = faint; sctx.lineWidth = 1.5 * d; sctx.stroke(); sctx.setLineDash([]);
     const lp = 2404000 / T; // soot peak, nm
-    sctx.fillStyle = '#f0b45c'; sctx.beginPath(); sctx.arc(X(lp), Y(1), 3.5 * d, 0, 7); sctx.fill();
-    sctx.fillStyle = '#e2e6ee'; sctx.fillText(`${Math.round(T)} K`, Math.min(X(lp) + 8 * d, w - 60 * d), Y(1) + 4 * d);
+    sctx.fillStyle = soot; sctx.beginPath(); sctx.arc(X(lp), Y(1), 3.5 * d, 0, 7); sctx.fill();
+    sctx.fillStyle = ink; sctx.fillText(`${Math.round(T)} K`, Math.min(X(lp) + 8 * d, w - 60 * d), Y(1) + 4 * d);
   }
 
   // ---------- readouts ----------
   const visCache = new Map();
   const visShare = T => { const k = Math.round(T / 10) * 10; if (!visCache.has(k)) visCache.set(k, eng.visibleShare(k)); return visCache.get(k); };
   let shownT = 0;
-  const perf = { sim: 0, shade: 0, draw: 0, frame: 0 };
+  const perf = { sim: 0, shade: 0, frame: 0 };
   function readouts() {
     const st = eng.stats, T = st.sootT, on = T > 800 && st.Y > 0.2;
     shownT = on ? (shownT ? shownT * 0.6 + T * 0.4 : T) : 0;
@@ -274,24 +256,24 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
     $('strike').disabled = ph === 'lit';
     $('breeze').disabled = $('blow').disabled = ph !== 'lit';
     $('hint').style.opacity = ph === 'ready' ? 1 : 0;
-    $('pfSim').innerHTML = `${perf.sim.toFixed(2)}<small>ms</small>`;
+    $('pfSim').innerHTML = `${perf.sim.toFixed(1)}<small>ms</small>`;
     $('pfShade').innerHTML = `${perf.shade.toFixed(2)}<small>ms</small>`;
     $('pfFrame').innerHTML = `${perf.frame.toFixed(1)}<small>ms</small>`;
     $('pfFps').innerHTML = `${perf.frame > 0 ? Math.min(999, 1000 / perf.frame).toFixed(0) : '–'}<small>fps</small>`;
   }
 
   // ---------- interaction ----------
-  function strikeOrReset() {
-    if (eng.stats.phase === 'ready') eng.strike(false); // a lighter, not a match: no sparks
+  function lightOrReset() {
+    if (eng.stats.phase === 'ready') eng.strike();
     else if (eng.stats.phase === 'out') eng.reset();
     readouts();
   }
-  $('strike').onclick = strikeOrReset;
+  $('strike').onclick = lightOrReset;
   $('breeze').onclick = () => eng.blow(0.35, 1.5);
-  $('blow').onclick = () => eng.blow(5, 0.4); // 4 m/s for 0.4 s no longer puts it out at the 1/240 step; 5 does, the breeze never
+  $('blow').onclick = () => eng.blow(5, 0.4); // a 5 m/s puff cools the wick past relighting; 2 to 3 m/s only bend the flame
   let drag = null;
   cv.addEventListener('pointerdown', e => {
-    if (eng.stats.phase !== 'lit') { strikeOrReset(); return; }
+    if (eng.stats.phase !== 'lit') { lightOrReset(); return; }
     cv.setPointerCapture(e.pointerId); drag = { x: e.offsetX, y: e.offsetY, t: performance.now() };
   });
   cv.addEventListener('pointermove', e => {
@@ -309,6 +291,7 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
     view = b.dataset.view; eng.setView(view);
     viewButtons.forEach(x => x.setAttribute('aria-pressed', x === b));
   });
+
   const bind = (id, fn) => { const el = $(id); const run = () => fn(+el.value); el.addEventListener('input', run); run(); };
   bind('ev', v => { cam.expo = EXPO0 * Math.pow(2, v); eng.setCamera(cam.expo, cam.wb, CHEMI); $('evOut').textContent = `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)} EV`; });
   bind('wb', v => { cam.wb = v; eng.setCamera(cam.expo, cam.wb, CHEMI); $('wbOut').textContent = `${v} K`; });
@@ -332,5 +315,5 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
   }
   draw(); readouts();
   requestAnimationFrame(frame);
-  setTimeout(() => { if (eng.stats.phase === 'ready') { eng.strike(false); readouts(); } }, 700);
+  setTimeout(() => { if (eng.stats.phase === 'ready') { eng.strike(); readouts(); } }, 700);
 })();
