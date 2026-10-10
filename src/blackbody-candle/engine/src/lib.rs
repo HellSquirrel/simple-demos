@@ -17,8 +17,10 @@ const A: f32 = 1e5; // one-step chemistry: pre-exponential, 1/s
 const EA: f32 = 6000.0; // activation temperature, K
 const STO: f32 = 6.0; // oxygen used per unit fuel
 const Q: f32 = 11300.0; // temperature rise per unit fuel burned, K: with STO = 6 a stoichiometric mixture reaches ~2,200 K, the adiabatic flame temperature of hydrocarbons in air
-const SF: f32 = 1.45e7; // soot inception pre-exponential, set so the rate at 1,750 K equals the earlier calibration (1.5e5 at 12,000 K)
+const SF: f32 = 1.45e7; // soot inception pre-exponential (rate at 1,750 K as in the first calibration). With growth off (default) this makes the soot mass itself
 const ESF: f32 = 20000.0; // soot inception activation temperature, K: soot models use ~21,000, which keeps inception in the hot sheath and the vapour core dark
+const SG: f32 = 6e5; // soot surface growth pre-exponential, 1/s per unit fuel: dS/dt = SG * S * F * exp(-ESG/T). Off by default (sg_scale 0); the two-step experiments in HANDOFF use it
+const ESG: f32 = 12100.0; // its activation temperature, K (Leung-Lindstedt)
 const SO: f32 = 1e6; // soot oxidation
 const ESO: f32 = 11000.0;
 const KRAD: f32 = 5e-9; // optically thin radiative loss
@@ -32,21 +34,22 @@ const OHP: f32 = 0.012; // OH proxy for soot oxidation
 const ENT: f32 = 0.25; // out-of-plane entrainment
 const ENT_R: f32 = 20.0; // flame radius the entrainment rate is scaled by, cells (5 mm)
 const EXPAND: f32 = 0.5; // thermal expansion in the pressure solve
-const FUEL: f32 = 0.5; // wax vapour supply of the wick, in fuel-fraction units; sets the flame size
+const FUEL: f32 = 0.7; // wax vapour supply of the wick, in fuel-fraction units; sets the flame size (0.5 at the 1/120 step, whose numerical diffusion made the flame taller)
 const TIP_R: f32 = 14.0; // radius of the hot surface around the wick tip, cells (3.5 mm). Experiments with a 2 mm tip and 10x kinetics anchor but need a full retune; see HANDOFF
 const T_VAP: f32 = 700.0; // wax vapour leaves the wick near its boiling range, K
 const VAP_MIX: f32 = 0.0; // per substep, how strongly the vapour region is mixed toward T_VAP (cold vapour inflow); no effect while the hot surface covers the vapour zone
 const WICK_CURL: f32 = 6.0; // a braided wick curls so its tip burns in the sheath: the vapour source sits this many cells to the side of the axis
 const SUPPLY_SIGMA: f32 = 0.12; // the capillary feed and melt pool fluctuate: relative noise on the vapour supply
 const SUPPLY_TAU: f32 = 0.3; // and its correlation time, s
-const DRAFT_SIGMA: f32 = 60.0; // room air: standard deviation of the wandering wind, mm/s, at draft 1x (a normally ventilated room)
+const DRAFT_SIGMA: f32 = 130.0; // room air: standard deviation of the wandering wind, mm/s, at draft 1x. The resolved hot plume shields itself: only ~40 % of it reaches the flame (examples/wind.rs), hence a stiff room wind for a gentle dance
 const DRAFT_TAU: f32 = 0.8; // its correlation time, s
 const DRAFT_COUPLING: f32 = 3.0; // rate at which the air in the window follows the room wind, 1/s: about the rate the wind crosses the 42 mm window
 const HEAD_X: usize = 84; // wick column
 const HEAD0: f32 = 156.0; // wick tip row: the flame anchors here and never moves
 const WAX_TOP: usize = 174; // first row of solid wax below the wick
 const WAX_HALF: usize = 20; // half-width of the wax column, cells (10 mm across)
-const SUB_DT: f32 = 1.0 / 120.0;
+const SUB_DT: f32 = 1.0 / 240.0; // at 1/120 the split between transport and chemistry rang at a period of two steps and striped the core with soot bands; 1/240 is converged (examples/axis.rs)
+const MAX_FRAME_SIM: f32 = 0.025; // at most this much simulated time per frame: a slow frame rate slows the flame rather than stalling the page
 const RT_MIN: f32 = TA; // the per-substep rate tables cover the clamped temperature range, 1 K apart
 const RT_N: usize = 2301; // 300..=2600 K
 const P_ITERS: usize = 16; // pressure sweeps; the flame is insensitive beyond this (see examples/solver.rs)
@@ -136,18 +139,19 @@ fn rate_idx(t: f32) -> (usize, f32) {
 #[inline(always)]
 fn rate_at(tab: &[f32], t: f32, c: usize) -> f32 {
     let (n, a) = rate_idx(t);
-    let k = n * 3 + c;
-    unsafe { *tab.get_unchecked(k) + (*tab.get_unchecked(k + 3) - *tab.get_unchecked(k)) * a }
+    let k = n * 4 + c;
+    unsafe { *tab.get_unchecked(k) + (*tab.get_unchecked(k + 4) - *tab.get_unchecked(k)) * a }
 }
 #[inline(always)]
-fn rate3(tab: &[f32], t: f32) -> [f32; 3] {
+fn rate4(tab: &[f32], t: f32) -> [f32; 4] {
     let (n, a) = rate_idx(t);
-    let k = n * 3;
+    let k = n * 4;
     unsafe {
         [
-            *tab.get_unchecked(k) + (*tab.get_unchecked(k + 3) - *tab.get_unchecked(k)) * a,
-            *tab.get_unchecked(k + 1) + (*tab.get_unchecked(k + 4) - *tab.get_unchecked(k + 1)) * a,
-            *tab.get_unchecked(k + 2) + (*tab.get_unchecked(k + 5) - *tab.get_unchecked(k + 2)) * a,
+            *tab.get_unchecked(k) + (*tab.get_unchecked(k + 4) - *tab.get_unchecked(k)) * a,
+            *tab.get_unchecked(k + 1) + (*tab.get_unchecked(k + 5) - *tab.get_unchecked(k + 1)) * a,
+            *tab.get_unchecked(k + 2) + (*tab.get_unchecked(k + 6) - *tab.get_unchecked(k + 2)) * a,
+            *tab.get_unchecked(k + 3) + (*tab.get_unchecked(k + 7) - *tab.get_unchecked(k + 3)) * a,
         ]
     }
 }
@@ -307,6 +311,7 @@ pub struct Sim {
     curl: f32, supply_sigma: f32, supply: f32, // wick curl in cells, supply noise amplitude, and its current state
     tip_r: f32, t_vap: f32, vap_mix: f32, // the wick model, see TIP_R, T_VAP, VAP_MIX
     vap_kf: f32, // see VAP_KF
+    ent_mode: u32, // entrainment: 0 mixes everything toward room air everywhere; 1 cools only where there is air; 2 cools and adds oxygen only where there is air
     draft_sigma: f32, draft_tau: f32, draft_coupling: f32, // the room-air model, see the DRAFT_* constants
     soot_scale: f32, krad: f32, // tuning multipliers on the empirical soot-formation rate and the radiative-loss coefficient
     q: f32, // heat release per unit fuel, K (see Q)
@@ -317,7 +322,13 @@ pub struct Sim {
     sparks: Vec<Spark>, rng: Rng,
     // light
     soot: Vec<f32>, grey: Vec<f32>, chemi: [f32; 3], m: [f32; 9],
-    rate: Vec<f32>, // per K: burn fraction per substep, soot formation per unit fuel, soot oxidation coefficient
+    rate: Vec<f32>, // per K: burn fraction per substep, soot inception per unit fuel, soot oxidation coefficient, soot growth per unit fuel
+    sg_scale: f32, // tuning multiplier on the growth rate
+    a_scale: f32, so_scale: f64, eso: f64, sf: f64, esf: f64, // the current rate-law parameters behind `rate`
+    sub_dt: f32, // the substep, SUB_DT unless changed for experiments
+    chem_sub: u32, // chemistry and radiation are integrated this many times per substep (their rate tables are built for the chemistry step)
+    strang: bool, // Strang splitting: half the chemistry before transport, half after (second order in the splitting)
+    diff_sub: u32, // the implicit diffusion is applied this many times per substep with dt / diff_sub
     abel: Vec<f32>, // line-of-sight weights, two per (ray m, annulus n): own side and other side of the slice (see new())
     expo: f32, chemi_gain: f32, view: u32,
     lin: Vec<f32>, pix: Vec<u8>, enc: Vec<u8>, taps: Vec<([u32; 4], [f32; 4])>, rowbuf: Vec<f32>,
@@ -348,7 +359,7 @@ impl Sim {
         let chemi = [(c[0] / c[1]) as f32, 1.0, (c[2] / c[1]) as f32];
         // the three Arrhenius rates, integrated over one substep, as functions of temperature (the hot loop then
         // does one table lookup instead of exp calls). Same formulas as before, evaluated once in f64.
-        let rate = Self::rate_table(1.0, 1.0, ESO as f64);
+        let rate = Self::rate_table(SUB_DT as f64, 1.0, 1.0, ESO as f64, SF as f64, ESF as f64);
         // Abel projection of the slice: the camera sees an optically thin, roughly axisymmetric flame, so the intensity at
         // offset x from the axis is the integral of the slice emission along the chord through all annuli at r >= x.
         // Cell n on one side of the axis is the annulus [n, n+1]; the ray through cell m is at x = m + 0.5.
@@ -379,7 +390,7 @@ impl Sim {
             u: z(), v: z(), u0: z(), v0: z(), t: z(), t0: z(), f: z(), f0: z(), o: z(), o0: z(), s: z(), s0: z(),
             r: z(), p: z(), dv: z(), cu: z(), solid: vec![0; N],
             o2: 0.21, g: 1.0, swirl: 1.0, draft_k: 1.0,
-            p_iters: P_ITERS, alpha0: ALPHA0, nu0: PR * ALPHA0, fuel: FUEL, curl: WICK_CURL, supply_sigma: SUPPLY_SIGMA, supply: 0.0, tip_r: TIP_R, t_vap: T_VAP, vap_mix: VAP_MIX, vap_kf: VAP_KF, draft_sigma: DRAFT_SIGMA, draft_tau: DRAFT_TAU, draft_coupling: DRAFT_COUPLING, soot_scale: 1.0, krad: KRAD, q: Q,
+            p_iters: P_ITERS, alpha0: ALPHA0, nu0: PR * ALPHA0, fuel: FUEL, curl: WICK_CURL, supply_sigma: SUPPLY_SIGMA, supply: 0.0, tip_r: TIP_R, t_vap: T_VAP, vap_mix: VAP_MIX, vap_kf: VAP_KF, ent_mode: 0, draft_sigma: DRAFT_SIGMA, draft_tau: DRAFT_TAU, draft_coupling: DRAFT_COUPLING, soot_scale: 1.0, sg_scale: 0.0, a_scale: 1.0, so_scale: 1.0, eso: ESO as f64, sf: SF as f64, esf: ESF as f64, sub_dt: SUB_DT, chem_sub: 1, strang: false, diff_sub: 1, krad: KRAD, q: Q,
             gtab: (0..RT_N).map(|n| ((RT_MIN + n as f32) / TA).powf(D_EXP)).collect(), gx: z(), gy: z(),
             phase: Phase::Ready, time: 0.0, burned: 0.0, h: 0.0, charge: 0.0, ignite: 0.0, ember: TA,
             out_timer: 0.0, gust: 0.0, gust_v: 0.0, draft: 0.0, qrel: 0.0, qrad: 0.0, since: 0.0,
@@ -398,14 +409,15 @@ impl Sim {
     }
 
     /// The three Arrhenius rates integrated over one substep, per kelvin; `a_scale` multiplies the burn pre-exponential.
-    fn rate_table(a_scale: f64, so_scale: f64, eso: f64) -> Vec<f32> {
-        let mut rate = vec![0f32; RT_N * 3];
+    fn rate_table(dt: f64, a_scale: f64, so_scale: f64, eso: f64, sf: f64, esf: f64) -> Vec<f32> {
+        let mut rate = vec![0f32; RT_N * 4];
         for n in 0..RT_N {
             let t = RT_MIN as f64 + n as f64;
-            let (dt, a, ea, sf, esf, so) = (SUB_DT as f64, A as f64 * a_scale, EA as f64, SF as f64, ESF as f64, SO as f64 * so_scale);
-            rate[n * 3] = (1.0 - (-a * (-ea / t).exp() * dt).exp()) as f32; // fraction of the limiting reactant burned
-            rate[n * 3 + 1] = (dt * sf * (-esf / t).exp()) as f32; // soot formed per unit fuel
-            rate[n * 3 + 2] = (dt * so * (-eso / t).exp()) as f32; // soot oxidation coefficient, times (O2 + OH proxy)
+            let (a, ea, so, sg, esg) = (A as f64 * a_scale, EA as f64, SO as f64 * so_scale, SG as f64, ESG as f64);
+            rate[n * 4] = (1.0 - (-a * (-ea / t).exp() * dt).exp()) as f32; // fraction of the limiting reactant burned
+            rate[n * 4 + 1] = (dt * sf * (-esf / t).exp()) as f32; // soot inception per unit fuel
+            rate[n * 4 + 2] = (dt * so * (-eso / t).exp()) as f32; // soot oxidation coefficient, times (O2 + OH proxy)
+            rate[n * 4 + 3] = (dt * sg * (-esg / t).exp()) as f32; // soot surface growth per unit fuel, times S
         }
         rate
     }
@@ -504,11 +516,16 @@ impl Sim {
     }
 
     fn substep(&mut self, dt: f32) -> f32 {
+        let (n, cdt) = (self.chem_sub, self.chem_dt());
+        let calls = n * if self.strang { 2 } else { 1 };
+        let mut heat = 0.0;
         self.forces(dt);
         self.wick(dt);
+        if self.strang { for _ in 0..n { heat += self.chemistry(cdt) / calls as f32; } }
         self.transport(dt);
         self.entrain(dt);
-        self.chemistry(dt)
+        for _ in 0..n { heat += self.chemistry(cdt) / calls as f32; }
+        heat
     }
 
     /// Buoyancy, vorticity confinement, the room draft with its eddies, and the gust.
@@ -554,8 +571,9 @@ impl Sim {
                     if xx < 1 || yy < 1 || xx > W as i32 - 2 || yy > H as i32 - 2 { continue; }
                     let w = (-((i * i + j * j) as f32) / 24.0).exp();
                     let k = xx as usize + yy as usize * W;
-                    self.u[k] += -(j as f32) * w * sg * dt * 10.0;
-                    self.v[k] += i as f32 * w * sg * dt * 10.0;
+                    // an eddy is an event: its rate scales with dt (above), its impulse does not (calibrated at 1/120 s)
+                    self.u[k] += -(j as f32) * w * sg * (10.0 / 120.0);
+                    self.v[k] += i as f32 * w * sg * (10.0 / 120.0);
                 }
             }
         }
@@ -579,6 +597,11 @@ impl Sim {
         // the curled wick: only its glowing tip is a hot surface; the vapour comes off the wick's length, cool
         let (cx_tip, cx_fuel) = (self.curl, 0.7 * self.curl);
         let (tip_r2, t_vap, vap_mix) = (self.tip_r * self.tip_r, self.t_vap, self.vap_mix);
+        // the source relaxations are rates, calibrated at the 1/120 s substep they were tuned with, so the model does
+        // not change with the substep: gas touching the hot surface relaxes at 83 /s (half-way per 1/120 s)
+        let steps = dt * 120.0;
+        let heat_k = 1.0 - 0.5f32.powf(steps);
+        let vap_k = 1.0 - (1.0 - vap_mix).powf(steps);
         for j in -16..=10i32 {
             for i in -14..=22i32 {
                 let (dtip, df) = (i as f32 - cx_tip, i as f32 - cx_fuel);
@@ -588,14 +611,14 @@ impl Sim {
                 let k = (HEAD_X as i32 + i + ((hy + j as f32) as i32) * W as i32) as usize;
                 if self.solid[k] != 0 { continue; }
                 // the glowing tip heats the gas touching it
-                if e_tip < 1.0 && self.t[k] < ts { self.t[k] += (ts - self.t[k]) * 0.5 * ((1.0 - e_tip) * 2.5).min(1.0); }
+                if e_tip < 1.0 && self.t[k] < ts { self.t[k] += (ts - self.t[k]) * heat_k * ((1.0 - e_tip) * 2.5).min(1.0); }
                 let wi = ((1.0 - ei) * 2.0).clamp(0.0, 1.0);
                 if wi > 0.0 {
                     if pyro > 0.0 {
                         self.f[k] = self.f[k].max(pyro * wi);
                         // cold vapour: the gas in the vapour region is mixed toward the vapour temperature
-                        if self.t[k] > t_vap && e_tip >= 1.0 { self.t[k] -= (self.t[k] - t_vap) * vap_mix * wi; }
-                        self.o[k] *= 1.0 - 0.9 * pyro.min(1.0) * wi;
+                        if self.t[k] > t_vap && e_tip >= 1.0 { self.t[k] -= (self.t[k] - t_vap) * vap_k * wi; }
+                        self.o[k] *= (1.0 - 0.9 * pyro.min(1.0) * wi).powf(steps);
                         self.v[k] = self.v[k].min(-120.0 * pyro * wi);
                         self.u[k] += df * 8.0 * pyro * wi * dt * 60.0;
                     }
@@ -617,7 +640,7 @@ impl Sim {
         std::mem::swap(&mut self.o, &mut self.o0);
         std::mem::swap(&mut self.s, &mut self.s0);
         {
-            let Sim { u, v, u0, v0, t, t0, f, f0, o, o0, s, s0, dv, cu, gtab, gx, gy, solid, alpha0, nu0, vap_kf, .. } = self;
+            let Sim { u, v, u0, v0, t, t0, f, f0, o, o0, s, s0, dv, cu, gtab, gx, gy, solid, alpha0, nu0, vap_kf, diff_sub, .. } = self;
             advect_all([&mut t[..], &mut f[..], &mut o[..], &mut s[..], &mut u[..], &mut v[..]],
                        [&t0[..], &f0[..], &o0[..], &s0[..], &u0[..], &v0[..]],
                        [Some(TA), Some(0.0), Some(oa), Some(0.0), None, None], dt, u0, v0);
@@ -634,11 +657,14 @@ impl Sim {
                 gy[k] = lam * 2.0 * g * gb / (g + gb + 1e-6);
             }
             let (alpha, nu) = (*alpha0, *nu0);
-            diffuse_adi(t, gx, gy, alpha, dv);
-            diffuse_adi(o, gx, gy, alpha / LE_O, dv);
-            diffuse_adi(f, gx, gy, alpha / LE_F, dv);
-            diffuse_adi(u, gx, gy, nu, dv);
-            diffuse_adi(v, gx, gy, nu, dv);
+            let dsub = *diff_sub as f32;
+            for _ in 0..*diff_sub {
+                diffuse_adi(t, gx, gy, alpha / dsub, dv);
+                diffuse_adi(o, gx, gy, alpha / LE_O / dsub, dv);
+                diffuse_adi(f, gx, gy, alpha / LE_F / dsub, dv);
+                diffuse_adi(u, gx, gy, nu / dsub, dv);
+                diffuse_adi(v, gx, gy, nu / dsub, dv);
+            }
             // top boundary is an outlet: zero-gradient
             for i in 0..W { t[i] = t[i + W]; f[i] = f[i + W]; o[i] = o[i + W]; s[i] = s[i + W]; }
         }
@@ -649,15 +675,19 @@ impl Sim {
     fn entrain(&mut self, dt: f32) {
         let oa = self.o2 / 0.21;
         {
+            let mode = self.ent_mode;
             let Sim { u, v, t, f, s, o, .. } = self;
             for k in 0..N {
                 if t[k] < 320.0 && f[k] < 1e-3 { continue; }
                 let x = dt * ENT * (u[k] * u[k] + v[k] * v[k]).sqrt() / ENT_R;
                 let a = if x < 1.0 { x * (1.0 - 0.5 * x) } else { 1.0 - (-x).exp() }; // 1 - e^-x to third order; the exp only for gusts
-                t[k] += (TA - t[k]) * a;
+                // a round flame spreads fuel and soot into a growing volume: that dilution applies everywhere. Room air, its
+                // oxygen and its cooling, reach only the air side of the sheet; in the vapour core the third dimension holds more core.
+                let air = if mode > 0 { a * o[k].clamp(0.0, 1.0) } else { a };
+                t[k] += (TA - t[k]) * air;
                 f[k] -= f[k] * a;
                 s[k] -= s[k] * a;
-                o[k] += (oa - o[k]) * a;
+                o[k] += (oa - o[k]) * if mode > 1 { air } else { a };
             }
         }
     }
@@ -668,8 +698,8 @@ impl Sim {
         let mut rsum = 0.0f32;
         let mut qrad = 0.0f32;
         {
-            let Sim { t: tt, f: ff, o: oo, s: ss, r: rr, solid, rate, soot_scale, krad, q, .. } = self;
-            let (ssc, kr, q) = (*soot_scale, *krad, *q);
+            let Sim { t: tt, f: ff, o: oo, s: ss, r: rr, solid, rate, soot_scale, sg_scale, krad, q, .. } = self;
+            let (ssc, sgc, kr, q) = (*soot_scale, *sg_scale, *krad, *q);
             for k in 0..N {
                 let (mut t, mut f, mut o, mut s) = (tt[k], ff[k], oo[k], ss[k]);
                 let mut r = 0.0;
@@ -680,16 +710,19 @@ impl Sim {
                     f -= r; o -= STO * r; t += q * r;
                 }
                 if t > 900.0 {
-                    let [_, ks, ko] = rate3(rate, t);
-                    if t > 1100.0 && f > 0.005 { s += ks * ssc * f; }
+                    let [_, ks, ko, kg] = rate4(rate, t);
+                    // soot: inception seeds it, surface growth on what is there makes the mass
+                    if t > 1100.0 && f > 0.005 { s += (ks * ssc + kg * sgc * s) * f; }
                     // O2 + OH (proxy) attack soot
                     if s > 1e-6 { s -= s * (1.0 - (-ko * (o + OHP)).exp()); }
                 }
-                let t4 = t * t * t * t;
-                let ql = dt * kr * (s + 0.04) * (t4 - 8.1e9);
+                // optically thin radiation. dT/dt = -k T^4 integrates exactly to T^-3 = T0^-3 + 3 k dt, which is what a sooty
+                // cell cooling by 100 K in a step needs; the small T_inf^4 term stays explicit. Cold cells use one multiply.
+                let (t3, kk) = (t * t * t, dt * kr * (s + 0.04));
+                let ql = if kk * t3 > 2e-3 { t - (1.0 / t3 + 3.0 * kk).powf(-1.0 / 3.0) - kk * 8.1e9 } else { kk * (t3 * t - 8.1e9) };
                 t -= ql; qrad += ql;
                 // flush tiny values to zero: denormal floats are very slow on most CPUs
-                let rn = rr[k] * 0.5 + 0.5 * r / dt;
+                let rn = rr[k] + (r / dt - rr[k]) * (1.0 - 0.5f32.powf(dt * 120.0));
                 tt[k] = t.clamp(TA, 2600.0);
                 ff[k] = if f < 1e-9 { 0.0 } else { f };
                 oo[k] = o;
@@ -706,10 +739,11 @@ impl Sim {
     }
 
     pub fn step(&mut self, frame_dt: f32) {
-        let n = ((frame_dt / SUB_DT).round() as i32).clamp(1, 3);
+        let sub = self.sub_dt;
+        let n = ((frame_dt / sub).round() as i32).clamp(1, (MAX_FRAME_SIM / sub).round() as i32);
         for _ in 0..n {
-            let heat = self.substep(SUB_DT);
-            let dt = SUB_DT;
+            let heat = self.substep(sub);
+            let dt = sub;
             self.time += dt; self.since += dt;
             self.supply += (-self.supply / SUPPLY_TAU) * dt + (2.0 * dt / SUPPLY_TAU).sqrt() * self.rng.gauss() * self.supply_sigma;
             self.supply = self.supply.clamp(-0.5, 0.5);
@@ -735,7 +769,7 @@ impl Sim {
                 Phase::Ready => {}
             }
         }
-        self.step_sparks(n as f32 * SUB_DT);
+        self.step_sparks(n as f32 * sub);
     }
 
     fn step_sparks(&mut self, dt: f32) {
@@ -966,16 +1000,31 @@ impl Sim {
     pub fn set_diffusion(&mut self, alpha0: f32, nu0: f32) { self.alpha0 = alpha0.max(0.0); self.nu0 = nu0.max(0.0); }
     pub fn set_fuel(&mut self, fuel: f32) { self.fuel = fuel.clamp(0.0, 1.0); }
     pub fn set_soot(&mut self, scale: f32) { self.soot_scale = scale.max(0.0); }
+    pub fn set_growth(&mut self, scale: f32) { self.sg_scale = scale.max(0.0); }
     pub fn set_wick(&mut self, curl: f32, supply_sigma: f32) { self.curl = curl.clamp(-20.0, 20.0); self.supply_sigma = supply_sigma.clamp(0.0, 0.5); }
     pub fn set_wick_model(&mut self, tip_r: f32, t_vap: f32, vap_mix: f32) { self.tip_r = tip_r.clamp(1.0, 20.0); self.t_vap = t_vap.clamp(TA, 1500.0); self.vap_mix = vap_mix.clamp(0.0, 1.0); }
     pub fn set_vapour(&mut self, kf: f32) { self.vap_kf = kf.max(0.0); }
+    pub fn set_entrain_mode(&mut self, mode: u32) { self.ent_mode = mode.min(2); }
+    pub fn set_room(&mut self, o2: f32, g: f32, swirl: f32, draft: f32) { self.o2 = o2; self.g = g; self.swirl = swirl; self.draft_k = draft; }
+    pub fn field_o(&self) -> &[f32] { &self.o }
+    pub fn field_u(&self) -> &[f32] { &self.u }
+    pub fn draft_state(&self) -> f32 { self.draft }
     pub fn set_draft_model(&mut self, sigma: f32, tau: f32, coupling: f32) { self.draft_sigma = sigma.max(0.0); self.draft_tau = tau.max(0.05); self.draft_coupling = coupling.max(0.0); }
     pub fn set_krad(&mut self, scale: f32) { self.krad = KRAD * scale.max(0.0); }
-    pub fn set_chem(&mut self, a_scale: f32, q_scale: f32) { self.rate = Self::rate_table(a_scale.max(0.01) as f64, 1.0, ESO as f64); self.q = Q * q_scale.max(0.1); }
+    pub fn set_chem(&mut self, a_scale: f32, q_scale: f32) { self.a_scale = a_scale.max(0.01); self.rebuild_rates(); self.q = Q * q_scale.max(0.1); }
+    /// Soot inception law: the rate at 1,500 K (1/s per unit fuel) and the activation temperature.
+    pub fn set_inception(&mut self, rate1500: f32, esf: f32) { self.sf = rate1500 as f64 / (-esf as f64 / 1500.0).exp(); self.esf = esf as f64; self.rebuild_rates(); }
+    fn chem_dt(&self) -> f32 { self.sub_dt / (self.chem_sub as f32 * if self.strang { 2.0 } else { 1.0 }) }
+    fn rebuild_rates(&mut self) { self.rate = Self::rate_table(self.chem_dt() as f64, self.a_scale as f64, self.so_scale, self.eso, self.sf, self.esf); }
+    pub fn set_chem_sub(&mut self, n: u32) { self.chem_sub = n.clamp(1, 8); self.rebuild_rates(); }
+    pub fn set_strang(&mut self, on: bool) { self.strang = on; self.rebuild_rates(); }
+    pub fn set_diff_sub(&mut self, n: u32) { self.diff_sub = n.clamp(1, 8); }
+    pub fn set_substep(&mut self, dt: f32) { self.sub_dt = dt.clamp(1.0 / 2000.0, 1.0 / 30.0); self.rebuild_rates(); }
     /// Soot burnout kinetics: pre-exponential scale and activation temperature (K); the rate at `keep_k` is held fixed when `so_scale` is 0.
     pub fn set_oxidation(&mut self, so_scale: f32, eso: f32, keep_k: f32) {
-        let scale = if so_scale > 0.0 { so_scale as f64 } else { ((eso as f64 - ESO as f64) / keep_k as f64).exp() };
-        self.rate = Self::rate_table(1.0, scale, eso as f64);
+        self.so_scale = if so_scale > 0.0 { so_scale as f64 } else { ((eso as f64 - ESO as f64) / keep_k as f64).exp() };
+        self.eso = eso as f64;
+        self.rebuild_rates();
     }
     /// RMS over interior cells of the projection residual: divergence minus the thermal-expansion target.
     pub fn divergence_rms(&self) -> f32 {
@@ -1037,9 +1086,16 @@ fn sim() -> &'static mut Sim { unsafe { SIM.as_mut().unwrap_unchecked() } }
 #[no_mangle] pub extern "C" fn fl_set_diffusion(alpha: f32, nu: f32) { sim().set_diffusion(alpha, nu); }
 #[no_mangle] pub extern "C" fn fl_set_fuel(fuel: f32) { sim().set_fuel(fuel); }
 #[no_mangle] pub extern "C" fn fl_set_soot(scale: f32) { sim().set_soot(scale); }
+#[no_mangle] pub extern "C" fn fl_set_growth(scale: f32) { sim().set_growth(scale); }
+#[no_mangle] pub extern "C" fn fl_set_inception(rate1500: f32, esf: f32) { sim().set_inception(rate1500, esf); }
 #[no_mangle] pub extern "C" fn fl_set_wick(curl: f32, supply_sigma: f32) { sim().set_wick(curl, supply_sigma); }
 #[no_mangle] pub extern "C" fn fl_set_wick_model(tip_r: f32, t_vap: f32, vap_mix: f32) { sim().set_wick_model(tip_r, t_vap, vap_mix); }
 #[no_mangle] pub extern "C" fn fl_set_vapour(kf: f32) { sim().set_vapour(kf); }
+#[no_mangle] pub extern "C" fn fl_set_entrain_mode(mode: u32) { sim().set_entrain_mode(mode); }
+#[no_mangle] pub extern "C" fn fl_set_substep(dt: f32) { sim().set_substep(dt); }
+#[no_mangle] pub extern "C" fn fl_set_chem_sub(n: u32) { sim().set_chem_sub(n); }
+#[no_mangle] pub extern "C" fn fl_set_diff_sub(n: u32) { sim().set_diff_sub(n); }
+#[no_mangle] pub extern "C" fn fl_set_strang(on: u32) { sim().set_strang(on != 0); }
 #[no_mangle] pub extern "C" fn fl_set_draft_model(sigma: f32, tau: f32, coupling: f32) { sim().set_draft_model(sigma, tau, coupling); }
 #[no_mangle] pub extern "C" fn fl_set_krad(scale: f32) { sim().set_krad(scale); }
 #[no_mangle] pub extern "C" fn fl_set_chem(a_scale: f32, q_scale: f32) { sim().set_chem(a_scale, q_scale); }

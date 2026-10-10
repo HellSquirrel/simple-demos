@@ -32,7 +32,7 @@ w.fl_set_room(0.209, 1.0, 1.0, 1.0);       // O2 fraction, gravity (g), swirl, r
 w.fl_strike(1);                            // 1 = with sparks
 
 function frame(dt) {
-  w.fl_step(dt);                           // 1-3 substeps of 1/120 s
+  w.fl_step(dt);                           // substeps of 1/240 s, at most 25 ms of flame time per frame
   w.fl_render();                           // RGBA at 168 x 280 + stats
   const px = new Uint8ClampedArray(w.memory.buffer, w.fl_pixels(), 168 * 280 * 4);
   ctx.putImageData(new ImageData(px, 168, 280), 0, 0);

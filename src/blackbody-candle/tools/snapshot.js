@@ -10,15 +10,18 @@
 //         GUST_AT=3 GUST_V=4 GUST_DUR=0.4   optional gust (m/s, s)
 //         PIT=16              pressure sweeps per substep (all knobs below are optional; unset = engine default)
 //         ALPHA=22 NU=15.6    thermal diffusivity and kinematic viscosity at 300 K, mm^2/s (both scale as T^1.7)
-//         FUEL=0.5            wax vapour supply of the wick
-//         SOOT=1 KRAD=1       multipliers on soot formation and radiative loss
+//         FUEL=0.7            wax vapour supply of the wick
+//         SOOT=1 SG=0 KRAD=1  multipliers on soot inception, soot surface growth (off by default) and radiative loss
+//         INC=0.5 ESF=20000   soot inception law: rate at 1,500 K (1/s per unit fuel) and activation temperature
 //         AS=1 QS=1           multipliers on the burn pre-exponential and the heat release per unit fuel
 //         CURL=6 SUPPLY=0.12  wick curl (cells) and vapour-supply noise; SWIRL=1 vorticity confinement
 //         FLICKER=1           after the first snapshot time, sample the light for 6 s and report sway / bob / flicker
 //         KF=0                vapour diffusivity factor 1/(1 + KF * F); ~25 is physical
+//         ENTMODE=0           1: entrainment cools only where there is air; 2: cools and adds oxygen only there
+//         SUBDT=240 CHEMSUB=1 DIFFSUB=1 STRANG=0   time integration: substeps per second, chemistry and diffusion sub-cycles, Strang splitting
 //         TIPR=14 TVAP=700 VMIX=0   wick model: glowing tip radius (cells), vapour temperature, vapour cooling per substep
 //         ESO=11000 KEEP=1700 soot burnout activation temperature; the rate at KEEP kelvin is held fixed
-//         DSIG=60 DTAU=0.8 DCPL=3     room-air model: wind sigma (mm/s at draft 1x), correlation time, coupling rate
+//         DSIG=130 DTAU=0.8 DCPL=3    room-air model: wind sigma (mm/s at draft 1x), correlation time, coupling rate
 const fs = require('fs'), path = require('path');
 (async () => {
   const bytes = fs.readFileSync(path.join(__dirname, '../engine/target/wasm32-unknown-unknown/release/flame.wasm'));
@@ -34,13 +37,20 @@ const fs = require('fs'), path = require('path');
   if (E.ALPHA !== undefined || E.NU !== undefined) w.fl_set_diffusion(env('ALPHA', 22), env('NU', 15.6));
   if (E.FUEL !== undefined) w.fl_set_fuel(+E.FUEL);
   if (E.SOOT !== undefined) w.fl_set_soot(+E.SOOT);
+  if (E.SG !== undefined) w.fl_set_growth(+E.SG);
+  if (E.INC !== undefined || E.ESF !== undefined) w.fl_set_inception(env('INC', 0.5), env('ESF', 20000));
   if (E.KRAD !== undefined) w.fl_set_krad(+E.KRAD);
   if (E.AS !== undefined || E.QS !== undefined) w.fl_set_chem(env('AS', 1), env('QS', 1));
   if (E.CURL !== undefined || E.SUPPLY !== undefined) w.fl_set_wick(env('CURL', 6), env('SUPPLY', 0.12));
   if (E.TIPR !== undefined || E.TVAP !== undefined || E.VMIX !== undefined) w.fl_set_wick_model(env('TIPR', 14), env('TVAP', 700), env('VMIX', 0));
   if (E.KF !== undefined) w.fl_set_vapour(+E.KF);
+  if (E.ENTMODE !== undefined) w.fl_set_entrain_mode(+E.ENTMODE);
+  if (E.SUBDT !== undefined) w.fl_set_substep(1 / +E.SUBDT);
+  if (E.CHEMSUB !== undefined) w.fl_set_chem_sub(+E.CHEMSUB);
+  if (E.DIFFSUB !== undefined) w.fl_set_diff_sub(+E.DIFFSUB);
+  if (E.STRANG !== undefined) w.fl_set_strang(+E.STRANG);
   if (E.ESO !== undefined) w.fl_set_oxidation(0, +E.ESO, env('KEEP', 1700));
-  if (E.DSIG !== undefined || E.DTAU !== undefined || E.DCPL !== undefined) w.fl_set_draft_model(env('DSIG', 60), env('DTAU', 0.8), env('DCPL', 3));
+  if (E.DSIG !== undefined || E.DTAU !== undefined || E.DCPL !== undefined) w.fl_set_draft_model(env('DSIG', 130), env('DTAU', 0.8), env('DCPL', 3));
   w.fl_reset(); w.fl_set_view(env('VIEW', 0)); w.fl_strike(0);
   const times = (process.env.TIMES || '0.3,2,4,8').split(',').map(Number);
   const u = w.fl_updims(), UW = u >>> 16, UH = u & 0xffff;

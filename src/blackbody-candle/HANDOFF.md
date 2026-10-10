@@ -103,18 +103,30 @@ the model candle smokes faintly; a real one in still air closes its tip. Open ph
 wick column; when the draft bent the flame off it, one half projected into a boxy fill and the flame
 looked split in two. Each row is now projected about its own centre of light (`render`).
 
-**The lobes, diagnosed and open.** Several bright lobes stacked up the core are the soot-radiation
-relaxation cycle (T and S in antiphase along the axis, ~11 cells). Root cause: the core is ~1,600 K
-because (a) the hot surface around the wick (`TIP_R` 14 cells) cooks the whole vapour zone, and
-(b) the diffusivity is air's everywhere, while wax vapour (C25H52, 12x denser, higher cp) has ~40x
-lower thermal diffusivity, so a real core stays near 1,000 K and makes no soot. Experiments, all
-behind knobs now: a 2 mm hot tip anchors only with `A` x10 (`fl_set_chem`); vapour cooling
-(`fl_set_wick_model` VMIX) has no effect while the hot surface covers the vapour zone, and none
-against air-like conduction; scaling the entrainment's cooling by O2 (air side only) left the
-geometric dilution in place but the core hot; the vapour diffusivity rule `fl_set_vapour(KF=25)`
-cools the core to ~1,260 K mean but grows the flame to 27 mm and parts of the core still make soot.
-The honest fix is all of it together with a retune: small hot tip, kinetics x10, KF ~25, fuel supply
-down to restore 18 mm, and then check soot inception in the core. Not shipped; defaults restored.
+**The lobes: numerical, fixed by the substep (2026-10-10).** The stacked bright lobes were soot bands
+along the core, T and S in antiphase, period ~11 cells. `examples/axis.rs` (now a full probe along
+the flame's own centreline, all knobs via env) showed the band period halves when the substep halves
+and the amplitude goes 0.034 -> 0.028 -> 0.026 -> 0.006 at 1/120, 1/160, 1/180, 1/240 s: a
+splitting oscillation between the transport step and the chemistry, locked to the step. Chemistry
+sub-cycling alone reaches 0.013, diffusion sub-cycling and Strang splitting do nothing, so
+`SUB_DT = 1/240` (converged; 1/300 is the same). Cost: physics 11.5 ms per frame at 60 fps in Chrome
+(was 6). Consequences, all recalibrated: the flame is brighter and hotter (less numerical diffusion):
+`FUEL 0.7` restores 18.5 mm; the 4 m/s gust no longer extinguishes (at 1/120 it moved 133 cells per
+step and swept the flame out of the window numerically), the page blows at 5 m/s; the room wind
+reaches the flame about half as much (`examples/wind.rs`: 35 vs 21 mm/s at the flame for the same
+57 mm/s room wind, the resolved hot plume shields itself), so `DRAFT_SIGMA 130` for the same dance
+and the draft slider tops out at 2x. The eddy impulse is now independent of dt (it scaled with it).
+The T^4 cooling is integrated exactly over the step; the wick source relaxations are rates.
+
+Physics experiments from this session, all behind runtime knobs and tool env vars, none shipped:
+two-step soot (inception + surface growth, `fl_set_growth`, `fl_set_inception`) makes a dark core
+but a dim flame unless the whole chemistry is recalibrated; a 2 mm glowing tip (`fl_set_wick_model`)
+anchors only with kinetics x10 (`fl_set_chem`); vapour cooling has no effect under air-like
+conduction; the dense-vapour diffusivity rule (`fl_set_vapour`, physical ~25) cools the core but
+grows the flame; entrainment modes (`fl_set_entrain_mode` 1, 2) keep oxygen out of the core but the
+core then burns at the base. The committed hot-core structure (a 13 mm fuel core at ~1,400 K with
+soot in it) is a tuned compromise, not a candle's dark zone; the honest version needs those pieces
+retuned together, and that remains open.
 
 ## Where things stand (2026-10-09)
 

@@ -9,7 +9,7 @@
   const W = eng.W, H = eng.H, UW = eng.UW, UH = eng.UH, HX = eng.headX;
   let BLOOM = 0.015; // a camera's veiling glare: this share of the 1.5 mm Gaussian of the linear image is added back
   const WALL = 480; // a wall this many cells (12 cm) behind the candle is what the flame lights; irradiance goes as cos(theta) / d^2
-  window.candleDebug = { setBloom: k => { BLOOM = k; } }; // for tuning from the console
+  window.candleDebug = { setBloom: k => { BLOOM = k; }, presenter: () => !!glx }; // for tuning and checks from the console
 
   // ---------- tone curve for colours drawn by the canvas API (glow, candle, sparks) ----------
   const ACES = x => { x = x < 0 ? 0 : x; const y = (x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14); return y > 1 ? 1 : y; };
@@ -20,7 +20,7 @@
 
   // ---------- camera and room settings ----------
   const CHEMI = 0.00022;               // CH*/C2* light per unit reaction rate, relative to soot
-  const EXPO0 = 1.4; // camera exposure at 0 EV, set so the core is bright but not a flat clip
+  const EXPO0 = 0.45; // camera exposure at 0 EV, set so the core is bright but not a flat clip (the 1/240 flame is ~3x the light of the 1/120 one)
   const cam = { expo: EXPO0, wb: 2800 }, room = { o2: 0.209, g: 1, draft: calm ? 0 : 1 };
   let view = 'camera';
   eng.setCamera(cam.expo, cam.wb, CHEMI); eng.setRoom(room.o2, room.g, room.draft); eng.setView(view);
@@ -101,7 +101,8 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
     };
   }
   let glx = null;
-  try { glx = makePresenter(); eng.setOutput(1); } catch (e) { console.warn('GPU presenter unavailable, using the canvas path:', e); glx = null; }
+  try { glx = makePresenter(); } catch (e) { console.warn('GPU presenter failed, using the canvas path:', e); glx = null; }
+  if (glx) eng.setOutput(1); else console.warn('WebGL2 unavailable, using the canvas path');
   new ResizeObserver(resize).observe(cv); resize();
   if (glx) glx.resize(cw, ch);
 
@@ -287,7 +288,7 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
   }
   $('strike').onclick = strikeOrReset;
   $('breeze').onclick = () => eng.blow(0.35, 1.5);
-  $('blow').onclick = () => eng.blow(4, 0.4);
+  $('blow').onclick = () => eng.blow(5, 0.4); // 4 m/s for 0.4 s no longer puts it out at the 1/240 step; 5 does, the breeze never
   let drag = null;
   cv.addEventListener('pointerdown', e => {
     if (eng.stats.phase !== 'lit') { strikeOrReset(); return; }
