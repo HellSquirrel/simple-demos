@@ -118,6 +118,23 @@ reaches the flame about half as much (`examples/wind.rs`: 35 vs 21 mm/s at the f
 and the draft slider tops out at 2x. The eddy impulse is now independent of dt (it scaled with it).
 The T^4 cooling is integrated exactly over the step; the wick source relaxations are rates.
 
+**Smoke column and its scallops (2026-10-10).** Soot escaped 15 mm above the luminous tip and the
+camera painted it as smoke (the `sm` scattering term); the column's edge carried a scalloped pattern
+whose period moved with the substep (34, 21, 13 cells at 1/120, 1/240, 1/480): a step-locked artefact
+of the first-order semi-Lagrangian back-trace in the sheared plume (not vorticity confinement, not the
+pressure solve: `examples/plume.rs` tested both). Advection now uses midpoint-rule departure points
+(`rk2`), after which the wavelength converges to ~3 mm, a physical shear-layer scale. The tip now
+closes: `SO = 2e6` (was 1e6), smoke 1 mm above the glowing soot instead of 15, radiant 26 %.
+Exposure 0.36.
+
+With the midpoint back-trace no gust extinguished the flame (even 8 m/s for 0.8 s): the old blow-out
+had been the first-order trace sweeping the flame out of the window in one step, and the model's
+chemistry (burning above 600 K) relights the vapour from the hot surface. Extinction is now also a
+wick rule: a gust that cools the wick below `WICK_COLD = 750 K` puts the candle out (a 5 m/s puff for
+0.4 s cools it to ~680 K, the breeze only to ~990). `FUEL 0.9` for 18 mm with the closed tip.
+
+The draft slider tops out at 1.5x: at 2x the wind blows the candle out within seconds, which is physics but not a setting a slider should land on.
+
 Physics experiments from this session, all behind runtime knobs and tool env vars, none shipped:
 two-step soot (inception + surface growth, `fl_set_growth`, `fl_set_inception`) makes a dark core
 but a dim flame unless the whole chemistry is recalibrated; a 2 mm glowing tip (`fl_set_wick_model`)

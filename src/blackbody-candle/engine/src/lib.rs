@@ -21,7 +21,7 @@ const SF: f32 = 1.45e7; // soot inception pre-exponential (rate at 1,750 K as in
 const ESF: f32 = 20000.0; // soot inception activation temperature, K: soot models use ~21,000, which keeps inception in the hot sheath and the vapour core dark
 const SG: f32 = 6e5; // soot surface growth pre-exponential, 1/s per unit fuel: dS/dt = SG * S * F * exp(-ESG/T). Off by default (sg_scale 0); the two-step experiments in HANDOFF use it
 const ESG: f32 = 12100.0; // its activation temperature, K (Leung-Lindstedt)
-const SO: f32 = 1e6; // soot oxidation
+const SO: f32 = 2e6; // soot oxidation. At 1e6 soot escaped 15 mm above the luminous tip as smoke; 2e6 closes the tip (examples/plume.rs), 4e6 over-cleans and overheats
 const ESO: f32 = 11000.0;
 const KRAD: f32 = 5e-9; // optically thin radiative loss
 const ALPHA0: f32 = 22.0; // thermal diffusivity of air at 300 K, mm^2/s
@@ -34,10 +34,11 @@ const OHP: f32 = 0.012; // OH proxy for soot oxidation
 const ENT: f32 = 0.25; // out-of-plane entrainment
 const ENT_R: f32 = 20.0; // flame radius the entrainment rate is scaled by, cells (5 mm)
 const EXPAND: f32 = 0.5; // thermal expansion in the pressure solve
-const FUEL: f32 = 0.7; // wax vapour supply of the wick, in fuel-fraction units; sets the flame size (0.5 at the 1/120 step, whose numerical diffusion made the flame taller)
+const FUEL: f32 = 0.9; // wax vapour supply of the wick, in fuel-fraction units; sets the flame size (0.5 at the 1/120 step, whose numerical diffusion made the flame taller; 0.7 before the tip closed)
 const TIP_R: f32 = 14.0; // radius of the hot surface around the wick tip, cells (3.5 mm). Experiments with a 2 mm tip and 10x kinetics anchor but need a full retune; see HANDOFF
 const T_VAP: f32 = 700.0; // wax vapour leaves the wick near its boiling range, K
 const VAP_MIX: f32 = 0.0; // per substep, how strongly the vapour region is mixed toward T_VAP (cold vapour inflow); no effect while the hot surface covers the vapour zone
+const WICK_COLD: f32 = 900.0; // a gust that cools the glowing wick below this cannot be survived: the flame has nothing to relight from. The wick also keeps relaxing toward its lit target while the gust cools it, so a 5 m/s puff for 0.4 s reaches ~780 K, a 2 m/s puff ~1000, the breeze ~1100
 const WICK_CURL: f32 = 6.0; // a braided wick curls so its tip burns in the sheath: the vapour source sits this many cells to the side of the axis
 const SUPPLY_SIGMA: f32 = 0.12; // the capillary feed and melt pool fluctuate: relative noise on the vapour supply
 const SUPPLY_TAU: f32 = 0.3; // and its correlation time, s
@@ -212,15 +213,33 @@ fn edges(d: &mut [f32], amb: Option<f32>) {
 }
 
 /// Semi-Lagrangian advection. All six fields ride the same velocity, so trace each cell back once and sample every field there.
-fn advect_all(dst: [&mut [f32]; 6], src: [&[f32]; 6], amb: [Option<f32>; 6], dt: f32, uu: &[f32], vv: &[f32]) {
+fn advect_all(dst: [&mut [f32]; 6], src: [&[f32]; 6], amb: [Option<f32>; 6], dt: f32, uu: &[f32], vv: &[f32], rk2: bool) {
     let [d0, d1, d2, d3, d4, d5] = dst;
     let (xmax, ymax) = (W as f32 - 1.5, H as f32 - 1.5);
+    // velocity at a fractional point, bilinear
+    let vel_at = |x: f32, y: f32| -> (f32, f32) {
+        let (i0, j0) = (x as usize, y as usize);
+        let (a, b) = (x - i0 as f32, y - j0 as f32);
+        let q = i0 + j0 * W;
+        let (w00, w10, w01, w11) = ((1.0 - a) * (1.0 - b), a * (1.0 - b), (1.0 - a) * b, a * b);
+        unsafe {
+            (w00 * uu.get_unchecked(q) + w10 * uu.get_unchecked(q + 1) + w01 * uu.get_unchecked(q + W) + w11 * uu.get_unchecked(q + W + 1),
+             w00 * vv.get_unchecked(q) + w10 * vv.get_unchecked(q + 1) + w01 * vv.get_unchecked(q + W) + w11 * vv.get_unchecked(q + W + 1))
+        }
+    };
     for j in 1..H - 1 {
         for i in 1..W - 1 {
             let k = i + j * W;
             unsafe {
-                let x = (i as f32 - dt * uu.get_unchecked(k)).clamp(0.5, xmax);
-                let y = (j as f32 - dt * vv.get_unchecked(k)).clamp(0.5, ymax);
+                // departure point: a straight step back along the local velocity, or (rk2) the midpoint rule, which
+                // follows the curve of the streamline and does not leave a step-locked pattern in sheared flow
+                let (mut x, mut y) = ((i as f32 - dt * uu.get_unchecked(k)).clamp(0.5, xmax), (j as f32 - dt * vv.get_unchecked(k)).clamp(0.5, ymax));
+                if rk2 {
+                    let (xm, ym) = ((i as f32 - 0.5 * dt * uu.get_unchecked(k)).clamp(0.5, xmax), (j as f32 - 0.5 * dt * vv.get_unchecked(k)).clamp(0.5, ymax));
+                    let (um, vm) = vel_at(xm, ym);
+                    x = (i as f32 - dt * um).clamp(0.5, xmax);
+                    y = (j as f32 - dt * vm).clamp(0.5, ymax);
+                }
                 let (i0, j0) = (x as usize, y as usize);
                 let (a, b) = (x - i0 as f32, y - j0 as f32);
                 let q = i0 + j0 * W;
@@ -329,6 +348,7 @@ pub struct Sim {
     chem_sub: u32, // chemistry and radiation are integrated this many times per substep (their rate tables are built for the chemistry step)
     strang: bool, // Strang splitting: half the chemistry before transport, half after (second order in the splitting)
     diff_sub: u32, // the implicit diffusion is applied this many times per substep with dt / diff_sub
+    rk2: bool, // midpoint-rule departure points in the advection: the straight back-trace left a step-locked scallop pattern on the plume edge
     abel: Vec<f32>, // line-of-sight weights, two per (ray m, annulus n): own side and other side of the slice (see new())
     expo: f32, chemi_gain: f32, view: u32,
     lin: Vec<f32>, pix: Vec<u8>, enc: Vec<u8>, taps: Vec<([u32; 4], [f32; 4])>, rowbuf: Vec<f32>,
@@ -390,7 +410,7 @@ impl Sim {
             u: z(), v: z(), u0: z(), v0: z(), t: z(), t0: z(), f: z(), f0: z(), o: z(), o0: z(), s: z(), s0: z(),
             r: z(), p: z(), dv: z(), cu: z(), solid: vec![0; N],
             o2: 0.21, g: 1.0, swirl: 1.0, draft_k: 1.0,
-            p_iters: P_ITERS, alpha0: ALPHA0, nu0: PR * ALPHA0, fuel: FUEL, curl: WICK_CURL, supply_sigma: SUPPLY_SIGMA, supply: 0.0, tip_r: TIP_R, t_vap: T_VAP, vap_mix: VAP_MIX, vap_kf: VAP_KF, ent_mode: 0, draft_sigma: DRAFT_SIGMA, draft_tau: DRAFT_TAU, draft_coupling: DRAFT_COUPLING, soot_scale: 1.0, sg_scale: 0.0, a_scale: 1.0, so_scale: 1.0, eso: ESO as f64, sf: SF as f64, esf: ESF as f64, sub_dt: SUB_DT, chem_sub: 1, strang: false, diff_sub: 1, krad: KRAD, q: Q,
+            p_iters: P_ITERS, alpha0: ALPHA0, nu0: PR * ALPHA0, fuel: FUEL, curl: WICK_CURL, supply_sigma: SUPPLY_SIGMA, supply: 0.0, tip_r: TIP_R, t_vap: T_VAP, vap_mix: VAP_MIX, vap_kf: VAP_KF, ent_mode: 0, draft_sigma: DRAFT_SIGMA, draft_tau: DRAFT_TAU, draft_coupling: DRAFT_COUPLING, soot_scale: 1.0, sg_scale: 0.0, a_scale: 1.0, so_scale: 1.0, eso: ESO as f64, sf: SF as f64, esf: ESF as f64, sub_dt: SUB_DT, chem_sub: 1, strang: false, diff_sub: 1, rk2: true, krad: KRAD, q: Q,
             gtab: (0..RT_N).map(|n| ((RT_MIN + n as f32) / TA).powf(D_EXP)).collect(), gx: z(), gy: z(),
             phase: Phase::Ready, time: 0.0, burned: 0.0, h: 0.0, charge: 0.0, ignite: 0.0, ember: TA,
             out_timer: 0.0, gust: 0.0, gust_v: 0.0, draft: 0.0, qrel: 0.0, qrad: 0.0, since: 0.0,
@@ -640,10 +660,11 @@ impl Sim {
         std::mem::swap(&mut self.o, &mut self.o0);
         std::mem::swap(&mut self.s, &mut self.s0);
         {
+            let rk2 = self.rk2;
             let Sim { u, v, u0, v0, t, t0, f, f0, o, o0, s, s0, dv, cu, gtab, gx, gy, solid, alpha0, nu0, vap_kf, diff_sub, .. } = self;
             advect_all([&mut t[..], &mut f[..], &mut o[..], &mut s[..], &mut u[..], &mut v[..]],
                        [&t0[..], &f0[..], &o0[..], &s0[..], &u0[..], &v0[..]],
-                       [Some(TA), Some(0.0), Some(oa), Some(0.0), None, None], dt, u0, v0);
+                       [Some(TA), Some(0.0), Some(oa), Some(0.0), None, None], dt, u0, v0, rk2);
             // diffusivity factor per cell, zero in the wax (it insulates), then the face coefficients, harmonic mean
             // heavy fuel vapour transports heat, species and momentum far more slowly than air: mixture rule on the factor
             let kf = *vap_kf;
@@ -763,7 +784,8 @@ impl Sim {
                     let et = (TA + 0.6 * (nt - TA)).min(1150.0) + 300.0 * self.charge;
                     self.ember += (et - self.ember) * (1.0 - (-dt / 0.6).exp());
                     self.out_timer = if heat < 0.02 { self.out_timer + dt } else { 0.0 };
-                    if self.since > 0.4 && self.out_timer > 0.25 { self.phase = Phase::Out; self.since = 0.0; }
+                    let wick_cold = self.gust > 0.0 && self.ember < WICK_COLD;
+                    if (self.since > 0.4 && self.out_timer > 0.25) || wick_cold { self.phase = Phase::Out; self.since = 0.0; }
                 }
                 Phase::Out => { self.ember = TA + (self.ember - TA) * (-dt / 2.2).exp(); self.h = 0.0; }
                 Phase::Ready => {}
@@ -1019,6 +1041,7 @@ impl Sim {
     pub fn set_chem_sub(&mut self, n: u32) { self.chem_sub = n.clamp(1, 8); self.rebuild_rates(); }
     pub fn set_strang(&mut self, on: bool) { self.strang = on; self.rebuild_rates(); }
     pub fn set_diff_sub(&mut self, n: u32) { self.diff_sub = n.clamp(1, 8); }
+    pub fn set_rk2(&mut self, on: bool) { self.rk2 = on; }
     pub fn set_substep(&mut self, dt: f32) { self.sub_dt = dt.clamp(1.0 / 2000.0, 1.0 / 30.0); self.rebuild_rates(); }
     /// Soot burnout kinetics: pre-exponential scale and activation temperature (K); the rate at `keep_k` is held fixed when `so_scale` is 0.
     pub fn set_oxidation(&mut self, so_scale: f32, eso: f32, keep_k: f32) {
@@ -1096,6 +1119,7 @@ fn sim() -> &'static mut Sim { unsafe { SIM.as_mut().unwrap_unchecked() } }
 #[no_mangle] pub extern "C" fn fl_set_chem_sub(n: u32) { sim().set_chem_sub(n); }
 #[no_mangle] pub extern "C" fn fl_set_diff_sub(n: u32) { sim().set_diff_sub(n); }
 #[no_mangle] pub extern "C" fn fl_set_strang(on: u32) { sim().set_strang(on != 0); }
+#[no_mangle] pub extern "C" fn fl_set_rk2(on: u32) { sim().set_rk2(on != 0); }
 #[no_mangle] pub extern "C" fn fl_set_draft_model(sigma: f32, tau: f32, coupling: f32) { sim().set_draft_model(sigma, tau, coupling); }
 #[no_mangle] pub extern "C" fn fl_set_krad(scale: f32) { sim().set_krad(scale); }
 #[no_mangle] pub extern "C" fn fl_set_chem(a_scale: f32, q_scale: f32) { sim().set_chem(a_scale, q_scale); }

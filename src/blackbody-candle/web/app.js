@@ -20,7 +20,7 @@
 
   // ---------- camera and room settings ----------
   const CHEMI = 0.00022;               // CH*/C2* light per unit reaction rate, relative to soot
-  const EXPO0 = 0.45; // camera exposure at 0 EV, set so the core is bright but not a flat clip (the 1/240 flame is ~3x the light of the 1/120 one)
+  const EXPO0 = 0.36; // camera exposure at 0 EV, set so the core is bright but not a flat clip
   const cam = { expo: EXPO0, wb: 2800 }, room = { o2: 0.209, g: 1, draft: calm ? 0 : 1 };
   let view = 'camera';
   eng.setCamera(cam.expo, cam.wb, CHEMI); eng.setRoom(room.o2, room.g, room.draft); eng.setView(view);

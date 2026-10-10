@@ -10,7 +10,7 @@
 //         GUST_AT=3 GUST_V=4 GUST_DUR=0.4   optional gust (m/s, s)
 //         PIT=16              pressure sweeps per substep (all knobs below are optional; unset = engine default)
 //         ALPHA=22 NU=15.6    thermal diffusivity and kinematic viscosity at 300 K, mm^2/s (both scale as T^1.7)
-//         FUEL=0.7            wax vapour supply of the wick
+//         FUEL=0.9            wax vapour supply of the wick
 //         SOOT=1 SG=0 KRAD=1  multipliers on soot inception, soot surface growth (off by default) and radiative loss
 //         INC=0.5 ESF=20000   soot inception law: rate at 1,500 K (1/s per unit fuel) and activation temperature
 //         AS=1 QS=1           multipliers on the burn pre-exponential and the heat release per unit fuel
@@ -20,6 +20,7 @@
 //         ENTMODE=0           1: entrainment cools only where there is air; 2: cools and adds oxygen only there
 //         SUBDT=240 CHEMSUB=1 DIFFSUB=1 STRANG=0   time integration: substeps per second, chemistry and diffusion sub-cycles, Strang splitting
 //         TIPR=14 TVAP=700 VMIX=0   wick model: glowing tip radius (cells), vapour temperature, vapour cooling per substep
+//         SOX=1               multiplier on the soot burnout rate
 //         ESO=11000 KEEP=1700 soot burnout activation temperature; the rate at KEEP kelvin is held fixed
 //         DSIG=130 DTAU=0.8 DCPL=3    room-air model: wind sigma (mm/s at draft 1x), correlation time, coupling rate
 const fs = require('fs'), path = require('path');
@@ -49,7 +50,8 @@ const fs = require('fs'), path = require('path');
   if (E.CHEMSUB !== undefined) w.fl_set_chem_sub(+E.CHEMSUB);
   if (E.DIFFSUB !== undefined) w.fl_set_diff_sub(+E.DIFFSUB);
   if (E.STRANG !== undefined) w.fl_set_strang(+E.STRANG);
-  if (E.ESO !== undefined) w.fl_set_oxidation(0, +E.ESO, env('KEEP', 1700));
+  if (E.SOX !== undefined) w.fl_set_oxidation(+E.SOX, env('ESO', 11000), 1700);
+  else if (E.ESO !== undefined) w.fl_set_oxidation(0, +E.ESO, env('KEEP', 1700));
   if (E.DSIG !== undefined || E.DTAU !== undefined || E.DCPL !== undefined) w.fl_set_draft_model(env('DSIG', 130), env('DTAU', 0.8), env('DCPL', 3));
   w.fl_reset(); w.fl_set_view(env('VIEW', 0)); w.fl_strike(0);
   const times = (process.env.TIMES || '0.3,2,4,8').split(',').map(Number);
