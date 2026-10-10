@@ -2,10 +2,10 @@
 <html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Blackbody Candle</title>
+<title>How Many Rust Engines Does It Take to Light a Candle?</title>
 <meta
   name="description"
-  content="A candle flame simulated in the browser: buoyant, reacting gas on a 0.25 mm grid, soot that glows by Planck's law, and colour computed through the CIE 1931 observer with camera white balance. Light it, wave the air, blow it out, change the oxygen or gravity."
+  content="One, it turns out, plus a little bit of physics. A candle you can light in the browser, where nothing about the flame is drawn: a reacting, buoyant gas simulation gives it its shape and Planck’s law gives it its colour. Light it, wave the air, blow it out, turn down the oxygen or crank up gravity."
 />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="canonical" href="https://acorns.nutlore.me/blackbody-candle/" />
@@ -13,10 +13,10 @@
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141419" />
 <meta property="og:type" content="article" />
 <meta property="og:site_name" content="Simple Demos" />
-<meta property="og:title" content="Blackbody Candle" />
+<meta property="og:title" content="How Many Rust Engines Does It Take to Light a Candle?" />
 <meta
   property="og:description"
-  content="A candle flame simulated in the browser: buoyant, reacting gas on a 0.25 mm grid, soot that glows by Planck's law, and colour computed through the CIE 1931 observer with camera white balance. Light it, wave the air, blow it out, change the oxygen or gravity."
+  content="One, it turns out, plus a little bit of physics. A candle you can light in the browser, where nothing about the flame is drawn: a reacting, buoyant gas simulation gives it its shape and Planck’s law gives it its colour. Light it, wave the air, blow it out, turn down the oxygen or crank up gravity."
 />
 <meta property="og:url" content="https://acorns.nutlore.me/blackbody-candle/" />
 <meta property="og:image" content="https://acorns.nutlore.me/blackbody-candle/og.png" />
@@ -63,12 +63,15 @@
   }
   h2 { font-size: 1.15rem; margin: 3rem 0 0.5rem; letter-spacing: -0.01em; }
   p { color: var(--ink-soft); margin: 0.5rem 0 1rem; }
-  .prose { max-width: 44rem; }
   code { font: 0.85em/1.5 var(--mono); background: light-dark(#eeeef3, #26262f); border-radius: 4px; padding: 0.1em 0.35em; }
   a { color: var(--accent); }
   .panel { background: var(--surface); border: 1px solid var(--edge); border-radius: 14px; }
   footer { margin-top: 4rem; font-size: 0.9rem; color: var(--ink-faint); }
   .small { font-size: 0.85rem; color: var(--ink-faint); }
+  .prose h3 { font-size: 1rem; margin: 2.2rem 0 0.4rem; letter-spacing: -0.01em; }
+  .syms { color: var(--ink-soft); margin: 0.5rem 0 1rem; padding-left: 1.3rem; }
+  .syms li { margin: 0.3rem 0; }
+  .syms ul { margin: 0.3rem 0 0.2rem; padding-left: 1.2rem; }
 
   /* ---------- the lab: a dark stage on the left, instruments on the right ---------- */
   .lab { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 1.75rem; align-items: start; margin-top: 2rem; }
@@ -84,7 +87,7 @@
   .status[data-s="out"] i { background: #6d6f78; }
   .status[data-s="ready"] i { background: #8f7dff; }
 
-  .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+  .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-start; width: 100%; max-width: 440px; justify-self: center; }
   button { font: 500 14px/1 system-ui, sans-serif; color: var(--ink); background: var(--surface); border: 1px solid var(--edge); border-radius: 10px; padding: 11px 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
   button:hover { border-color: var(--accent); }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -118,7 +121,7 @@
   .legend span.bb::before { background: transparent; border-top: 2px dashed var(--ink-faint); height: 0; }
 
   /* ---------- notes ---------- */
-  .eqs { display: grid; gap: 1px; background: var(--edge); overflow: hidden; max-width: 44rem; }
+  .eqs { display: grid; gap: 1px; background: var(--edge); overflow: hidden; }
   .eq { background: var(--surface); padding: 12px 14px; display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 4px 16px; align-items: baseline; }
   .eq span { font-size: 13px; color: var(--ink-faint); }
   .eq code { white-space: pre-wrap; background: none; padding: 0; color: var(--ink); font-size: 0.85rem; }
@@ -126,14 +129,26 @@
   @media (prefers-reduced-motion: reduce) { .hint, button { transition: none; } }
 </style>
 
-<h1>Blackbody Candle</h1>
+<h1>How Many Rust Engines Does It Take to Light a Candle?</h1>
 <div class="prose">
+  <p>One, it turns out. Plus a little bit of physics.</p>
   <p>
-    A candle you can light, where nothing about the flame is hand-drawn. Its shape comes from a small reacting,
-    buoyant gas simulation, and every colour comes from Planck’s law seen through the CIE 1931 eye. The idea of
-    building a flame rather than drawing one comes from Carmen Ansio’s
-    <a href="https://www.carmenansio.com/articles/matchstick-flame-canvas/" target="_blank" rel="noopener">A flame needs three sine waves</a>;
-    this one swaps the sine waves for physics.
+    After reading Carmen Ansio’s amazing post,
+    <a href="https://www.carmenansio.com/articles/matchstick-flame-canvas/" target="_blank" rel="noopener">A flame needs three sine waves</a>,
+    I started thinking about how I would model a flame on the web. My idea was to write a physical simulation, and I
+    was curious whether that was even possible: a sane simulation that actually takes the physics into account, running
+    at more than 1 fps.
+  </p>
+  <p>
+    And hooray, it works! At least in every browser I have tried. Long story short: there is some physics that works out
+    the candle (more accurately, the hot gas above the wick), and some rendering logic that turns it into light you can
+    actually see.
+    All of it is carefully packed into a WebAssembly engine written in Rust, plus a couple of WebGL shaders that put the
+    pixels on screen.
+  </p>
+  <p>
+    Just play with the demo: move the sliders, switch between the views, blow the candle out and light it again. You can also drag across the flame, with a mouse or a finger, and it will react. And for the curious reader,
+    the explanation of how it <em>actually</em> works is <a href="#under-the-hood">below the demo</a>.
   </p>
 </div>
 
@@ -165,7 +180,7 @@
     <div class="spectrum panel">
       <canvas id="spec" aria-label="Emission spectrum of the soot compared with a blackbody"></canvas>
       <div class="legend"><span>Soot (ε ∝ 1/λ)</span><span class="bb">Blackbody, same T</span></div>
-      <p>Almost all of the energy is infrared. Your eye only sees the thin red-orange tail on the left, which is why a 1,700 K flame looks orange-yellow, not white.</p>
+      <p>Almost all of this is infrared. Your eye only gets the thin red-orange tail on the left, which is why a 1,700 K flame looks orange, not white.</p>
     </div>
 
     <div class="group">
@@ -184,7 +199,7 @@
         <input id="ev" type="range" min="-3" max="3" step="0.1" value="0"></div>
       <div class="slider"><label for="wb">White balance</label><output id="wbOut">2800 K</output>
         <input id="wb" type="range" min="1800" max="6500" step="50" value="2800">
-        <p class="note">The camera assumes white light comes from a blackbody at this temperature.</p></div>
+        <p class="note">The camera calls a blackbody at this temperature “white”.</p></div>
     </div>
 
     <div class="group">
@@ -205,47 +220,453 @@
         <div class="ro"><b id="pfFrame">–<small>ms</small></b><span>Whole frame</span></div>
         <div class="ro"><b id="pfFps">–<small>fps</small></b><span>Frame rate</span></div>
       </div>
-      <p class="note">Physics and shading run in a 76 KB WebAssembly module compiled from Rust. The GPU resamples and tone-maps the result; JavaScript draws the candle and the chart.</p>
+      <p class="note">Physics and light run in a 76 KB WebAssembly module written in Rust. The GPU turns the light into pixels; JavaScript draws the candle and the chart.</p>
     </div>
   </div>
 </section>
 
-<h2>Under the hood</h2>
+<h2 id="under-the-hood">Under the hood</h2>
 <div class="prose">
+  <p>As I mentioned above, it takes two things to light this candle: the physics and the rendering.</p>
+  <h3>The candle’s physical model</h3>
   <p>
-    The window is 42 × 70 mm of air on a grid of 0.25 mm cells. Every 1/240 s the engine applies buoyancy, a wandering
-    room wind and the vortices they shed; a pressure projection with the thermal expansion of burning gas; semi-Lagrangian
-    advection of temperature, fuel vapour, oxygen, soot and velocity; diffusion with coefficients that rise with
-    temperature, as a gas’s do; and one-step chemistry with soot that forms where fuel is hot and burns away where oxygen
-    and OH reach it, radiating as it goes. The wick is a curled hot surface that feeds wax vapour at a rate set by the
-    heat it gets back from the flame, with the small fluctuations of a real capillary feed; a hard enough puff cools it
-    past relighting, and the candle goes out.
+    We model the candle as a wick standing in a room full of air. The wick is soaked in wax; heat it up and the wax boils
+    off as vapour. Mix that vapour with the oxygen in the air and keep it hot enough, and it burns. The reaction releases
+    heat, which keeps the wick hot, so more vapour comes off, and heats the gas around it. This is where gravity comes in:
+    hot gas is lighter than the cold air around it, so the heavy cold air sinks and pushes the hot gas up, and fresh air
+    flows in from the sides to take its place, bringing new oxygen with it. Where the vapour is hot but has not found
+    oxygen yet, some of it turns into soot: tiny carbon particles that glow in the heat, and that glow is most of the
+    light you see. The soot burns away once it reaches oxygen, the gas loses some of its heat as radiation, and what is
+    left floats up as hot exhaust. Blow on it hard enough and the wick cools below the point where it can keep the
+    reaction going, and the candle goes out.
   </p>
   <p>
-    Light is computed per cell from Planck’s law with soot’s 1/λ emissivity, integrated against the CIE 1931 observer,
-    plus CH* and C₂* band light for the blue base. The camera sees that through the whole depth of a round flame, so the
-    slice is projected along the line of sight, white-balanced to a blackbody of your choice, and tone-mapped per device
-    pixel on the GPU. The readings are computed from the simulation each frame.
+    So where does the teardrop come from? Wax vapour spreads out from the wick, oxygen comes in from the outside, and the
+    two can only burn where they meet. That makes the flame a thin burning skin wrapped around the wick, vapour on the
+    inside, air on the outside, which is what a diffusion flame is. Then gravity does the shaping. The hot gas inside
+    that skin is light, so it rises and speeds up on the way, stretching the skin upward. Fresh air gets pulled in
+    from the sides and from below, which pinches the base and squeezes the rising column narrower as it goes faster. The
+    vapour gets used up on the way, so at some height the skin closes on itself, and that is the tip. Without gravity
+    there is nothing to stretch it: in orbit, a candle flame is a dim blue ball. You can try the half-way version here:
+    turn the gravity slider down and the flame gets shorter, wider and dimmer.
   </p>
-</div>
-<div class="eqs panel">
-  <div class="eq"><span>Spectral radiance</span><code>B(λ,T) = 2hc² / λ⁵ · 1 / (e^(hc/λkT) − 1)</code></div>
-  <div class="eq"><span>Soot is not a blackbody</span><code>ε(λ) ∝ f_v / λ   →   λ_peak · T ≈ 2404 µm·K</code></div>
-  <div class="eq"><span>Line of sight</span><code>I(x) = ∫ ε(r) ds   through an axisymmetric, optically thin flame</code></div>
-  <div class="eq"><span>What the eye records</span><code>X,Y,Z = Σ S · ε(λ) B(λ,T) · x̄,ȳ,z̄(λ) Δλ   →   Bradford white balance → sRGB → ACES</code></div>
-  <div class="eq"><span>Burning</span><code>ω = A · F · O · e^(−Ta/T),   ΔT = Q · ω · dt</code></div>
-  <div class="eq"><span>Diffusion</span><code>∂φ/∂t = ∇·(D(T) ∇φ),   D = D₀ · (T / 300 K)^1.7</code></div>
-  <div class="eq"><span>Soot</span><code>formed where fuel is hot, eaten by O₂ and OH at the flame sheet</code></div>
-  <div class="eq"><span>Radiative loss</span><code>dT/dt = −k · (S + 0.04) · (T⁴ − T∞⁴)</code></div>
+  <h3>How it is computed</h3>
+  <p>
+    The simulation lives on a thin slice of air above the wick: a 42 × 70 mm window, chopped into 0.25 mm cells, 168 by
+    280 of them. Each cell keeps track of a handful of numbers: which way the gas is moving and how fast, how hot it is,
+    and how much wax vapour, oxygen and soot it holds. There is no flame object anywhere in the code. The flame is simply
+    the cells where wax vapour meets oxygen while it is hot enough for the two to react, and everything you see follows
+    from that.
+  </p>
+  <p>
+    Let’s start with the burning, because everything else hangs off it. Paraffin wax is a mix of long hydrocarbon chains,
+    and burning one of them completely looks like this:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>The reaction</span><code>C₂₅H₅₂ + 38 O₂ → 25 CO₂ + 26 H₂O + heat</code></div>
+  </div>
+  <p>
+    A real flame gets there through hundreds of intermediate steps. The model keeps none of them: vapour and oxygen go
+    straight to heat in a single step, and the products are not even tracked. How fast that step happens is an Arrhenius
+    law:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Burning rate</span><code>ω = A · e^(−Tₐ/T) · min(F, O/6)</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>ω</code> is how fast the cell burns: the share of its vapour that goes up in flame per second.</li>
+    <li><code>A</code> is the pre-exponential factor, 10⁵ per second: how fast the reaction would run if temperature were no
+      obstacle at all.</li>
+    <li><code>e^(−Tₐ/T)</code> is the Arrhenius factor, a number between 0 and 1: the share of molecules that are hot
+      enough to react right now.</li>
+    <li><code>Tₐ</code> is the activation temperature, 6,000 K: the activation energy of the reaction written as a
+      temperature, so that it can be compared with <code>T</code> directly.</li>
+    <li><code>T</code> is the cell’s temperature in kelvin. Kelvin is Celsius plus 273, so 600 K is about 330 °C and a
+      1,700 K flame is about 1,430 °C. Every temperature on this page is in kelvin.</li>
+    <li><code>F</code> is how much wax vapour the cell holds, 0 in clean air.</li>
+    <li><code>O</code> is how much oxygen it holds, relative to fresh air: 1 in room air, 0 where the flame has used it
+      all. The oxygen slider scales that 1.</li>
+    <li><code>min(F, O/6)</code> says whichever runs out first sets the pace: vapour with no oxygen cannot burn, and
+      neither can oxygen with no vapour. The 6 is how much oxygen one unit of vapour eats, in the model’s own units.</li>
+  </ul>
+  <p>
+    The exponential is the whole story. Below about 600 K nothing happens; between 600 and 1,200 K the rate climbs by a
+    factor of 150, and from there on the reaction is basically instant. Each tick of the simulation, <code>dt</code>,
+    which is 1/240 of a second, <code>ω · dt</code> of vapour disappears, six times that much oxygen goes with it, and
+    the cell heats up by <code>Q · ω · dt</code>. <code>Q</code> is the heat of the reaction written as a temperature:
+    how many kelvin one unit of burned vapour adds to its cell, 11,300 K here. That sounds absurd until you remember that
+    a cell can never burn more than a sixth of a unit, because room air holds one unit of oxygen and the reaction eats
+    six per unit of vapour. A sixth of 11,300 K is a rise of about 1,900 K on top of a 300 K room, which lands near
+    2,200 K, the adiabatic flame temperature of a hydrocarbon in air. That is no coincidence: Q was chosen to make it so.
+    That temperature rise is what we feed into everything else: it makes the gas light, so it drives the flow; it
+    decides where soot forms and where it burns away; and it sets how much the cell radiates.
+  </p>
+  <p>
+    The first thing that temperature feeds is the flow. At everyday pressures a gas takes up room in proportion to its
+    temperature, so a parcel at <code>T</code> is lighter than the room air around it by the fraction
+    <code>(T − T∞)/T</code>, and gravity turns that into an upward push:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Buoyancy</span><code>a = g · (T − T∞) / T</code></div>
+  </div>
+  <p>
+    Then the gas has to behave like a gas. It carries itself along with its own motion, it rubs against its neighbours,
+    and above all it cannot pile up: whatever flows into a cell has to flow out again, except where burning makes the gas
+    swell. That is the Navier–Stokes equations for a nearly incompressible flow:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Momentum</span><code>∂u/∂t + (u·∇)u = −∇p + ν ∇²u + a</code></div>
+    <div class="eq"><span>Volume</span><code>∇·u = ½ · Q · ω / T</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>u</code> is the gas velocity in a cell: two numbers, sideways and up.</li>
+    <li><code>(u·∇)u</code> is the gas carrying its own momentum along: a moving parcel keeps moving.</li>
+    <li><code>∇p</code> is the pressure gradient, which is whatever it takes to stop gas from piling up. The engine never
+      knows <code>p</code> in advance; it solves for it every tick.</li>
+    <li><code>ν ∇²u</code> is viscosity: the gas rubbing against its neighbours and evening out speed differences. In air
+      <code>ν</code> is 0.71 times the thermal diffusivity, and it rises with temperature the same way.</li>
+    <li><code>a</code> is the sum of the pushes: buoyancy from above, the room’s draft, the gust from the buttons, and a
+      small vorticity-confinement nudge that keeps little eddies alive on a grid this coarse.</li>
+    <li><code>∇·u</code> is how fast the gas in a cell is expanding, zero for an incompressible flow. Here it follows the
+      heating: at fixed pressure a gas swells in proportion to its temperature, so the fractional rate of expansion is
+      the fractional rate of heating, <code>Q · ω / T</code>. The ½ tempers it.</li>
+    <li><code>T∞</code> is the room temperature, 300 K, and <code>g</code> is gravity, which the slider scales.</li>
+  </ul>
+  <p>
+    The engine solves this the way Jos Stam’s <em>stable fluids</em> does: apply the pushes, carry everything along the
+    flow, smooth it a little, then find the pressure that makes the volume equation hold and subtract its gradient.
+    Sixteen sweeps of a relaxation solver are enough; the flame does not change beyond that. What comes out is a velocity field, and that field carries the heat, the vapour, the oxygen and the soot around.
+  </p>
+  <p>
+    The flow, in turn, carries things around. Everything in a cell, heat, vapour, oxygen and soot, rides the flow. Heat, vapour
+    and oxygen also spread out on their own, but the engine handles the two one after the other each tick, so we can
+    look at them separately. First, the carrying:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Carrying</span><code>∂φ/∂t + (u·∇)φ = source</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>φ</code> is a placeholder. The same equation is written four times, once per field, and <code>φ</code> is
+      whichever one you are looking at:
+      <ul>
+        <li>temperature, which makes it the heat equation: heat rides the flow, and the source is burning adding heat
+          and radiation taking it away;</li>
+        <li>wax vapour: the wick adds it, burning removes it;</li>
+        <li>oxygen: it comes in with the room air, and burning removes it;</li>
+        <li>soot: it forms and burns off in the source term.</li>
+      </ul>
+    </li>
+    <li><code>(u·∇)φ</code> is the flow carrying <code>φ</code> along: whatever is in the gas moves with the gas.</li>
+    <li><code>source</code> is the chemistry from above: burning removes vapour and oxygen, adds heat, and makes or
+      eats soot.</li>
+  </ul>
+  <p>
+    The carrying is done backwards. For each cell, the engine asks where the gas now sitting in it was one tick ago,
+    traces that path back along the flow, with a midpoint correction, because a straight-line trace leaves a faint
+    step-locked pattern wherever the flow shears, and picks up whatever was there. This semi-Lagrangian trick cannot blow
+    up however fast the gas moves, which is the whole appeal.
+  </p>
+  <p>
+    Then the spreading. Heat leaks from hot cells into cold ones, and vapour and oxygen leak from where there is more to
+    where there is less. That is diffusion, and how fast it goes depends on temperature:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Spreading</span><code>∂φ/∂t = ∇·(D ∇φ)</code></div>
+    <div class="eq"><span>Diffusivity</span><code>D = D₀ · (T / 300 K)^1.7</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>∇·(D ∇φ)</code> is the leak itself, at a rate set by <code>D</code>.</li>
+    <li><code>D₀</code> is the diffusivity in room air: 22 mm²/s for heat. Oxygen spreads at the same rate, wax vapour
+      three times slower because its molecules are heavy, and soot not at all: particles are far too heavy to diffuse,
+      so they only ride the flow.</li>
+    <li><code>(T / 300 K)^1.7</code> says gases diffuse faster when hot, about 18 times faster in the flame than in the
+      room. This matters: it is what lets the vapour and the oxygen reach each other in a flame only a few millimetres
+      wide.</li>
+  </ul>
+  <p>
+    The spreading is done implicitly. Stepping diffusion forward would need tiny steps in the hot gas, where
+    <code>D</code> is large, so instead each row and then each column is solved as a small tridiagonal system, which is
+    stable for any <code>D</code>. The diffusivity on the face between two cells is the harmonic mean of the two, so the
+    wax, which gets a <code>D</code> of zero, insulates.
+  </p>
+  <p>
+    The second thing the temperature feeds is soot. Where the vapour is very hot but has no oxygen to burn with, inside the flame
+    skin, some of it falls apart into tiny carbon particles instead. Where those particles later meet oxygen, they burn
+    off. Both are Arrhenius laws again, with their own thresholds:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Soot</span><code>dS/dt = Sf · e^(−Tf/T) · F  −  So · e^(−To/T) · (O + 0.012) · S</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>S</code> is how much soot the cell holds.</li>
+    <li><code>Sf · e^(−Tf/T) · F</code> is soot being born out of vapour. <code>Tf</code> is 20,000 K, so this only
+      gets going in the hottest, fuel-rich gas: the rate is 600 times higher at 1,700 K than at 1,100 K, and below
+      1,100 K the engine does not bother.</li>
+    <li><code>So · e^(−To/T) · (O + 0.012) · S</code> is soot burning off. <code>To</code> is 11,000 K, so it needs heat
+      too, and it needs an oxidiser: the oxygen in the cell, plus a small constant standing in for the OH radicals that
+      attack soot even where the oxygen is already gone.</li>
+  </ul>
+  <p>
+    The tug of war between the two draws the bright part of the flame. Soot is born in the dark, hot core, rides the
+    flow up and out, glows on the way, and dies where it reaches the oxygen at the skin. The tip of the flame is where
+    the last of it burns off. Make the burn-off too weak and soot escapes as smoke; make it too strong and the flame goes
+    dim and short. The Soot view on the demo shows the field directly.
+  </p>
+  <p>
+    The third is radiation. Anything hot glows, and the rate goes as the fourth power of temperature, the Stefan–Boltzmann
+    law. In a candle the soot does most of the glowing, with a little help from the hot gas itself:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Radiation</span><code>dT/dt = −k · (S + 0.04) · (T⁴ − T∞⁴)</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>T⁴ − T∞⁴</code> is the Stefan–Boltzmann part: the cell radiates as <code>T⁴</code> and absorbs the room’s
+      glow back as <code>T∞⁴</code>. At 1,700 K that is a thousand times what a 300 K cell gives off, which is why the
+      loss only matters inside the flame.</li>
+    <li><code>S + 0.04</code> says soot is the main radiator, and the 0.04 is the gas’s own share: hot CO₂ and water
+      vapour radiate in the infrared even with no soot around.</li>
+    <li><code>k</code> sets the overall strength, and the flame is assumed to be optically thin: every cell radiates
+      straight out, nothing is absorbed on the way.</li>
+  </ul>
+  <p>
+    This is the heat a candle gives to the room, and the Readings panel reports how much of the released
+    heat leaves this way. One numerical detail: a sooty cell can lose a hundred kelvin in a single tick, so the engine
+    integrates the <code>T⁴</code> loss exactly over the tick instead of stepping it, which keeps hot cells from
+    overshooting into negative temperatures.
+  </p>
+  <p>
+    Now the wick, the only solid thing in the model and the part that closes the loop. Real wicks are braided so that
+    they curl as they burn, and the tip ends up off to one side, in the hot sheath of the flame, where it keeps glowing
+    and trims itself. The model copies that: the glowing tip and the vapour source both sit a little to one side of the
+    axis. The vapour supply is a feedback loop: the flame heats the wick, the hot wick boils off wax, and the wax feeds
+    the flame.
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Vapour supply</span><code>F_wick = F₀ · (0.2 + 0.8 · h) · (1 + n)</code></div>
+    <div class="eq"><span>Heat feedback</span><code>h → (T_near − 900 K) / 600 K,  clamped to 0…1, lagging by 0.35 s</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>F_wick</code> is how much vapour the wick gives off; it fills the cells around the wick each tick.</li>
+    <li><code>F₀</code> is the wick’s full supply, the one number that sets the size of the flame.</li>
+    <li><code>h</code> is the heat feedback, from 0 to 1. A wick with 900 K gas around it gives a fifth of the full
+      supply; one at 1,500 K gives all of it. It lags the flame by about a third of a second, like a real wick that
+      takes a moment to heat up.</li>
+    <li><code>T_near</code> is the hottest gas in a small box around the wick tip.</li>
+    <li><code>n</code> is noise, about ten percent either way, wandering on a 0.3 s timescale: the capillary feed and the
+      melt pool are never perfectly steady.</li>
+  </ul>
+  <p>
+    The tip itself is a hot patch that warms any gas touching it towards its own temperature, which in turn follows the
+    flame with a lag. That is also where the candle lives or dies. Lighting it means holding the gas around the wick at
+    2,300 K for a tenth of a second and giving the supply a push, as a lighter would. It goes out in two ways: if almost
+    nothing is burning for a quarter of a second, or if a gust cools the glowing tip below 900 K, which a 5 m/s puff
+    does and a gentle breeze does not. After a blow-out the still-hot wick keeps vaporising wax for a few seconds, and
+    that is the thread of smoke you see.
+  </p>
+  <p>
+    And the dance? Partly the bend: with the source off to one side the flame leans and pivots rather than standing
+    straight, and it sways about 15 % more than it would on a straight wick. But most of the motion comes from two other
+    things: the noise in the wax supply, which makes the flame bob and flicker, and the room’s draft, a slowly wandering
+    air current with small eddies in it, which makes it sway. None of it is scripted; the flame moves because its inputs
+    do.
+  </p>
+  <p>
+    One cheat deserves its own paragraph. The slice is flat, but a real flame is round, and that matters: air reaches a
+    round flame from every side, not just from the left and right of a slice, and the flame’s hot gases spread out into
+    that third dimension too. Leave that out and a flat flame grows too tall and never closes at the tip. The stand-in
+    is a mixing term: every cell that is hot or holds vapour relaxes a little toward room air, faster where the gas
+    moves faster:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Third dimension</span><code>dφ/dt = −(ε · |u| / R) · (φ − φ_room)</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>φ − φ_room</code> is how far the cell is from room air, for temperature, vapour, soot and oxygen alike.</li>
+    <li><code>|u|</code> is the gas speed. Fast-rising gas pulls in more air, which is true of real plumes too.</li>
+    <li><code>R</code> is 5 mm, roughly the flame’s radius, and <code>ε</code> is 0.25, the tuning knob. Together they
+      set how fast the plume mixes with the room, and with it the height of the flame, about 20 mm, and where the tip
+      closes.</li>
+  </ul>
+  <p>
+    This is the least physical thing in the model and one of the most influential, so it is worth being honest about: it
+    is a flat slice pretending to be a round flame, with one knob turned until the flame came out candle-sized.
+  </p>
+  <p>
+    Finally, the clock. All of the above runs 240 times per simulated second, in this order: the pushes, the wick, the
+    flow with its carrying and spreading, the third-dimension mixing, then chemistry and radiation. The step size
+    matters more than you would think: at 1/120 s the hand-off between transport and chemistry rang at a period of two
+    steps and striped the core with bands of soot, which looked like a physical effect right up until it vanished at
+    1/240 s. Each screen frame advances the candle by as many ticks as real time asks for, but never by more than 25 ms
+    of candle time, so on a slow machine the flame runs in slow motion instead of stalling the page. At 60 fps that is four ticks per frame.
+  </p>
+  <h3>From hot gas to light (where the rendering starts)</h3>
+  <p>
+    So far we have numbers: 47,040 cells, each with a temperature, a bit of soot and some gas, updated 240 times a
+    second. None of that is a picture. Nothing in the physics knows what colour it is. The second half of the job is
+    turning that field into light: what a parcel of hot soot radiates, which part of that your eye can see,
+    how a flat slice becomes a round flame in front of a camera, and how the result ends up as pixels. That is the
+    rendering, and it starts with the oldest formula in the story.
+  </p>
+  <p>
+    We already said that anything hot glows. The ideal glowing thing is what physicists call a blackbody: an object that
+    absorbs every bit of light that falls on it and, in return, glows with a spectrum that depends on nothing but its
+    temperature. Not its material, not its colour in daylight, just how hot it is. Planck’s law, from 1900, describes
+    that blackbody emission: exactly how much light comes off at each wavelength:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Planck’s law</span><code>B(λ,T) = 2hc² / λ⁵ · 1 / (e^(hc/λkT) − 1)</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>B(λ,T)</code> is how much light a blackbody at temperature <code>T</code> gives off at wavelength
+      <code>λ</code>.</li>
+    <li><code>λ</code> is the wavelength. Visible light runs from about 380 nm, violet, to 780 nm, red. Everything
+      longer is infrared, which you feel as heat but cannot see.</li>
+    <li><code>h</code>, <code>c</code> and <code>k</code> are Planck’s constant, the speed of light and Boltzmann’s
+      constant. The code only ever needs them as one number, <code>hc/k</code>, which is 14.39 million nm·K.</li>
+    <li><code>e^(hc/λkT)</code> has the same shape as the Arrhenius law, for the same reason: it is about how much of
+      the thermal energy makes it into a photon of that wavelength.</li>
+  </ul>
+  <p>
+    Soot is not quite a blackbody, though. A soot particle is far smaller than the wavelengths it radiates at, and such
+    particles are worse at emitting long wavelengths: their emissivity goes roughly as <code>1/λ</code>. So the light a
+    cell gives off is
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Soot’s light</span><code>L(λ) = S · B(λ,T) / λ</code></div>
+  </div>
+  <p>
+    with <code>S</code> the soot in the cell: twice the soot, twice the light. The <code>1/λ</code> tilts the spectrum
+    toward the blue and shifts its peak: a blackbody peaks where <code>λ · T</code> is 2,898 µm·K, a cloud of soot
+    where it is 2,404 µm·K. For a 1,700 K flame that peak sits at 1.4 µm, well into the infrared, which is the number
+    the Readings panel shows. Almost all of the light is infrared; only the short tail of the spectrum pokes into the
+    visible range, heavy on red and orange and poor in blue. That is why a candle is orange and not white, and why only
+    about 1.5 % of its radiation is visible at all, which the spectrum chart next to the demo draws live. Hotter soot
+    would look whiter; a candle simply has none.
+  </p>
+  <p>
+    There is one more, much fainter source: the blue skirt at the base of the flame. That is not hot soot at all but
+    freshly made molecules in the reaction zone, CH and C₂ mostly, giving off light at a few specific wavelengths as
+    they settle down. The model adds a small dose of that blue in proportion to the burning rate, which is why the base
+    of the flame glows faintly blue where there is no soot to glow orange.
+  </p>
+  <p>
+    A spectrum is not a colour, though. Your eye has three kinds of cone cells, each sensitive to its own overlapping
+    band of wavelengths, and a colour is nothing more than the three responses they send on. In 1931 the CIE measured
+    those sensitivities on real people and published them as three curves, the colour-matching functions. Any spectrum,
+    soot’s included, becomes a colour by weighing it with those curves:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>What the eye records</span><code>X, Y, Z = ∫ L(λ) · x̄(λ), ȳ(λ), z̄(λ) dλ</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>X, Y, Z</code> are the three numbers that describe what the eye sees. <code>Y</code> is brightness,
+      because <code>ȳ</code> is the eye’s overall sensitivity; <code>X</code> and <code>Z</code> carry the hue.</li>
+    <li><code>x̄, ȳ, z̄</code> are the 1931 observer: three bumps across the visible range. The code uses a compact fit of
+      them by Wyman, Sloan and Shirley, a handful of bell-shaped lobes, instead of the original tables.</li>
+    <li>The integral runs from 360 to 830 nm in 2 nm steps. Outside that range the eye is blind, so the infrared, which
+      is about 98 % of what the soot gives off, contributes nothing here. It warms your hand, not your retina.</li>
+  </ul>
+  <p>
+    This is done once, not per cell. For every temperature from 300 to 7,000 K, in 5 K steps, the renderer integrates
+    the soot spectrum against the three curves at start-up and stores the result in a table of 1,341 colours. Per cell
+    and per frame, the light is then a table lookup at the cell’s temperature, times the amount of soot, plus the blue
+    term.
+  </p>
+  <p>
+    Then the camera. <code>XYZ</code> is what the eye receives, but what you perceive depends on what you take to be
+    white: next to daylight a candle looks deep orange, while in a dark room the eye adapts and the same flame looks
+    paler. A camera makes that choice with its white balance, and so does the demo. The White balance slider picks a
+    blackbody temperature to call white, and a Bradford chromatic adaptation shifts every colour so that a blackbody at
+    that temperature lands on the screen’s white. Set it to 2,800 K, an old tungsten bulb, and the flame looks the way
+    it does to an eye used to a candle-lit room; set it to daylight and it goes deep orange. The last step is the
+    standard matrix from <code>XYZ</code> to the screen’s sRGB primaries, folded into the same 3 × 3 matrix, so per
+    cell it all costs one matrix multiply. For the long version of how eyes and screens disagree about colour, see my
+    post on the MDN blog,
+    <a href="https://developer.mozilla.org/en-US/blog/color-models-humans-devices/" target="_blank" rel="noopener">Color models for humans and devices</a>.
+  </p>
+  <p>
+    Now for the trick that turns a slice into a flame. The simulation is a flat cross-section through the middle of the
+    flame, but a camera does not see cross-sections. It looks through the whole depth of a round flame, and the glow
+    along each line of sight adds up. A candle flame is so thin, optically, that nothing inside it blocks anything
+    else, so what reaches the camera at a distance <code>x</code> from the axis is simply the sum of the light along
+    the chord through the flame at that <code>x</code>:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Line of sight</span><code>I(x) = ∫ L(r) ds   along the chord at distance x from the axis</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>L(r)</code> is the light a cell at radius <code>r</code> gives off, from above. If the flame is round, the
+      slice already tells us <code>L</code> at every radius.</li>
+    <li><code>ds</code> is a step along the line of sight. A chord at distance <code>x</code> crosses every ring of the
+      flame from radius <code>x</code> outward, and crosses each of them twice, so the outer rings contribute to every
+      pixel and the core only to the central ones.</li>
+    <li><code>I(x)</code> is what the camera records at that offset: the brightness of the pixel.</li>
+  </ul>
+  <p>
+    This is an Abel transform, and it is what gives the rendered flame its depth: at the edges the line of sight skims
+    along the glowing skin at a grazing angle and picks up a lot of it, in the middle it passes straight through the
+    dark core, so the skin reads brighter than the centre, as it does in a photograph. There is one wrinkle. A swaying
+    flame is not round about the wick’s axis but about its own bent one, so each row of the slice is projected about its
+    own centre of light, with the two halves of the row blended according to how far round the chord travels. Without
+    that, a leaning flame splits into two. The weights depend only on geometry, so they are computed once and kept.
+  </p>
+  <p>
+    Last stop: pixels. What leaves the engine is still not a picture but a field of linear light: three floating-point
+    numbers per cell, on a scale where 1 is as bright as the screen can go. It goes to the GPU as a floating-point
+    texture, and one fragment shader turns it into what you see, once per device pixel:
+  </p>
+  <div class="eqs panel">
+    <div class="eq"><span>Pixel</span><code>rgb = sRGB( ACES( bicubic(L) + 0.015 · bloom(L) ) )</code></div>
+  </div>
+  <ul class="syms">
+    <li><code>bicubic(L)</code> resamples the field. A 0.25 mm cell covers several screen pixels, and a plain bilinear
+      stretch looks blurry and blocky at the same time.
+      <a href="https://en.wikipedia.org/wiki/Bicubic_interpolation" target="_blank" rel="noopener">Bicubic interpolation</a>
+      instead fits a smooth cubic curve through the 4 × 4 cells around each pixel and reads the value off that curve.
+      The shader uses the
+      <a href="https://en.wikipedia.org/wiki/Cubic_Hermite_spline#Catmull%E2%80%93Rom_spline" target="_blank" rel="noopener">Catmull-Rom</a>
+      flavour, which passes exactly through the cell values, so it keeps the flame’s edges crisp without inventing
+      detail.</li>
+    <li><code>bloom(L)</code> is a blurred copy of the image, made by the engine at a quarter of the resolution with a
+      1.5 mm Gaussian. A tiny share of it, 1.5 %, is added back: that is a camera’s veiling glare, the faint halo every
+      lens puts around a bright flame. Any more and it looks like a music video.</li>
+    <li><code>ACES</code> is the tone curve. The flame’s core is far brighter than any screen, and a plain clip would
+      turn it into a flat white blob.
+      <a href="https://en.wikipedia.org/wiki/Tone_mapping" target="_blank" rel="noopener">Tone mapping</a> is the art of
+      squeezing that range onto a screen, and
+      <a href="https://en.wikipedia.org/wiki/Academy_Color_Encoding_System" target="_blank" rel="noopener">ACES</a>,
+      the Academy Color Encoding System, is the film industry’s standard way of doing it: a curve that leaves the
+      midtones alone and rolls the highlights off gently, so the core stays bright but keeps its shape. The shader uses
+      Krzysztof Narkowicz’s compact fit of that curve, five constants and no lookup table. The Exposure slider scales
+      the light before this step.</li>
+    <li><code>sRGB</code> is the screen’s transfer function, the gamma: displays expect numbers that are not
+      proportional to light, so the very last step encodes for that.</li>
+  </ul>
+  <p>
+    Everything else on the stage is plain 2D canvas: the wall behind the candle, lit by the flame’s own light with the
+    proper falloff; the wax column; and the curled wick with its glowing tip, whose colour comes from the same Planck
+    tables, as a grey body at the ember’s temperature. The flame is drawn on top additively, because light adds. The
+    readings next to the demo come out of the same pass: the light-weighted soot temperature, the spectrum peak, the
+    visible share and the radiant fraction are summed over the cells every frame. And that is the whole pipeline:
+    physics in Rust, light in Rust, pixels on the GPU, furniture in JavaScript.
+  </p>
+  <p>
+    Some numbers to close with. The engine, physics and light together, compiles to a 76 KB WebAssembly module
+    with 21 exported functions and zero imports: it never calls back into JavaScript, and JavaScript reads the results
+    straight out of the module’s memory. It uses 5.2 MB of that memory, most of it the twenty-odd fields of 47,040
+    numbers each. The page itself is a single 172 KB HTML file with the module embedded, so there is nothing to fetch
+    and nothing to deploy but that one file. Per frame, on my laptop at 60 fps: the four physics ticks take about 14 ms,
+    the light pass, tables, projection and bloom, well under a millisecond, and the GPU shader and the canvas drawing
+    are lost in the noise. That leaves about 2 ms of slack in a 16.7 ms frame. All of it runs on one thread, with wasm SIMD switched on: no workers,
+    no WebGPU, no tricks beyond the ones above. Which, if you remember the question at the top, is the answer.
+  </p>
 </div>
 <p class="small prose" style="margin-top: 1rem">
-  Simplifications: the grid is a 2D slice, so a mixing term stands in for the air a round flame draws in from the third
-  dimension; chemistry is a single global step; the gas is optically thin; transport follows kinetic theory with fixed
-  Lewis and Prandtl numbers; and the reaction constants are tuned to give a candle-sized flame with the adiabatic flame
-  temperature of a hydrocarbon in air. Trends are physical, absolute numbers are not predictions.
+  A reminder before anyone quotes a number: this is a flat slice with one-step chemistry and a handful of tuned
+  constants. The trends are physical; the absolute numbers are not predictions.
 </p>
 
-<footer><a href="/">← all demos</a> · shape from a reacting flow, colour from Planck’s law</footer>
+<footer><a href="/">← all demos</a> · one Rust engine, a little bit of physics</footer>
 
 <script>
 /* The Rust engine, compiled to WebAssembly, behind one small interface over its C ABI. */
@@ -308,7 +729,6 @@ const WASM_B64 = "AGFzbQEAAAABqAEaYAJ/fwBgA39/fwF/YAJ/fwF/YAF/AGACf30AYAV/fX19fQ
   // a custom property's value is its declaration (light-dark(...)); the canvas needs it resolved, so read it through an element
   const probe = document.createElement('span'); probe.style.display = 'none'; document.body.appendChild(probe);
   const css = name => { probe.style.color = `var(${name})`; return getComputedStyle(probe).color; };
-  const alpha = (rgb, a) => rgb.replace(/^rgba?\(([^)]+?)(?:,\s*[\d.]+)?\)$/, (m, c) => `rgba(${c}, ${a})`);
 
   // ---------- engine ----------
   let eng;
@@ -527,9 +947,6 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
     if (!(T > 800)) { sctx.fillText('light the candle to see its spectrum', X(1150), padT + 30 * d); return; }
     const sootC = [], bb = []; let ms = 0, mb = 0;
     for (let l = L0; l <= L1; l += 10) { const b = planck(l, T); bb.push(b); sootC.push(b / l); ms = Math.max(ms, b / l); mb = Math.max(mb, b); }
-    sctx.beginPath(); sctx.moveTo(X(L0), Y(0));
-    sootC.forEach((v, i) => sctx.lineTo(X(L0 + i * 10), Y(v / ms)));
-    sctx.lineTo(X(L1), Y(0)); sctx.closePath(); sctx.fillStyle = alpha(soot, 0.18); sctx.fill();
     sctx.beginPath(); sootC.forEach((v, i) => (i ? sctx.lineTo : sctx.moveTo).call(sctx, X(L0 + i * 10), Y(v / ms)));
     sctx.strokeStyle = soot; sctx.lineWidth = 2 * d; sctx.stroke();
     sctx.beginPath(); bb.forEach((v, i) => (i ? sctx.lineTo : sctx.moveTo).call(sctx, X(L0 + i * 10), Y(v / mb)));

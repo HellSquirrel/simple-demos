@@ -1,4 +1,4 @@
-# Blackbody Candle
+# How Many Rust Engines Does It Take to Light a Candle?
 
 A candle you can light, where nothing about the flame is hand-drawn. Its shape comes from a small
 reacting, buoyant gas simulation, and every colour comes from Planck's law seen through the CIE 1931

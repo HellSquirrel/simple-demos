@@ -4,7 +4,6 @@
   // a custom property's value is its declaration (light-dark(...)); the canvas needs it resolved, so read it through an element
   const probe = document.createElement('span'); probe.style.display = 'none'; document.body.appendChild(probe);
   const css = name => { probe.style.color = `var(${name})`; return getComputedStyle(probe).color; };
-  const alpha = (rgb, a) => rgb.replace(/^rgba?\(([^)]+?)(?:,\s*[\d.]+)?\)$/, (m, c) => `rgba(${c}, ${a})`);
 
   // ---------- engine ----------
   let eng;
@@ -223,9 +222,6 @@ void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = sr
     if (!(T > 800)) { sctx.fillText('light the candle to see its spectrum', X(1150), padT + 30 * d); return; }
     const sootC = [], bb = []; let ms = 0, mb = 0;
     for (let l = L0; l <= L1; l += 10) { const b = planck(l, T); bb.push(b); sootC.push(b / l); ms = Math.max(ms, b / l); mb = Math.max(mb, b); }
-    sctx.beginPath(); sctx.moveTo(X(L0), Y(0));
-    sootC.forEach((v, i) => sctx.lineTo(X(L0 + i * 10), Y(v / ms)));
-    sctx.lineTo(X(L1), Y(0)); sctx.closePath(); sctx.fillStyle = alpha(soot, 0.18); sctx.fill();
     sctx.beginPath(); sootC.forEach((v, i) => (i ? sctx.lineTo : sctx.moveTo).call(sctx, X(L0 + i * 10), Y(v / ms)));
     sctx.strokeStyle = soot; sctx.lineWidth = 2 * d; sctx.stroke();
     sctx.beginPath(); bb.forEach((v, i) => (i ? sctx.lineTo : sctx.moveTo).call(sctx, X(L0 + i * 10), Y(v / mb)));
