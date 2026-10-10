@@ -2,10 +2,10 @@
 <html lang="en">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>A Neural Network in Pure CSS, Training Included</title>
+  <title>A JS-less Neural Network on… Scrollbars</title>
   <meta
     name="description"
-    content="CSS already knows sin(). This fish has to learn it — and the learning happens in your browser: the CSS cascade runs 80 steps of gradient descent at page load, no JavaScript anywhere."
+    content="A live optimizer built from scroll physics: a tiny neural network's three weights are scrollbars, trained continuously by CSS scroll-driven animations and mandatory snap until its curve fits the sine wave. Drag a weight; the optimizer takes it back. Zero JavaScript."
   />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="canonical" href="https://acorns.nutlore.me/css-neural-network/" />
@@ -13,10 +13,10 @@
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141419" />
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="Simple Demos" />
-  <meta property="og:title" content="A Neural Network in Pure CSS, Training Included" />
+  <meta property="og:title" content="A JS-less Neural Network on… Scrollbars" />
   <meta
     property="og:description"
-    content="CSS already knows sin(). This fish has to learn it — and the learning happens in your browser: the CSS cascade runs 80 steps of gradient descent at page load, no JavaScript anywhere."
+    content="A live optimizer built from scroll physics: a tiny neural network's three weights are scrollbars, trained continuously by CSS scroll-driven animations and mandatory snap until its curve fits the sine wave. Drag a weight; the optimizer takes it back. Zero JavaScript."
   />
   <meta property="og:url" content="https://acorns.nutlore.me/css-neural-network/" />
   <meta property="og:image" content="https://acorns.nutlore.me/css-neural-network/og.png" />
@@ -24,7 +24,7 @@
   <meta property="og:image:height" content="630" />
   <meta
     property="og:image:alt"
-    content="Two emoji fish over a sine wave in a dark tank: one swims the true curve, one swims a neural network's approximation, joined by an error bar."
+    content="A glowing goldfish riding a dotted sine wave beneath a strip of ice — the training tank in winter."
   />
   <meta name="twitter:card" content="summary_large_image" />
   <style>
@@ -50,6 +50,9 @@
         ),
         light-dark(#fafafa, #141419);
       color: light-dark(#1a1a1f, #e8e8ec);
+      /* the twelve registers' timelines, visible to the whole page */
+      timeline-scope: --t0, --t1, --t2, --t0s, --t1s, --t2s,
+        --m0, --m1, --m2, --m0s, --m1s, --m2s;
     }
     h1 {
       font-size: clamp(1.7rem, 5vw, 2.2rem);
@@ -75,6 +78,14 @@
       color: var(--ink-soft);
       margin: 0.5rem 0 1rem;
     }
+    ul {
+      color: var(--ink-soft);
+      padding-inline-start: 1.25rem;
+      margin: 0.5rem 0 1rem;
+    }
+    li {
+      margin: 0.35rem 0;
+    }
     code {
       font: 0.85em/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
       background: light-dark(#eeeef3, #26262f);
@@ -97,9 +108,7 @@
       border: 1px solid var(--edge);
       border-radius: 14px;
     }
-    a {
-      color: var(--accent);
-    }
+    a { color: var(--accent); }
     footer {
       margin-top: 4rem;
       font-size: 0.9rem;
@@ -110,412 +119,347 @@
       color: var(--ink-faint);
     }
 
-    /* ---------- registered properties (generated) ---------- */
-    /* gen:props */
-      @property --u1a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --p1a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --v1a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mu1a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mp1a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mv1a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --u2a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --p2a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --v2a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mu2a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mp2a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mv2a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --u3a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --p3a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --v3a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mu3a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mp3a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mv3a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --u4a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --p4a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --v4a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mu4a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mp4a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mv4a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --u5a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --p5a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --v5a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mu5a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mp5a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mv5a { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --u1b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --p1b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --v1b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mu1b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mp1b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mv1b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --u2b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --p2b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --v2b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mu2b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mp2b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mv2b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --u3b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --p3b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --v3b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mu3b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mp3b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mv3b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --u4b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --p4b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --v4b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mu4b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mp4b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mv4b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --u5b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --p5b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --v5b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mu5b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mp5b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mv5b { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --qa { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mqa { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --qb { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --mqb { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x1 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x2 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x3 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x4 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x5 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x6 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x7 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x8 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x9 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x10 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x11 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h1x12 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x1 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x2 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x3 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x4 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x5 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x6 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x7 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x8 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x9 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x10 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x11 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h2x12 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x1 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x2 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x3 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x4 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x5 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x6 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x7 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x8 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x9 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x10 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x11 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h3x12 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x1 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x2 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x3 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x4 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x5 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x6 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x7 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x8 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x9 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x10 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x11 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h4x12 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x1 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x2 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x3 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x4 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x5 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x6 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x7 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x8 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x9 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x10 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x11 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --h5x12 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r1 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r2 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r3 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r4 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r5 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r6 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r7 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r8 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r9 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r10 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r11 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --r12 { syntax: "<number>"; inherits: true; initial-value: 0; }
+    /* ---------- registered properties ---------- */
+      @property --v0 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v1 { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --v2 { syntax: "<number>"; inherits: true; initial-value: 0; }
       @property --L { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --ys { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --Li { syntax: "<integer>"; inherits: true; initial-value: 0; }
+      @property --Ld1 { syntax: "<integer>"; inherits: true; initial-value: 0; }
+      @property --Ld2 { syntax: "<integer>"; inherits: true; initial-value: 0; }
+      @property --Ld3 { syntax: "<integer>"; inherits: true; initial-value: 0; }
+      @property --v0c { syntax: "<integer>"; inherits: true; initial-value: 0; }
+      @property --v1c { syntax: "<integer>"; inherits: true; initial-value: 0; }
+      @property --v2c { syntax: "<integer>"; inherits: true; initial-value: 0; }
       @property --yt { syntax: "<number>"; inherits: true; initial-value: 0; }
+      @property --ys { syntax: "<number>"; inherits: true; initial-value: 0; }
       @property --ysv { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --xi { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --Li { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --Ld1 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --Ld2 { syntax: "<number>"; inherits: true; initial-value: 0; }
-      @property --Ld3 { syntax: "<number>"; inherits: true; initial-value: 0; }
       @property --x { syntax: "<number>"; inherits: false; initial-value: 0; }
-/* /gen:props */
+      @property --vel { syntax: "<number>"; inherits: false; initial-value: 0; }
 
-    /* ---------- the training loop itself (generated) ---------- */
-    /* gen:trainer */
-      /* theta_0 — random init, printed by generate.mjs, never trained offline */
-      :root {
-        --u1b: 4.270716034593239; --p1b: -2.981027155018006; --v1b: -0.24889608656424347;
-        --u2b: 3.441427722604887; --p2b: -2.0211002266589624; --v2b: -0.6904279598506619;
-        --u3b: -1.2052945040975325; --p3b: 0.3416163578679748; --v3b: 0.15443667210517842;
-        --u4b: 5.720336485203596; --p4b: -5.364627226431433; --v4b: 0.43981932341557634;
-        --u5b: -5.437006141491729; --p5b: 1.5605430006630003; --v5b: -0.4021295511322707;
-        --qb: 0;
-      }
+    /* ---------- THE MACHINE ----------
 
-      /* THE TRAINING LOOP. One rule per generation parity; the nested DOM
-         below runs them 80 times. Each element computes one full-batch
-         gradient-descent-with-momentum step from its parent's weights. */
-      .st { display: contents; }
-      .st.a {
-        --h1x1: max(0, var(--u1b) * 0.041666666666666664 + var(--p1b));
-        --h1x2: max(0, var(--u1b) * 0.125 + var(--p1b));
-        --h1x3: max(0, var(--u1b) * 0.20833333333333334 + var(--p1b));
-        --h1x4: max(0, var(--u1b) * 0.2916666666666667 + var(--p1b));
-        --h1x5: max(0, var(--u1b) * 0.375 + var(--p1b));
-        --h1x6: max(0, var(--u1b) * 0.4583333333333333 + var(--p1b));
-        --h1x7: max(0, var(--u1b) * 0.5416666666666666 + var(--p1b));
-        --h1x8: max(0, var(--u1b) * 0.625 + var(--p1b));
-        --h1x9: max(0, var(--u1b) * 0.7083333333333334 + var(--p1b));
-        --h1x10: max(0, var(--u1b) * 0.7916666666666666 + var(--p1b));
-        --h1x11: max(0, var(--u1b) * 0.875 + var(--p1b));
-        --h1x12: max(0, var(--u1b) * 0.9583333333333334 + var(--p1b));
-        --h2x1: max(0, var(--u2b) * 0.041666666666666664 + var(--p2b));
-        --h2x2: max(0, var(--u2b) * 0.125 + var(--p2b));
-        --h2x3: max(0, var(--u2b) * 0.20833333333333334 + var(--p2b));
-        --h2x4: max(0, var(--u2b) * 0.2916666666666667 + var(--p2b));
-        --h2x5: max(0, var(--u2b) * 0.375 + var(--p2b));
-        --h2x6: max(0, var(--u2b) * 0.4583333333333333 + var(--p2b));
-        --h2x7: max(0, var(--u2b) * 0.5416666666666666 + var(--p2b));
-        --h2x8: max(0, var(--u2b) * 0.625 + var(--p2b));
-        --h2x9: max(0, var(--u2b) * 0.7083333333333334 + var(--p2b));
-        --h2x10: max(0, var(--u2b) * 0.7916666666666666 + var(--p2b));
-        --h2x11: max(0, var(--u2b) * 0.875 + var(--p2b));
-        --h2x12: max(0, var(--u2b) * 0.9583333333333334 + var(--p2b));
-        --h3x1: max(0, var(--u3b) * 0.041666666666666664 + var(--p3b));
-        --h3x2: max(0, var(--u3b) * 0.125 + var(--p3b));
-        --h3x3: max(0, var(--u3b) * 0.20833333333333334 + var(--p3b));
-        --h3x4: max(0, var(--u3b) * 0.2916666666666667 + var(--p3b));
-        --h3x5: max(0, var(--u3b) * 0.375 + var(--p3b));
-        --h3x6: max(0, var(--u3b) * 0.4583333333333333 + var(--p3b));
-        --h3x7: max(0, var(--u3b) * 0.5416666666666666 + var(--p3b));
-        --h3x8: max(0, var(--u3b) * 0.625 + var(--p3b));
-        --h3x9: max(0, var(--u3b) * 0.7083333333333334 + var(--p3b));
-        --h3x10: max(0, var(--u3b) * 0.7916666666666666 + var(--p3b));
-        --h3x11: max(0, var(--u3b) * 0.875 + var(--p3b));
-        --h3x12: max(0, var(--u3b) * 0.9583333333333334 + var(--p3b));
-        --h4x1: max(0, var(--u4b) * 0.041666666666666664 + var(--p4b));
-        --h4x2: max(0, var(--u4b) * 0.125 + var(--p4b));
-        --h4x3: max(0, var(--u4b) * 0.20833333333333334 + var(--p4b));
-        --h4x4: max(0, var(--u4b) * 0.2916666666666667 + var(--p4b));
-        --h4x5: max(0, var(--u4b) * 0.375 + var(--p4b));
-        --h4x6: max(0, var(--u4b) * 0.4583333333333333 + var(--p4b));
-        --h4x7: max(0, var(--u4b) * 0.5416666666666666 + var(--p4b));
-        --h4x8: max(0, var(--u4b) * 0.625 + var(--p4b));
-        --h4x9: max(0, var(--u4b) * 0.7083333333333334 + var(--p4b));
-        --h4x10: max(0, var(--u4b) * 0.7916666666666666 + var(--p4b));
-        --h4x11: max(0, var(--u4b) * 0.875 + var(--p4b));
-        --h4x12: max(0, var(--u4b) * 0.9583333333333334 + var(--p4b));
-        --h5x1: max(0, var(--u5b) * 0.041666666666666664 + var(--p5b));
-        --h5x2: max(0, var(--u5b) * 0.125 + var(--p5b));
-        --h5x3: max(0, var(--u5b) * 0.20833333333333334 + var(--p5b));
-        --h5x4: max(0, var(--u5b) * 0.2916666666666667 + var(--p5b));
-        --h5x5: max(0, var(--u5b) * 0.375 + var(--p5b));
-        --h5x6: max(0, var(--u5b) * 0.4583333333333333 + var(--p5b));
-        --h5x7: max(0, var(--u5b) * 0.5416666666666666 + var(--p5b));
-        --h5x8: max(0, var(--u5b) * 0.625 + var(--p5b));
-        --h5x9: max(0, var(--u5b) * 0.7083333333333334 + var(--p5b));
-        --h5x10: max(0, var(--u5b) * 0.7916666666666666 + var(--p5b));
-        --h5x11: max(0, var(--u5b) * 0.875 + var(--p5b));
-        --h5x12: max(0, var(--u5b) * 0.9583333333333334 + var(--p5b));
-        --r1: calc(var(--v1b) * var(--h1x1) + var(--v2b) * var(--h2x1) + var(--v3b) * var(--h3x1) + var(--v4b) * var(--h4x1) + var(--v5b) * var(--h5x1) + var(--qb) - 0.25881904510252074);
-        --r2: calc(var(--v1b) * var(--h1x2) + var(--v2b) * var(--h2x2) + var(--v3b) * var(--h3x2) + var(--v4b) * var(--h4x2) + var(--v5b) * var(--h5x2) + var(--qb) - 0.7071067811865475);
-        --r3: calc(var(--v1b) * var(--h1x3) + var(--v2b) * var(--h2x3) + var(--v3b) * var(--h3x3) + var(--v4b) * var(--h4x3) + var(--v5b) * var(--h5x3) + var(--qb) - 0.9659258262890683);
-        --r4: calc(var(--v1b) * var(--h1x4) + var(--v2b) * var(--h2x4) + var(--v3b) * var(--h3x4) + var(--v4b) * var(--h4x4) + var(--v5b) * var(--h5x4) + var(--qb) - 0.9659258262890683);
-        --r5: calc(var(--v1b) * var(--h1x5) + var(--v2b) * var(--h2x5) + var(--v3b) * var(--h3x5) + var(--v4b) * var(--h4x5) + var(--v5b) * var(--h5x5) + var(--qb) - 0.7071067811865476);
-        --r6: calc(var(--v1b) * var(--h1x6) + var(--v2b) * var(--h2x6) + var(--v3b) * var(--h3x6) + var(--v4b) * var(--h4x6) + var(--v5b) * var(--h5x6) + var(--qb) - 0.258819045102521);
-        --r7: calc(var(--v1b) * var(--h1x7) + var(--v2b) * var(--h2x7) + var(--v3b) * var(--h3x7) + var(--v4b) * var(--h4x7) + var(--v5b) * var(--h5x7) + var(--qb) - -0.25881904510252035);
-        --r8: calc(var(--v1b) * var(--h1x8) + var(--v2b) * var(--h2x8) + var(--v3b) * var(--h3x8) + var(--v4b) * var(--h4x8) + var(--v5b) * var(--h5x8) + var(--qb) - -0.7071067811865475);
-        --r9: calc(var(--v1b) * var(--h1x9) + var(--v2b) * var(--h2x9) + var(--v3b) * var(--h3x9) + var(--v4b) * var(--h4x9) + var(--v5b) * var(--h5x9) + var(--qb) - -0.9659258262890683);
-        --r10: calc(var(--v1b) * var(--h1x10) + var(--v2b) * var(--h2x10) + var(--v3b) * var(--h3x10) + var(--v4b) * var(--h4x10) + var(--v5b) * var(--h5x10) + var(--qb) - -0.9659258262890684);
-        --r11: calc(var(--v1b) * var(--h1x11) + var(--v2b) * var(--h2x11) + var(--v3b) * var(--h3x11) + var(--v4b) * var(--h4x11) + var(--v5b) * var(--h5x11) + var(--qb) - -0.7071067811865477);
-        --r12: calc(var(--v1b) * var(--h1x12) + var(--v2b) * var(--h2x12) + var(--v3b) * var(--h3x12) + var(--v4b) * var(--h4x12) + var(--v5b) * var(--h5x12) + var(--qb) - -0.2588190451025207);
-        --mu1a: calc(0.9 * var(--mu1b) - 0.049999999999999996 * var(--v1b) * (var(--r1)*sign(var(--h1x1))*0.041666666666666664 + var(--r2)*sign(var(--h1x2))*0.125 + var(--r3)*sign(var(--h1x3))*0.20833333333333334 + var(--r4)*sign(var(--h1x4))*0.2916666666666667 + var(--r5)*sign(var(--h1x5))*0.375 + var(--r6)*sign(var(--h1x6))*0.4583333333333333 + var(--r7)*sign(var(--h1x7))*0.5416666666666666 + var(--r8)*sign(var(--h1x8))*0.625 + var(--r9)*sign(var(--h1x9))*0.7083333333333334 + var(--r10)*sign(var(--h1x10))*0.7916666666666666 + var(--r11)*sign(var(--h1x11))*0.875 + var(--r12)*sign(var(--h1x12))*0.9583333333333334));
-        --mp1a: calc(0.9 * var(--mp1b) - 0.049999999999999996 * var(--v1b) * (var(--r1)*sign(var(--h1x1)) + var(--r2)*sign(var(--h1x2)) + var(--r3)*sign(var(--h1x3)) + var(--r4)*sign(var(--h1x4)) + var(--r5)*sign(var(--h1x5)) + var(--r6)*sign(var(--h1x6)) + var(--r7)*sign(var(--h1x7)) + var(--r8)*sign(var(--h1x8)) + var(--r9)*sign(var(--h1x9)) + var(--r10)*sign(var(--h1x10)) + var(--r11)*sign(var(--h1x11)) + var(--r12)*sign(var(--h1x12))));
-        --mv1a: calc(0.9 * var(--mv1b) - 0.049999999999999996 * (var(--r1)*var(--h1x1) + var(--r2)*var(--h1x2) + var(--r3)*var(--h1x3) + var(--r4)*var(--h1x4) + var(--r5)*var(--h1x5) + var(--r6)*var(--h1x6) + var(--r7)*var(--h1x7) + var(--r8)*var(--h1x8) + var(--r9)*var(--h1x9) + var(--r10)*var(--h1x10) + var(--r11)*var(--h1x11) + var(--r12)*var(--h1x12)));
-        --u1a: calc(var(--u1b) + var(--mu1a));
-        --p1a: calc(var(--p1b) + var(--mp1a));
-        --v1a: calc(var(--v1b) + var(--mv1a));
-        --mu2a: calc(0.9 * var(--mu2b) - 0.049999999999999996 * var(--v2b) * (var(--r1)*sign(var(--h2x1))*0.041666666666666664 + var(--r2)*sign(var(--h2x2))*0.125 + var(--r3)*sign(var(--h2x3))*0.20833333333333334 + var(--r4)*sign(var(--h2x4))*0.2916666666666667 + var(--r5)*sign(var(--h2x5))*0.375 + var(--r6)*sign(var(--h2x6))*0.4583333333333333 + var(--r7)*sign(var(--h2x7))*0.5416666666666666 + var(--r8)*sign(var(--h2x8))*0.625 + var(--r9)*sign(var(--h2x9))*0.7083333333333334 + var(--r10)*sign(var(--h2x10))*0.7916666666666666 + var(--r11)*sign(var(--h2x11))*0.875 + var(--r12)*sign(var(--h2x12))*0.9583333333333334));
-        --mp2a: calc(0.9 * var(--mp2b) - 0.049999999999999996 * var(--v2b) * (var(--r1)*sign(var(--h2x1)) + var(--r2)*sign(var(--h2x2)) + var(--r3)*sign(var(--h2x3)) + var(--r4)*sign(var(--h2x4)) + var(--r5)*sign(var(--h2x5)) + var(--r6)*sign(var(--h2x6)) + var(--r7)*sign(var(--h2x7)) + var(--r8)*sign(var(--h2x8)) + var(--r9)*sign(var(--h2x9)) + var(--r10)*sign(var(--h2x10)) + var(--r11)*sign(var(--h2x11)) + var(--r12)*sign(var(--h2x12))));
-        --mv2a: calc(0.9 * var(--mv2b) - 0.049999999999999996 * (var(--r1)*var(--h2x1) + var(--r2)*var(--h2x2) + var(--r3)*var(--h2x3) + var(--r4)*var(--h2x4) + var(--r5)*var(--h2x5) + var(--r6)*var(--h2x6) + var(--r7)*var(--h2x7) + var(--r8)*var(--h2x8) + var(--r9)*var(--h2x9) + var(--r10)*var(--h2x10) + var(--r11)*var(--h2x11) + var(--r12)*var(--h2x12)));
-        --u2a: calc(var(--u2b) + var(--mu2a));
-        --p2a: calc(var(--p2b) + var(--mp2a));
-        --v2a: calc(var(--v2b) + var(--mv2a));
-        --mu3a: calc(0.9 * var(--mu3b) - 0.049999999999999996 * var(--v3b) * (var(--r1)*sign(var(--h3x1))*0.041666666666666664 + var(--r2)*sign(var(--h3x2))*0.125 + var(--r3)*sign(var(--h3x3))*0.20833333333333334 + var(--r4)*sign(var(--h3x4))*0.2916666666666667 + var(--r5)*sign(var(--h3x5))*0.375 + var(--r6)*sign(var(--h3x6))*0.4583333333333333 + var(--r7)*sign(var(--h3x7))*0.5416666666666666 + var(--r8)*sign(var(--h3x8))*0.625 + var(--r9)*sign(var(--h3x9))*0.7083333333333334 + var(--r10)*sign(var(--h3x10))*0.7916666666666666 + var(--r11)*sign(var(--h3x11))*0.875 + var(--r12)*sign(var(--h3x12))*0.9583333333333334));
-        --mp3a: calc(0.9 * var(--mp3b) - 0.049999999999999996 * var(--v3b) * (var(--r1)*sign(var(--h3x1)) + var(--r2)*sign(var(--h3x2)) + var(--r3)*sign(var(--h3x3)) + var(--r4)*sign(var(--h3x4)) + var(--r5)*sign(var(--h3x5)) + var(--r6)*sign(var(--h3x6)) + var(--r7)*sign(var(--h3x7)) + var(--r8)*sign(var(--h3x8)) + var(--r9)*sign(var(--h3x9)) + var(--r10)*sign(var(--h3x10)) + var(--r11)*sign(var(--h3x11)) + var(--r12)*sign(var(--h3x12))));
-        --mv3a: calc(0.9 * var(--mv3b) - 0.049999999999999996 * (var(--r1)*var(--h3x1) + var(--r2)*var(--h3x2) + var(--r3)*var(--h3x3) + var(--r4)*var(--h3x4) + var(--r5)*var(--h3x5) + var(--r6)*var(--h3x6) + var(--r7)*var(--h3x7) + var(--r8)*var(--h3x8) + var(--r9)*var(--h3x9) + var(--r10)*var(--h3x10) + var(--r11)*var(--h3x11) + var(--r12)*var(--h3x12)));
-        --u3a: calc(var(--u3b) + var(--mu3a));
-        --p3a: calc(var(--p3b) + var(--mp3a));
-        --v3a: calc(var(--v3b) + var(--mv3a));
-        --mu4a: calc(0.9 * var(--mu4b) - 0.049999999999999996 * var(--v4b) * (var(--r1)*sign(var(--h4x1))*0.041666666666666664 + var(--r2)*sign(var(--h4x2))*0.125 + var(--r3)*sign(var(--h4x3))*0.20833333333333334 + var(--r4)*sign(var(--h4x4))*0.2916666666666667 + var(--r5)*sign(var(--h4x5))*0.375 + var(--r6)*sign(var(--h4x6))*0.4583333333333333 + var(--r7)*sign(var(--h4x7))*0.5416666666666666 + var(--r8)*sign(var(--h4x8))*0.625 + var(--r9)*sign(var(--h4x9))*0.7083333333333334 + var(--r10)*sign(var(--h4x10))*0.7916666666666666 + var(--r11)*sign(var(--h4x11))*0.875 + var(--r12)*sign(var(--h4x12))*0.9583333333333334));
-        --mp4a: calc(0.9 * var(--mp4b) - 0.049999999999999996 * var(--v4b) * (var(--r1)*sign(var(--h4x1)) + var(--r2)*sign(var(--h4x2)) + var(--r3)*sign(var(--h4x3)) + var(--r4)*sign(var(--h4x4)) + var(--r5)*sign(var(--h4x5)) + var(--r6)*sign(var(--h4x6)) + var(--r7)*sign(var(--h4x7)) + var(--r8)*sign(var(--h4x8)) + var(--r9)*sign(var(--h4x9)) + var(--r10)*sign(var(--h4x10)) + var(--r11)*sign(var(--h4x11)) + var(--r12)*sign(var(--h4x12))));
-        --mv4a: calc(0.9 * var(--mv4b) - 0.049999999999999996 * (var(--r1)*var(--h4x1) + var(--r2)*var(--h4x2) + var(--r3)*var(--h4x3) + var(--r4)*var(--h4x4) + var(--r5)*var(--h4x5) + var(--r6)*var(--h4x6) + var(--r7)*var(--h4x7) + var(--r8)*var(--h4x8) + var(--r9)*var(--h4x9) + var(--r10)*var(--h4x10) + var(--r11)*var(--h4x11) + var(--r12)*var(--h4x12)));
-        --u4a: calc(var(--u4b) + var(--mu4a));
-        --p4a: calc(var(--p4b) + var(--mp4a));
-        --v4a: calc(var(--v4b) + var(--mv4a));
-        --mu5a: calc(0.9 * var(--mu5b) - 0.049999999999999996 * var(--v5b) * (var(--r1)*sign(var(--h5x1))*0.041666666666666664 + var(--r2)*sign(var(--h5x2))*0.125 + var(--r3)*sign(var(--h5x3))*0.20833333333333334 + var(--r4)*sign(var(--h5x4))*0.2916666666666667 + var(--r5)*sign(var(--h5x5))*0.375 + var(--r6)*sign(var(--h5x6))*0.4583333333333333 + var(--r7)*sign(var(--h5x7))*0.5416666666666666 + var(--r8)*sign(var(--h5x8))*0.625 + var(--r9)*sign(var(--h5x9))*0.7083333333333334 + var(--r10)*sign(var(--h5x10))*0.7916666666666666 + var(--r11)*sign(var(--h5x11))*0.875 + var(--r12)*sign(var(--h5x12))*0.9583333333333334));
-        --mp5a: calc(0.9 * var(--mp5b) - 0.049999999999999996 * var(--v5b) * (var(--r1)*sign(var(--h5x1)) + var(--r2)*sign(var(--h5x2)) + var(--r3)*sign(var(--h5x3)) + var(--r4)*sign(var(--h5x4)) + var(--r5)*sign(var(--h5x5)) + var(--r6)*sign(var(--h5x6)) + var(--r7)*sign(var(--h5x7)) + var(--r8)*sign(var(--h5x8)) + var(--r9)*sign(var(--h5x9)) + var(--r10)*sign(var(--h5x10)) + var(--r11)*sign(var(--h5x11)) + var(--r12)*sign(var(--h5x12))));
-        --mv5a: calc(0.9 * var(--mv5b) - 0.049999999999999996 * (var(--r1)*var(--h5x1) + var(--r2)*var(--h5x2) + var(--r3)*var(--h5x3) + var(--r4)*var(--h5x4) + var(--r5)*var(--h5x5) + var(--r6)*var(--h5x6) + var(--r7)*var(--h5x7) + var(--r8)*var(--h5x8) + var(--r9)*var(--h5x9) + var(--r10)*var(--h5x10) + var(--r11)*var(--h5x11) + var(--r12)*var(--h5x12)));
-        --u5a: calc(var(--u5b) + var(--mu5a));
-        --p5a: calc(var(--p5b) + var(--mp5a));
-        --v5a: calc(var(--v5b) + var(--mv5a));
-        --mqa: calc(0.9 * var(--mqb) - 0.049999999999999996 * (var(--r1) + var(--r2) + var(--r3) + var(--r4) + var(--r5) + var(--r6) + var(--r7) + var(--r8) + var(--r9) + var(--r10) + var(--r11) + var(--r12)));
-        --qa: calc(var(--qb) + var(--mqa));
-      }
-      .st.b {
-        --h1x1: max(0, var(--u1a) * 0.041666666666666664 + var(--p1a));
-        --h1x2: max(0, var(--u1a) * 0.125 + var(--p1a));
-        --h1x3: max(0, var(--u1a) * 0.20833333333333334 + var(--p1a));
-        --h1x4: max(0, var(--u1a) * 0.2916666666666667 + var(--p1a));
-        --h1x5: max(0, var(--u1a) * 0.375 + var(--p1a));
-        --h1x6: max(0, var(--u1a) * 0.4583333333333333 + var(--p1a));
-        --h1x7: max(0, var(--u1a) * 0.5416666666666666 + var(--p1a));
-        --h1x8: max(0, var(--u1a) * 0.625 + var(--p1a));
-        --h1x9: max(0, var(--u1a) * 0.7083333333333334 + var(--p1a));
-        --h1x10: max(0, var(--u1a) * 0.7916666666666666 + var(--p1a));
-        --h1x11: max(0, var(--u1a) * 0.875 + var(--p1a));
-        --h1x12: max(0, var(--u1a) * 0.9583333333333334 + var(--p1a));
-        --h2x1: max(0, var(--u2a) * 0.041666666666666664 + var(--p2a));
-        --h2x2: max(0, var(--u2a) * 0.125 + var(--p2a));
-        --h2x3: max(0, var(--u2a) * 0.20833333333333334 + var(--p2a));
-        --h2x4: max(0, var(--u2a) * 0.2916666666666667 + var(--p2a));
-        --h2x5: max(0, var(--u2a) * 0.375 + var(--p2a));
-        --h2x6: max(0, var(--u2a) * 0.4583333333333333 + var(--p2a));
-        --h2x7: max(0, var(--u2a) * 0.5416666666666666 + var(--p2a));
-        --h2x8: max(0, var(--u2a) * 0.625 + var(--p2a));
-        --h2x9: max(0, var(--u2a) * 0.7083333333333334 + var(--p2a));
-        --h2x10: max(0, var(--u2a) * 0.7916666666666666 + var(--p2a));
-        --h2x11: max(0, var(--u2a) * 0.875 + var(--p2a));
-        --h2x12: max(0, var(--u2a) * 0.9583333333333334 + var(--p2a));
-        --h3x1: max(0, var(--u3a) * 0.041666666666666664 + var(--p3a));
-        --h3x2: max(0, var(--u3a) * 0.125 + var(--p3a));
-        --h3x3: max(0, var(--u3a) * 0.20833333333333334 + var(--p3a));
-        --h3x4: max(0, var(--u3a) * 0.2916666666666667 + var(--p3a));
-        --h3x5: max(0, var(--u3a) * 0.375 + var(--p3a));
-        --h3x6: max(0, var(--u3a) * 0.4583333333333333 + var(--p3a));
-        --h3x7: max(0, var(--u3a) * 0.5416666666666666 + var(--p3a));
-        --h3x8: max(0, var(--u3a) * 0.625 + var(--p3a));
-        --h3x9: max(0, var(--u3a) * 0.7083333333333334 + var(--p3a));
-        --h3x10: max(0, var(--u3a) * 0.7916666666666666 + var(--p3a));
-        --h3x11: max(0, var(--u3a) * 0.875 + var(--p3a));
-        --h3x12: max(0, var(--u3a) * 0.9583333333333334 + var(--p3a));
-        --h4x1: max(0, var(--u4a) * 0.041666666666666664 + var(--p4a));
-        --h4x2: max(0, var(--u4a) * 0.125 + var(--p4a));
-        --h4x3: max(0, var(--u4a) * 0.20833333333333334 + var(--p4a));
-        --h4x4: max(0, var(--u4a) * 0.2916666666666667 + var(--p4a));
-        --h4x5: max(0, var(--u4a) * 0.375 + var(--p4a));
-        --h4x6: max(0, var(--u4a) * 0.4583333333333333 + var(--p4a));
-        --h4x7: max(0, var(--u4a) * 0.5416666666666666 + var(--p4a));
-        --h4x8: max(0, var(--u4a) * 0.625 + var(--p4a));
-        --h4x9: max(0, var(--u4a) * 0.7083333333333334 + var(--p4a));
-        --h4x10: max(0, var(--u4a) * 0.7916666666666666 + var(--p4a));
-        --h4x11: max(0, var(--u4a) * 0.875 + var(--p4a));
-        --h4x12: max(0, var(--u4a) * 0.9583333333333334 + var(--p4a));
-        --h5x1: max(0, var(--u5a) * 0.041666666666666664 + var(--p5a));
-        --h5x2: max(0, var(--u5a) * 0.125 + var(--p5a));
-        --h5x3: max(0, var(--u5a) * 0.20833333333333334 + var(--p5a));
-        --h5x4: max(0, var(--u5a) * 0.2916666666666667 + var(--p5a));
-        --h5x5: max(0, var(--u5a) * 0.375 + var(--p5a));
-        --h5x6: max(0, var(--u5a) * 0.4583333333333333 + var(--p5a));
-        --h5x7: max(0, var(--u5a) * 0.5416666666666666 + var(--p5a));
-        --h5x8: max(0, var(--u5a) * 0.625 + var(--p5a));
-        --h5x9: max(0, var(--u5a) * 0.7083333333333334 + var(--p5a));
-        --h5x10: max(0, var(--u5a) * 0.7916666666666666 + var(--p5a));
-        --h5x11: max(0, var(--u5a) * 0.875 + var(--p5a));
-        --h5x12: max(0, var(--u5a) * 0.9583333333333334 + var(--p5a));
-        --r1: calc(var(--v1a) * var(--h1x1) + var(--v2a) * var(--h2x1) + var(--v3a) * var(--h3x1) + var(--v4a) * var(--h4x1) + var(--v5a) * var(--h5x1) + var(--qa) - 0.25881904510252074);
-        --r2: calc(var(--v1a) * var(--h1x2) + var(--v2a) * var(--h2x2) + var(--v3a) * var(--h3x2) + var(--v4a) * var(--h4x2) + var(--v5a) * var(--h5x2) + var(--qa) - 0.7071067811865475);
-        --r3: calc(var(--v1a) * var(--h1x3) + var(--v2a) * var(--h2x3) + var(--v3a) * var(--h3x3) + var(--v4a) * var(--h4x3) + var(--v5a) * var(--h5x3) + var(--qa) - 0.9659258262890683);
-        --r4: calc(var(--v1a) * var(--h1x4) + var(--v2a) * var(--h2x4) + var(--v3a) * var(--h3x4) + var(--v4a) * var(--h4x4) + var(--v5a) * var(--h5x4) + var(--qa) - 0.9659258262890683);
-        --r5: calc(var(--v1a) * var(--h1x5) + var(--v2a) * var(--h2x5) + var(--v3a) * var(--h3x5) + var(--v4a) * var(--h4x5) + var(--v5a) * var(--h5x5) + var(--qa) - 0.7071067811865476);
-        --r6: calc(var(--v1a) * var(--h1x6) + var(--v2a) * var(--h2x6) + var(--v3a) * var(--h3x6) + var(--v4a) * var(--h4x6) + var(--v5a) * var(--h5x6) + var(--qa) - 0.258819045102521);
-        --r7: calc(var(--v1a) * var(--h1x7) + var(--v2a) * var(--h2x7) + var(--v3a) * var(--h3x7) + var(--v4a) * var(--h4x7) + var(--v5a) * var(--h5x7) + var(--qa) - -0.25881904510252035);
-        --r8: calc(var(--v1a) * var(--h1x8) + var(--v2a) * var(--h2x8) + var(--v3a) * var(--h3x8) + var(--v4a) * var(--h4x8) + var(--v5a) * var(--h5x8) + var(--qa) - -0.7071067811865475);
-        --r9: calc(var(--v1a) * var(--h1x9) + var(--v2a) * var(--h2x9) + var(--v3a) * var(--h3x9) + var(--v4a) * var(--h4x9) + var(--v5a) * var(--h5x9) + var(--qa) - -0.9659258262890683);
-        --r10: calc(var(--v1a) * var(--h1x10) + var(--v2a) * var(--h2x10) + var(--v3a) * var(--h3x10) + var(--v4a) * var(--h4x10) + var(--v5a) * var(--h5x10) + var(--qa) - -0.9659258262890684);
-        --r11: calc(var(--v1a) * var(--h1x11) + var(--v2a) * var(--h2x11) + var(--v3a) * var(--h3x11) + var(--v4a) * var(--h4x11) + var(--v5a) * var(--h5x11) + var(--qa) - -0.7071067811865477);
-        --r12: calc(var(--v1a) * var(--h1x12) + var(--v2a) * var(--h2x12) + var(--v3a) * var(--h3x12) + var(--v4a) * var(--h4x12) + var(--v5a) * var(--h5x12) + var(--qa) - -0.2588190451025207);
-        --mu1b: calc(0.9 * var(--mu1a) - 0.049999999999999996 * var(--v1a) * (var(--r1)*sign(var(--h1x1))*0.041666666666666664 + var(--r2)*sign(var(--h1x2))*0.125 + var(--r3)*sign(var(--h1x3))*0.20833333333333334 + var(--r4)*sign(var(--h1x4))*0.2916666666666667 + var(--r5)*sign(var(--h1x5))*0.375 + var(--r6)*sign(var(--h1x6))*0.4583333333333333 + var(--r7)*sign(var(--h1x7))*0.5416666666666666 + var(--r8)*sign(var(--h1x8))*0.625 + var(--r9)*sign(var(--h1x9))*0.7083333333333334 + var(--r10)*sign(var(--h1x10))*0.7916666666666666 + var(--r11)*sign(var(--h1x11))*0.875 + var(--r12)*sign(var(--h1x12))*0.9583333333333334));
-        --mp1b: calc(0.9 * var(--mp1a) - 0.049999999999999996 * var(--v1a) * (var(--r1)*sign(var(--h1x1)) + var(--r2)*sign(var(--h1x2)) + var(--r3)*sign(var(--h1x3)) + var(--r4)*sign(var(--h1x4)) + var(--r5)*sign(var(--h1x5)) + var(--r6)*sign(var(--h1x6)) + var(--r7)*sign(var(--h1x7)) + var(--r8)*sign(var(--h1x8)) + var(--r9)*sign(var(--h1x9)) + var(--r10)*sign(var(--h1x10)) + var(--r11)*sign(var(--h1x11)) + var(--r12)*sign(var(--h1x12))));
-        --mv1b: calc(0.9 * var(--mv1a) - 0.049999999999999996 * (var(--r1)*var(--h1x1) + var(--r2)*var(--h1x2) + var(--r3)*var(--h1x3) + var(--r4)*var(--h1x4) + var(--r5)*var(--h1x5) + var(--r6)*var(--h1x6) + var(--r7)*var(--h1x7) + var(--r8)*var(--h1x8) + var(--r9)*var(--h1x9) + var(--r10)*var(--h1x10) + var(--r11)*var(--h1x11) + var(--r12)*var(--h1x12)));
-        --u1b: calc(var(--u1a) + var(--mu1b));
-        --p1b: calc(var(--p1a) + var(--mp1b));
-        --v1b: calc(var(--v1a) + var(--mv1b));
-        --mu2b: calc(0.9 * var(--mu2a) - 0.049999999999999996 * var(--v2a) * (var(--r1)*sign(var(--h2x1))*0.041666666666666664 + var(--r2)*sign(var(--h2x2))*0.125 + var(--r3)*sign(var(--h2x3))*0.20833333333333334 + var(--r4)*sign(var(--h2x4))*0.2916666666666667 + var(--r5)*sign(var(--h2x5))*0.375 + var(--r6)*sign(var(--h2x6))*0.4583333333333333 + var(--r7)*sign(var(--h2x7))*0.5416666666666666 + var(--r8)*sign(var(--h2x8))*0.625 + var(--r9)*sign(var(--h2x9))*0.7083333333333334 + var(--r10)*sign(var(--h2x10))*0.7916666666666666 + var(--r11)*sign(var(--h2x11))*0.875 + var(--r12)*sign(var(--h2x12))*0.9583333333333334));
-        --mp2b: calc(0.9 * var(--mp2a) - 0.049999999999999996 * var(--v2a) * (var(--r1)*sign(var(--h2x1)) + var(--r2)*sign(var(--h2x2)) + var(--r3)*sign(var(--h2x3)) + var(--r4)*sign(var(--h2x4)) + var(--r5)*sign(var(--h2x5)) + var(--r6)*sign(var(--h2x6)) + var(--r7)*sign(var(--h2x7)) + var(--r8)*sign(var(--h2x8)) + var(--r9)*sign(var(--h2x9)) + var(--r10)*sign(var(--h2x10)) + var(--r11)*sign(var(--h2x11)) + var(--r12)*sign(var(--h2x12))));
-        --mv2b: calc(0.9 * var(--mv2a) - 0.049999999999999996 * (var(--r1)*var(--h2x1) + var(--r2)*var(--h2x2) + var(--r3)*var(--h2x3) + var(--r4)*var(--h2x4) + var(--r5)*var(--h2x5) + var(--r6)*var(--h2x6) + var(--r7)*var(--h2x7) + var(--r8)*var(--h2x8) + var(--r9)*var(--h2x9) + var(--r10)*var(--h2x10) + var(--r11)*var(--h2x11) + var(--r12)*var(--h2x12)));
-        --u2b: calc(var(--u2a) + var(--mu2b));
-        --p2b: calc(var(--p2a) + var(--mp2b));
-        --v2b: calc(var(--v2a) + var(--mv2b));
-        --mu3b: calc(0.9 * var(--mu3a) - 0.049999999999999996 * var(--v3a) * (var(--r1)*sign(var(--h3x1))*0.041666666666666664 + var(--r2)*sign(var(--h3x2))*0.125 + var(--r3)*sign(var(--h3x3))*0.20833333333333334 + var(--r4)*sign(var(--h3x4))*0.2916666666666667 + var(--r5)*sign(var(--h3x5))*0.375 + var(--r6)*sign(var(--h3x6))*0.4583333333333333 + var(--r7)*sign(var(--h3x7))*0.5416666666666666 + var(--r8)*sign(var(--h3x8))*0.625 + var(--r9)*sign(var(--h3x9))*0.7083333333333334 + var(--r10)*sign(var(--h3x10))*0.7916666666666666 + var(--r11)*sign(var(--h3x11))*0.875 + var(--r12)*sign(var(--h3x12))*0.9583333333333334));
-        --mp3b: calc(0.9 * var(--mp3a) - 0.049999999999999996 * var(--v3a) * (var(--r1)*sign(var(--h3x1)) + var(--r2)*sign(var(--h3x2)) + var(--r3)*sign(var(--h3x3)) + var(--r4)*sign(var(--h3x4)) + var(--r5)*sign(var(--h3x5)) + var(--r6)*sign(var(--h3x6)) + var(--r7)*sign(var(--h3x7)) + var(--r8)*sign(var(--h3x8)) + var(--r9)*sign(var(--h3x9)) + var(--r10)*sign(var(--h3x10)) + var(--r11)*sign(var(--h3x11)) + var(--r12)*sign(var(--h3x12))));
-        --mv3b: calc(0.9 * var(--mv3a) - 0.049999999999999996 * (var(--r1)*var(--h3x1) + var(--r2)*var(--h3x2) + var(--r3)*var(--h3x3) + var(--r4)*var(--h3x4) + var(--r5)*var(--h3x5) + var(--r6)*var(--h3x6) + var(--r7)*var(--h3x7) + var(--r8)*var(--h3x8) + var(--r9)*var(--h3x9) + var(--r10)*var(--h3x10) + var(--r11)*var(--h3x11) + var(--r12)*var(--h3x12)));
-        --u3b: calc(var(--u3a) + var(--mu3b));
-        --p3b: calc(var(--p3a) + var(--mp3b));
-        --v3b: calc(var(--v3a) + var(--mv3b));
-        --mu4b: calc(0.9 * var(--mu4a) - 0.049999999999999996 * var(--v4a) * (var(--r1)*sign(var(--h4x1))*0.041666666666666664 + var(--r2)*sign(var(--h4x2))*0.125 + var(--r3)*sign(var(--h4x3))*0.20833333333333334 + var(--r4)*sign(var(--h4x4))*0.2916666666666667 + var(--r5)*sign(var(--h4x5))*0.375 + var(--r6)*sign(var(--h4x6))*0.4583333333333333 + var(--r7)*sign(var(--h4x7))*0.5416666666666666 + var(--r8)*sign(var(--h4x8))*0.625 + var(--r9)*sign(var(--h4x9))*0.7083333333333334 + var(--r10)*sign(var(--h4x10))*0.7916666666666666 + var(--r11)*sign(var(--h4x11))*0.875 + var(--r12)*sign(var(--h4x12))*0.9583333333333334));
-        --mp4b: calc(0.9 * var(--mp4a) - 0.049999999999999996 * var(--v4a) * (var(--r1)*sign(var(--h4x1)) + var(--r2)*sign(var(--h4x2)) + var(--r3)*sign(var(--h4x3)) + var(--r4)*sign(var(--h4x4)) + var(--r5)*sign(var(--h4x5)) + var(--r6)*sign(var(--h4x6)) + var(--r7)*sign(var(--h4x7)) + var(--r8)*sign(var(--h4x8)) + var(--r9)*sign(var(--h4x9)) + var(--r10)*sign(var(--h4x10)) + var(--r11)*sign(var(--h4x11)) + var(--r12)*sign(var(--h4x12))));
-        --mv4b: calc(0.9 * var(--mv4a) - 0.049999999999999996 * (var(--r1)*var(--h4x1) + var(--r2)*var(--h4x2) + var(--r3)*var(--h4x3) + var(--r4)*var(--h4x4) + var(--r5)*var(--h4x5) + var(--r6)*var(--h4x6) + var(--r7)*var(--h4x7) + var(--r8)*var(--h4x8) + var(--r9)*var(--h4x9) + var(--r10)*var(--h4x10) + var(--r11)*var(--h4x11) + var(--r12)*var(--h4x12)));
-        --u4b: calc(var(--u4a) + var(--mu4b));
-        --p4b: calc(var(--p4a) + var(--mp4b));
-        --v4b: calc(var(--v4a) + var(--mv4b));
-        --mu5b: calc(0.9 * var(--mu5a) - 0.049999999999999996 * var(--v5a) * (var(--r1)*sign(var(--h5x1))*0.041666666666666664 + var(--r2)*sign(var(--h5x2))*0.125 + var(--r3)*sign(var(--h5x3))*0.20833333333333334 + var(--r4)*sign(var(--h5x4))*0.2916666666666667 + var(--r5)*sign(var(--h5x5))*0.375 + var(--r6)*sign(var(--h5x6))*0.4583333333333333 + var(--r7)*sign(var(--h5x7))*0.5416666666666666 + var(--r8)*sign(var(--h5x8))*0.625 + var(--r9)*sign(var(--h5x9))*0.7083333333333334 + var(--r10)*sign(var(--h5x10))*0.7916666666666666 + var(--r11)*sign(var(--h5x11))*0.875 + var(--r12)*sign(var(--h5x12))*0.9583333333333334));
-        --mp5b: calc(0.9 * var(--mp5a) - 0.049999999999999996 * var(--v5a) * (var(--r1)*sign(var(--h5x1)) + var(--r2)*sign(var(--h5x2)) + var(--r3)*sign(var(--h5x3)) + var(--r4)*sign(var(--h5x4)) + var(--r5)*sign(var(--h5x5)) + var(--r6)*sign(var(--h5x6)) + var(--r7)*sign(var(--h5x7)) + var(--r8)*sign(var(--h5x8)) + var(--r9)*sign(var(--h5x9)) + var(--r10)*sign(var(--h5x10)) + var(--r11)*sign(var(--h5x11)) + var(--r12)*sign(var(--h5x12))));
-        --mv5b: calc(0.9 * var(--mv5a) - 0.049999999999999996 * (var(--r1)*var(--h5x1) + var(--r2)*var(--h5x2) + var(--r3)*var(--h5x3) + var(--r4)*var(--h5x4) + var(--r5)*var(--h5x5) + var(--r6)*var(--h5x6) + var(--r7)*var(--h5x7) + var(--r8)*var(--h5x8) + var(--r9)*var(--h5x9) + var(--r10)*var(--h5x10) + var(--r11)*var(--h5x11) + var(--r12)*var(--h5x12)));
-        --u5b: calc(var(--u5a) + var(--mu5b));
-        --p5b: calc(var(--p5a) + var(--mp5b));
-        --v5b: calc(var(--v5a) + var(--mv5b));
-        --mqb: calc(0.9 * var(--mqa) - 0.049999999999999996 * (var(--r1) + var(--r2) + var(--r3) + var(--r4) + var(--r5) + var(--r6) + var(--r7) + var(--r8) + var(--r9) + var(--r10) + var(--r11) + var(--r12)));
-        --qb: calc(var(--qa) + var(--mqb));
+       Nothing here is pre-computed. The stylesheet holds the raw sample
+       positions (--x1..--x16) and two hyperparameters; the labels come
+       from asking sin() at runtime; residuals, gradients, and even the
+       per-weight curvature used as a step size are computed by calc(),
+       from the data, every frame.
+
+       Model (the trainable layer):
+         --net(x) = v0·x + v1·relu(x - 1/4) + v2·relu(x - 3/4)
+       Loss: mean squared error against --teacher(x) = sin(2·pi·x) at
+       the sixteen sample points.
+
+       One optimizer step — heavy-ball momentum on the gradient, with
+       Jacobi step sizes 1/H_a (H_a = (2/N)·Sum phi_a², computed from
+       the data like everything else), beta = 0.985, gamma = 0.02:
+         r_i  = net(x_i) - teacher(x_i)
+         g_a  = (2/N) · Sum_i phi_a(x_i) · r_i
+         m_a' = beta·m_a - gamma·g_a / H_a
+         v_a' = v_a + m_a'
+       The optimum appears nowhere in this file; training stops where
+       g = 0 says it stops. (The gauge ticks in the display styles are
+       the closed-form solution, drawn as reference lines only.)
+
+       Plumbing: every quantity is a scroll offset in [0, 1900]px —
+       weights mapped to v0 in [-4,12], v1 in [-16,2], v2 in [-2,16];
+       velocities to [-40, +40] weight-pixels (narrow on purpose: one
+       velocity pixel is 0.042 weight-pixels, so sub-pixel gradients
+       still accumulate). Each register's write target (.pull) reads the
+       previous phase — the shadows — through four reader animations,
+       computes the step above in plain calc(), and parks itself at the
+       result; mandatory snap does the assignment. Slow on purpose:
+       perturbations ring out over several seconds. Load-time
+       convergence is fast regardless — the engine iterates snap
+       resolution during layout, so the network arrives educated.
+
+       Cold start: scroll-initial-target pins load offsets — weights at
+       zero (offsets 475, 1688.89, 211.11), velocities at rest (950). */
+
+      /* the dataset and the hyperparameters — the only numbers the
+         optimizer is given. (CSS has no arrays; the dataset is sixteen
+         named variables and the sums below are written out.) */
+      .live {
+        --x1: 0.03125;  --x2: 0.09375;  --x3: 0.15625;  --x4: 0.21875;
+        --x5: 0.28125;  --x6: 0.34375;  --x7: 0.40625;  --x8: 0.46875;
+        --x9: 0.53125;  --x10: 0.59375; --x11: 0.65625; --x12: 0.71875;
+        --x13: 0.78125; --x14: 0.84375; --x15: 0.90625; --x16: 0.96875;
+        --beta: 0.985;
+        --gamma: 0.02;
       }
 
-      /* riders: each shows its own step's network. .a steps carry family a. */
-      .st.a > .r {
-        --ys: calc(var(--v1a) * max(0, var(--u1a) * var(--x) + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * var(--x) + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * var(--x) + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * var(--x) + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * var(--x) + var(--p5a)) + var(--qa));
-        --L: calc((pow(var(--v1a) * max(0, var(--u1a) * 0.041666666666666664 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.041666666666666664 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.041666666666666664 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.041666666666666664 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.041666666666666664 + var(--p5a)) + var(--qa) - 0.25881904510252074, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.125 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.125 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.125 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.125 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.125 + var(--p5a)) + var(--qa) - 0.7071067811865475, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.20833333333333334 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.20833333333333334 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.20833333333333334 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.20833333333333334 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.20833333333333334 + var(--p5a)) + var(--qa) - 0.9659258262890683, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.2916666666666667 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.2916666666666667 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.2916666666666667 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.2916666666666667 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.2916666666666667 + var(--p5a)) + var(--qa) - 0.9659258262890683, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.375 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.375 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.375 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.375 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.375 + var(--p5a)) + var(--qa) - 0.7071067811865476, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.4583333333333333 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.4583333333333333 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.4583333333333333 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.4583333333333333 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.4583333333333333 + var(--p5a)) + var(--qa) - 0.258819045102521, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.5416666666666666 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.5416666666666666 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.5416666666666666 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.5416666666666666 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.5416666666666666 + var(--p5a)) + var(--qa) - -0.25881904510252035, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.625 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.625 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.625 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.625 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.625 + var(--p5a)) + var(--qa) - -0.7071067811865475, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.7083333333333334 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.7083333333333334 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.7083333333333334 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.7083333333333334 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.7083333333333334 + var(--p5a)) + var(--qa) - -0.9659258262890683, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.7916666666666666 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.7916666666666666 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.7916666666666666 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.7916666666666666 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.7916666666666666 + var(--p5a)) + var(--qa) - -0.9659258262890684, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.875 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.875 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.875 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.875 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.875 + var(--p5a)) + var(--qa) - -0.7071067811865477, 2) + pow(var(--v1a) * max(0, var(--u1a) * 0.9583333333333334 + var(--p1a)) + var(--v2a) * max(0, var(--u2a) * 0.9583333333333334 + var(--p2a)) + var(--v3a) * max(0, var(--u3a) * 0.9583333333333334 + var(--p3a)) + var(--v4a) * max(0, var(--u4a) * 0.9583333333333334 + var(--p4a)) + var(--v5a) * max(0, var(--u5a) * 0.9583333333333334 + var(--p5a)) + var(--qa) - -0.2588190451025207, 2)) / 12);
+      /* the model's two frozen features, and the teacher. Labels are
+         not stored anywhere — the teacher is asked at runtime. */
+      @function --phi1(--xx) { result: max(0, var(--xx) - 0.25); }
+      @function --phi2(--xx) { result: max(0, var(--xx) - 0.75); }
+      @function --teacher(--xx) { result: calc(sin(var(--xx) * 2 * pi)); }
+
+      /* ONE OPTIMIZER STEP, computed from the data every frame. The
+         pulls read the previous phase (shadow registers) as numbers,
+         then plain calc() does what a training loop does: residuals,
+         gradient, momentum, step. Mandatory snap applies the result. */
+      @keyframes read-vel { from { --vel: -40; } to { --vel: 40; } }
+      .regs :is(.reg, .mom) .pull {
+        animation: read-v0 linear both, read-v1 linear both,
+          read-v2 linear both, read-vel linear both;
+        /* residuals: ask the net, ask the teacher, subtract */
+        --r1:  calc(--net(var(--x1))  - --teacher(var(--x1)));
+        --r2:  calc(--net(var(--x2))  - --teacher(var(--x2)));
+        --r3:  calc(--net(var(--x3))  - --teacher(var(--x3)));
+        --r4:  calc(--net(var(--x4))  - --teacher(var(--x4)));
+        --r5:  calc(--net(var(--x5))  - --teacher(var(--x5)));
+        --r6:  calc(--net(var(--x6))  - --teacher(var(--x6)));
+        --r7:  calc(--net(var(--x7))  - --teacher(var(--x7)));
+        --r8:  calc(--net(var(--x8))  - --teacher(var(--x8)));
+        --r9:  calc(--net(var(--x9))  - --teacher(var(--x9)));
+        --r10: calc(--net(var(--x10)) - --teacher(var(--x10)));
+        --r11: calc(--net(var(--x11)) - --teacher(var(--x11)));
+        --r12: calc(--net(var(--x12)) - --teacher(var(--x12)));
+        --r13: calc(--net(var(--x13)) - --teacher(var(--x13)));
+        --r14: calc(--net(var(--x14)) - --teacher(var(--x14)));
+        --r15: calc(--net(var(--x15)) - --teacher(var(--x15)));
+        --r16: calc(--net(var(--x16)) - --teacher(var(--x16)));
+        /* gradient, straight from the definition: (2/N)·Σ phi_a(x_i)·r_i */
+        --g0: calc((var(--x1)*var(--r1) + var(--x2)*var(--r2)
+          + var(--x3)*var(--r3) + var(--x4)*var(--r4)
+          + var(--x5)*var(--r5) + var(--x6)*var(--r6)
+          + var(--x7)*var(--r7) + var(--x8)*var(--r8)
+          + var(--x9)*var(--r9) + var(--x10)*var(--r10)
+          + var(--x11)*var(--r11) + var(--x12)*var(--r12)
+          + var(--x13)*var(--r13) + var(--x14)*var(--r14)
+          + var(--x15)*var(--r15) + var(--x16)*var(--r16)) / 8);
+        --g1: calc((--phi1(var(--x1))*var(--r1) + --phi1(var(--x2))*var(--r2)
+          + --phi1(var(--x3))*var(--r3) + --phi1(var(--x4))*var(--r4)
+          + --phi1(var(--x5))*var(--r5) + --phi1(var(--x6))*var(--r6)
+          + --phi1(var(--x7))*var(--r7) + --phi1(var(--x8))*var(--r8)
+          + --phi1(var(--x9))*var(--r9) + --phi1(var(--x10))*var(--r10)
+          + --phi1(var(--x11))*var(--r11) + --phi1(var(--x12))*var(--r12)
+          + --phi1(var(--x13))*var(--r13) + --phi1(var(--x14))*var(--r14)
+          + --phi1(var(--x15))*var(--r15) + --phi1(var(--x16))*var(--r16)) / 8);
+        --g2: calc((--phi2(var(--x1))*var(--r1) + --phi2(var(--x2))*var(--r2)
+          + --phi2(var(--x3))*var(--r3) + --phi2(var(--x4))*var(--r4)
+          + --phi2(var(--x5))*var(--r5) + --phi2(var(--x6))*var(--r6)
+          + --phi2(var(--x7))*var(--r7) + --phi2(var(--x8))*var(--r8)
+          + --phi2(var(--x9))*var(--r9) + --phi2(var(--x10))*var(--r10)
+          + --phi2(var(--x11))*var(--r11) + --phi2(var(--x12))*var(--r12)
+          + --phi2(var(--x13))*var(--r13) + --phi2(var(--x14))*var(--r14)
+          + --phi2(var(--x15))*var(--r15) + --phi2(var(--x16))*var(--r16)) / 8);
+        /* per-weight curvature (the Jacobi step size), also from data */
+        --H0: calc((pow(var(--x1), 2) + pow(var(--x2), 2)
+          + pow(var(--x3), 2) + pow(var(--x4), 2)
+          + pow(var(--x5), 2) + pow(var(--x6), 2)
+          + pow(var(--x7), 2) + pow(var(--x8), 2)
+          + pow(var(--x9), 2) + pow(var(--x10), 2)
+          + pow(var(--x11), 2) + pow(var(--x12), 2)
+          + pow(var(--x13), 2) + pow(var(--x14), 2)
+          + pow(var(--x15), 2) + pow(var(--x16), 2)) / 8);
+        --H1: calc((pow(--phi1(var(--x1)), 2) + pow(--phi1(var(--x2)), 2)
+          + pow(--phi1(var(--x3)), 2) + pow(--phi1(var(--x4)), 2)
+          + pow(--phi1(var(--x5)), 2) + pow(--phi1(var(--x6)), 2)
+          + pow(--phi1(var(--x7)), 2) + pow(--phi1(var(--x8)), 2)
+          + pow(--phi1(var(--x9)), 2) + pow(--phi1(var(--x10)), 2)
+          + pow(--phi1(var(--x11)), 2) + pow(--phi1(var(--x12)), 2)
+          + pow(--phi1(var(--x13)), 2) + pow(--phi1(var(--x14)), 2)
+          + pow(--phi1(var(--x15)), 2) + pow(--phi1(var(--x16)), 2)) / 8);
+        --H2: calc((pow(--phi2(var(--x1)), 2) + pow(--phi2(var(--x2)), 2)
+          + pow(--phi2(var(--x3)), 2) + pow(--phi2(var(--x4)), 2)
+          + pow(--phi2(var(--x5)), 2) + pow(--phi2(var(--x6)), 2)
+          + pow(--phi2(var(--x7)), 2) + pow(--phi2(var(--x8)), 2)
+          + pow(--phi2(var(--x9)), 2) + pow(--phi2(var(--x10)), 2)
+          + pow(--phi2(var(--x11)), 2) + pow(--phi2(var(--x12)), 2)
+          + pow(--phi2(var(--x13)), 2) + pow(--phi2(var(--x14)), 2)
+          + pow(--phi2(var(--x15)), 2) + pow(--phi2(var(--x16)), 2)) / 8);
       }
-      .st.b > .r, .track > .r {
-        --ys: calc(var(--v1b) * max(0, var(--u1b) * var(--x) + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * var(--x) + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * var(--x) + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * var(--x) + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * var(--x) + var(--p5b)) + var(--qb));
-        --L: calc((pow(var(--v1b) * max(0, var(--u1b) * 0.041666666666666664 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.041666666666666664 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.041666666666666664 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.041666666666666664 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.041666666666666664 + var(--p5b)) + var(--qb) - 0.25881904510252074, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.125 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.125 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.125 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.125 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.125 + var(--p5b)) + var(--qb) - 0.7071067811865475, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.20833333333333334 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.20833333333333334 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.20833333333333334 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.20833333333333334 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.20833333333333334 + var(--p5b)) + var(--qb) - 0.9659258262890683, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.2916666666666667 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.2916666666666667 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.2916666666666667 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.2916666666666667 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.2916666666666667 + var(--p5b)) + var(--qb) - 0.9659258262890683, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.375 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.375 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.375 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.375 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.375 + var(--p5b)) + var(--qb) - 0.7071067811865476, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.4583333333333333 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.4583333333333333 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.4583333333333333 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.4583333333333333 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.4583333333333333 + var(--p5b)) + var(--qb) - 0.258819045102521, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.5416666666666666 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.5416666666666666 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.5416666666666666 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.5416666666666666 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.5416666666666666 + var(--p5b)) + var(--qb) - -0.25881904510252035, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.625 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.625 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.625 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.625 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.625 + var(--p5b)) + var(--qb) - -0.7071067811865475, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.7083333333333334 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.7083333333333334 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.7083333333333334 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.7083333333333334 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.7083333333333334 + var(--p5b)) + var(--qb) - -0.9659258262890683, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.7916666666666666 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.7916666666666666 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.7916666666666666 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.7916666666666666 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.7916666666666666 + var(--p5b)) + var(--qb) - -0.9659258262890684, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.875 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.875 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.875 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.875 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.875 + var(--p5b)) + var(--qb) - -0.7071067811865477, 2) + pow(var(--v1b) * max(0, var(--u1b) * 0.9583333333333334 + var(--p1b)) + var(--v2b) * max(0, var(--u2b) * 0.9583333333333334 + var(--p2b)) + var(--v3b) * max(0, var(--u3b) * 0.9583333333333334 + var(--p3b)) + var(--v4b) * max(0, var(--u4b) * 0.9583333333333334 + var(--p4b)) + var(--v5b) * max(0, var(--u5b) * 0.9583333333333334 + var(--p5b)) + var(--qb) - -0.2588190451025207, 2)) / 12);
+      /* momentum + step, then park the write target at the result.
+         (118.75 and 105.55556 are px-per-weight-unit for each rail.) */
+      .reg.v0 .pull, .mom.v0 .pull {
+        animation-timeline: --t0s, --t1s, --t2s, --m0s;
+        --vel-next: clamp(-40, calc(var(--beta) * var(--vel)
+          - var(--gamma) * var(--g0) / var(--H0) * 118.75), 40);
+      }
+      .reg.v1 .pull, .mom.v1 .pull {
+        animation-timeline: --t0s, --t1s, --t2s, --m1s;
+        --vel-next: clamp(-40, calc(var(--beta) * var(--vel)
+          - var(--gamma) * var(--g1) / var(--H1) * 105.55556), 40);
+      }
+      .reg.v2 .pull, .mom.v2 .pull {
+        animation-timeline: --t0s, --t1s, --t2s, --m2s;
+        --vel-next: clamp(-40, calc(var(--beta) * var(--vel)
+          - var(--gamma) * var(--g2) / var(--H2) * 105.55556), 40);
+      }
+      .reg.v0 .pull { top: calc((var(--v0) + 4) * 118.75px + var(--vel-next) * 1px); }
+      .reg.v1 .pull { top: calc((var(--v1) + 16) * 105.55556px + var(--vel-next) * 1px); }
+      .reg.v2 .pull { top: calc((var(--v2) + 2) * 105.55556px + var(--vel-next) * 1px); }
+      .regs .mom .pull { top: calc((var(--vel-next) + 40) * 23.75px); }
+      /* shadows copy their registers (identity maps) */
+      @keyframes copy { from { top: 0px; } to { top: 1900px; } }
+      .shadow.v0 .pull { animation: copy linear both; animation-timeline: --t0; }
+      .shadow.v1 .pull { animation: copy linear both; animation-timeline: --t1; }
+      .shadow.v2 .pull { animation: copy linear both; animation-timeline: --t2; }
+      .mshadow.v0 .pull { animation: copy linear both; animation-timeline: --m0; }
+      .mshadow.v1 .pull { animation: copy linear both; animation-timeline: --m1; }
+      .mshadow.v2 .pull { animation: copy linear both; animation-timeline: --m2; }
+
+      /* readers: the live weights, as numbers everything else can use.
+         Base values double as the trained fallback for browsers without
+         scroll-driven animations. */
+      .live {
+        --v0: 4.88399;
+        --v1: -9.74409;
+        --v2: 9.32723;
+      }
+      @keyframes read-v0 { from { --v0: -4; } to { --v0: 12; } }
+      @keyframes read-v1 { from { --v1: -16; } to { --v1: 2; } }
+      @keyframes read-v2 { from { --v2: -2; } to { --v2: 16; } }
+      .live {
+        animation: read-v0 linear both, read-v1 linear both, read-v2 linear both;
+        animation-timeline: --t0, --t1, --t2;
       }
 
-      /* replay clock: 81 slots x 0.16s + 4.8s hold = 17.76s */
-      .r {
-        animation:
-          reveal 17.76s linear infinite,
-          swim 7s linear infinite;
-        animation-delay: calc(var(--si) * 0.16s), 0s;
+      /* the network, once. Everything below — dots, fish, error bar,
+         loss — calls this instead of restating it. */
+      @function --net(--xx) {
+        result: calc(
+          var(--v0) * var(--xx) +
+          var(--v1) * max(0, var(--xx) - 0.25) +
+          var(--v2) * max(0, var(--xx) - 0.75)
+        );
       }
-      @keyframes reveal {
-        0%, 0.9009% { visibility: visible; }
-        0.9010%, 100% { visibility: hidden; }
+
+      /* live loss: mean squared error over the 16 training points —
+         same residuals the optimizer uses, recomputed for display */
+      .live {
+        --L: calc((
+          pow(--net(var(--x1))  - --teacher(var(--x1)),  2) +
+          pow(--net(var(--x2))  - --teacher(var(--x2)),  2) +
+          pow(--net(var(--x3))  - --teacher(var(--x3)),  2) +
+          pow(--net(var(--x4))  - --teacher(var(--x4)),  2) +
+          pow(--net(var(--x5))  - --teacher(var(--x5)),  2) +
+          pow(--net(var(--x6))  - --teacher(var(--x6)),  2) +
+          pow(--net(var(--x7))  - --teacher(var(--x7)),  2) +
+          pow(--net(var(--x8))  - --teacher(var(--x8)),  2) +
+          pow(--net(var(--x9))  - --teacher(var(--x9)),  2) +
+          pow(--net(var(--x10)) - --teacher(var(--x10)), 2) +
+          pow(--net(var(--x11)) - --teacher(var(--x11)), 2) +
+          pow(--net(var(--x12)) - --teacher(var(--x12)), 2) +
+          pow(--net(var(--x13)) - --teacher(var(--x13)), 2) +
+          pow(--net(var(--x14)) - --teacher(var(--x14)), 2) +
+          pow(--net(var(--x15)) - --teacher(var(--x15)), 2) +
+          pow(--net(var(--x16)) - --teacher(var(--x16)), 2)
+        ) / 16);
+        --Li:  round(down, var(--L), 1);
+        --Ld1: mod(round(down, calc(var(--L) * 10), 1), 10);
+        --Ld2: mod(round(down, calc(var(--L) * 100), 1), 10);
+        --Ld3: mod(round(down, calc(var(--L) * 1000), 1), 10);
+        --v0c: round(calc(var(--v0) * 100));
+        --v1c: round(calc(var(--v1) * 100));
+        --v2c: round(calc(var(--v2) * 100));
       }
-      .r.last { animation-name: lastreveal, swim; }
-      @keyframes lastreveal {
-        0%, 27.9279% { visibility: visible; }
-        27.9280%, 100% { visibility: hidden; }
-      }
-/* /gen:trainer */
+
+    /* ---------- the registers: scrollbars that are weights ---------- */
+    .regs {
+      display: grid;
+      grid-template-columns: 3.5rem 1fr;
+      gap: 0.6rem 0.9rem;
+      align-items: center;
+      position: relative;
+      margin: 1rem 0 0.75rem;
+    }
+    .reglabel {
+      font: 15px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--ink-soft);
+      text-align: right;
+    }
+    .regbox {
+      border: 1px solid var(--edge);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .scroller {
+      height: 90px;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      scrollbar-color: var(--accent) light-dark(#e8e8ef, #26262f);
+    }
+    .reg.v0 { scroll-timeline: --t0 y; }
+    .reg.v1 { scroll-timeline: --t1 y; }
+    .reg.v2 { scroll-timeline: --t2 y; }
+    .ruler {
+      position: relative;
+      height: 1990px; /* 90px viewport + 1900px register range */
+      /* a big gradient can momentarily place the pull past the rail; clip
+         keeps that from stretching the scroll range (the timeline's
+         denominator) — snap just clamps to the rail end instead */
+      overflow: clip;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          light-dark(#e3e3ec, #2b2b36) 0 2px,
+          transparent 2px 95px
+        ),
+        linear-gradient(
+          to bottom,
+          light-dark(#f6f2ff, #232030),
+          light-dark(#fdfdfe, #1b1b22)
+        );
+    }
+    /* the optimizer's pull: the only snap target. Where this bar sits is
+       where gradient descent wants the weight next; snap does the pulling. */
+    .pull {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 10px;
+      scroll-snap-align: start;
+      background: linear-gradient(
+        90deg,
+        light-dark(#38b078, #38e08a),
+        light-dark(#4f39fa, #8f7dff)
+      );
+      border-radius: 5px;
+    }
+    /* shadow registers: the other clock phase; functional but invisible */
+    .shadows {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 40px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .shadow.v0 { scroll-timeline: --t0s y; }
+    .shadow.v1 { scroll-timeline: --t1s y; }
+    .shadow.v2 { scroll-timeline: --t2s y; }
+    .mom.v0 { scroll-timeline: --m0 y; }
+    .mom.v1 { scroll-timeline: --m1 y; }
+    .mom.v2 { scroll-timeline: --m2 y; }
+    .mshadow.v0 { scroll-timeline: --m0s y; }
+    .mshadow.v1 { scroll-timeline: --m1s y; }
+    .mshadow.v2 { scroll-timeline: --m2s y; }
+    /* declarative cold start: every register loads at a chosen offset */
+    .origin {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      scroll-initial-target: nearest;
+    }
+
+    /* live numeric readouts */
+    .hud {
+      margin: 0 0 1rem;
+    }
+    .hud::after {
+      counter-reset: li calc(var(--Li)) d1 calc(var(--Ld1)) d2 calc(var(--Ld2))
+        d3 calc(var(--Ld3)) c0 var(--v0c) c1 var(--v1c) c2 var(--v2c);
+      content: "loss " counter(li) "." counter(d1) counter(d2) counter(d3)
+        "   ·   v₀×100 = " counter(c0) "   ·   v₁×100 = " counter(c1)
+        "   ·   v₂×100 = " counter(c2);
+      font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: light-dark(#31597e, #8fa8cf);
+      white-space: pre;
+    }
 
     /* ---------- the aquarium ---------- */
     .sea {
@@ -535,18 +479,14 @@
       position: absolute;
       inset: 0 28px;
     }
-
-    /* one shared clock: --x sweeps [0,1]; each animated element runs its own
-       copy in phase (the property is non-inherited so the trainer never
-       recalcs during the swim) */
     @keyframes swim {
       from { --x: 0; }
       to   { --x: 1; }
     }
-
-    /* static wave path: each dot evaluates sin() at its own x */
+    /* the goal: 64 dots of ground truth. Each dot finds its own x by
+       counting itself among its siblings — no per-dot markup. */
     .wave i {
-      --w: calc(var(--i) / 63);
+      --w: calc((sibling-index() - 1) / 63);
       position: absolute;
       left: calc(var(--w) * 100%);
       top: calc(150px - sin(var(--w) * 2 * pi) * 78px);
@@ -555,58 +495,47 @@
       border-radius: 50%;
       background: light-dark(#5a94c7, #3d5a86);
     }
-
-    /* the teacher: born knowing sin() */
-    .fish.teacher {
-      --yt: calc(sin(var(--x) * 2 * pi));
+    /* the network's current opinion: a live curve, 32 dots */
+    .lin i {
+      --w: calc((sibling-index() - 1) / 31);
+      position: absolute;
+      left: calc(var(--w) * 100%);
+      top: calc(150px - clamp(-1.6, --net(var(--w)), 1.6) * 78px);
+      width: 4px;
+      height: 4px;
+      margin: -0.5px;
+      border-radius: 50%;
+      background: light-dark(#38b078, #38e08a);
+      opacity: 0.85;
+    }
+    .fish {
       position: absolute;
       left: calc(var(--x) * 100%);
       top: 150px;
       font-size: 27px;
       line-height: 1;
       margin: -14px 0 0 -14px;
-      transform: translateY(calc(var(--yt) * -78px)) scaleX(-1);
       animation: swim 7s linear infinite;
     }
-
-    /* riders: one full-track layer per training step; the reveal clock lives
-       in the generated block (its timing depends on the step count). The
-       rider's own step weights arrive by inheritance; its generated rule
-       computes --ys and --L from them. */
-    .r {
-      position: absolute;
-      inset: 0;
-      visibility: hidden;
-      /* bridge the non-inherited clock to children and pseudos */
-      --xi: calc(var(--x));
-      /* a lost fish still can't leave the tank */
-      --ysv: clamp(-1.55, var(--ys), 1.55);
+    .fish.teacher {
       --yt: calc(sin(var(--x) * 2 * pi));
-      --err: abs(var(--yt) - var(--ys));
-      /* scoreboard digits carved out of the cascade-computed loss */
-      --Li:  round(down, var(--L), 1);
-      --Ld1: mod(round(down, calc(var(--L) * 10), 1), 10);
-      --Ld2: mod(round(down, calc(var(--L) * 100), 1), 10);
-      --Ld3: mod(round(down, calc(var(--L) * 1000), 1), 10);
+      transform: translateY(calc(var(--yt) * -78px)) scaleX(-1);
     }
-
-    /* the student fish: rides the network output of its step */
-    .r::before {
-      content: "🐠";
-      position: absolute;
-      left: calc(var(--xi) * 100%);
-      top: 150px;
-      font-size: 27px;
-      line-height: 1;
-      margin: -14px 0 0 -14px;
+    /* the student rides the live curve */
+    .fish.student {
+      --ys: --net(var(--x));
+      --ysv: clamp(-1.55, var(--ys), 1.55);
       transform: translateY(calc(var(--ysv) * -78px)) scaleX(-1);
       filter: drop-shadow(0 0 7px rgba(120, 220, 255, 0.55));
     }
-
-    /* vertical bar between the fish = current error, green when small */
-    .r > b {
+    /* the error bar between them */
+    .gap {
+      --yt: calc(sin(var(--x) * 2 * pi));
+      --ys: --net(var(--x));
+      --ysv: clamp(-1.55, var(--ys), 1.55);
+      --err: abs(var(--yt) - var(--ys));
       position: absolute;
-      left: calc(var(--xi) * 100%);
+      left: calc(var(--x) * 100%);
       top: 150px;
       width: 2px;
       margin-left: -1px;
@@ -614,22 +543,8 @@
       height: calc(abs(var(--yt) - var(--ysv)) * 78px);
       background: color-mix(in oklch, #38e08a, #ff5470 calc(min(1, var(--err)) * 100%));
       border-radius: 1px;
+      animation: swim 7s linear infinite;
     }
-
-    /* live scoreboard: step index + this step's cascade-computed loss */
-    .r::after {
-      counter-reset: ep calc(var(--si)) li calc(var(--Li)) d1 calc(var(--Ld1))
-        d2 calc(var(--Ld2)) d3 calc(var(--Ld3));
-      content: "step " counter(ep) "  ·  loss " counter(li) "." counter(d1) counter(d2) counter(d3);
-      position: absolute;
-      bottom: 12px;
-      left: 16px;
-      font: 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-      color: light-dark(#31597e, #8fa8cf);
-      white-space: pre;
-    }
-
-    /* ambience */
     .bubble {
       position: absolute;
       bottom: -12px;
@@ -639,22 +554,19 @@
       border: 1px solid light-dark(rgba(255, 255, 255, 0.65), rgba(160, 200, 240, 0.4));
       animation: rise 9s linear infinite;
     }
-    .bubble:nth-child(2) { left: 72%; width: 5px; height: 5px; animation-duration: 7s; animation-delay: -3s; }
-    .bubble:nth-child(3) { left: 34%; width: 4px; height: 4px; animation-duration: 11s; animation-delay: -6s; }
-    .bubble:first-child  { left: 12%; }
+    .bubble:nth-of-type(2) { left: 72%; width: 5px; height: 5px; animation-duration: 7s; animation-delay: -3s; }
+    .bubble:nth-of-type(3) { left: 34%; width: 4px; height: 4px; animation-duration: 11s; animation-delay: -6s; }
+    .bubble:first-of-type  { left: 12%; }
     @keyframes rise {
       to { translate: 8px -320px; opacity: 0; }
     }
 
-    /* the demo pauses so you can lean in */
+    /* ---------- winter (the ❄ button pauses the whole lab) ---------- */
     .demo:has(#freeze:checked) .sea *,
-    .sea:hover * {
+    .demo:has(#freeze:checked) .regs *,
+    .demo:has(#freeze:checked).live {
       animation-play-state: paused;
     }
-
-    /* ---------- winter ---------- */
-    /* frost blooms over the glass (a transition, so it works while the
-       animations underneath are paused) */
     .sea::after {
       content: "";
       position: absolute;
@@ -674,8 +586,6 @@
       opacity: 1;
       backdrop-filter: blur(1.5px) brightness(1.1) saturate(0.72);
     }
-
-    /* icicles slide down from the rim */
     .ice {
       position: absolute;
       top: 0;
@@ -703,8 +613,6 @@
     .demo:has(#freeze:checked) .ice {
       translate: 0 0;
     }
-
-    /* a few flakes drift in */
     .flake {
       position: absolute;
       z-index: 4;
@@ -727,8 +635,6 @@
       scale: 1;
       rotate: 0deg;
     }
-
-    /* controls under the tank */
     .controls {
       display: flex;
       align-items: center;
@@ -748,57 +654,193 @@
       border-radius: 999px;
       background: var(--surface);
     }
-    .controls input {
-      accent-color: var(--accent);
-    }
+    .controls input { accent-color: var(--accent); }
     .controls .when-frozen,
-    .demo:has(#freeze:checked) .when-liquid {
-      display: none;
+    .demo:has(#freeze:checked) .when-liquid { display: none; }
+    .demo:has(#freeze:checked) .when-frozen { display: inline; }
+
+    /* ---------- tiny parameter gauges, docked under the hud ---------- */
+    .gauges {
+      display: grid;
+      grid-template-columns: 3.5rem 1fr;
+      gap: 0.3rem 0.9rem;
+      align-items: center;
+      margin: 0.35rem 0 0.9rem;
     }
-    .demo:has(#freeze:checked) .when-frozen {
-      display: inline;
+    .gauges .reglabel {
+      font-size: 12px;
+    }
+    .gauge {
+      position: relative;
+      height: 10px;
+      background: light-dark(#f4f8fd, #131828);
+      border: 1px solid light-dark(#d7e2f0, #26304a);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .gauge .fill {
+      position: absolute;
+      inset: 2px auto 2px 2px;
+      border-radius: 3px;
+      background: linear-gradient(
+        90deg,
+        light-dark(#38b078, #38e08a),
+        light-dark(#4f39fa, #8f7dff)
+      );
+      transition: none;
+    }
+    .gauge.g0 .fill { width: calc((var(--v0) + 4) / 16 * 100%); }
+    .gauge.g1 .fill { width: calc((var(--v1) + 16) / 18 * 100%); }
+    .gauge.g2 .fill { width: calc((var(--v2) + 2) / 18 * 100%); }
+    /* dashed tick = the closed-form optimum, reference only */
+    .gauge .tick {
+      position: absolute;
+      top: -2px;
+      bottom: -2px;
+      width: 0;
+      border-left: 2px dashed light-dark(#c47f00, #ffd166);
+    }
+    .gauge.g0 .tick { left: 55.52%; }
+    .gauge.g1 .tick { left: 34.76%; }
+    .gauge.g2 .tick { left: 62.93%; }
+
+    /* ---------- eternal winter for browsers without the machine ---------- */
+    .winternote {
+      display: none;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+      max-width: 26rem;
+      padding: 0.6rem 1rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: light-dark(#31597e, #dfe8f6);
+      background: light-dark(rgba(255, 255, 255, 0.75), rgba(16, 24, 40, 0.75));
+      border: 1px solid light-dark(#b5d5ef, #2e4a6e);
+      border-radius: 10px;
+      backdrop-filter: blur(3px);
+    }
+    @supports (not (animation-timeline: --a)) or (not (top: --f(0))) {
+      /* no scroll physics or no custom functions: the lab is closed
+         for the season */
+      .sea::after {
+        opacity: 1;
+        backdrop-filter: blur(1.5px) brightness(1.1) saturate(0.72);
+      }
+      .ice { translate: 0 0; }
+      .flake { opacity: 0.85; scale: 1; rotate: 0deg; }
+      .winternote { display: block; }
+      /* the student, its curve, and the sibling-index() wave can't be
+         computed here; the teacher swims on regardless */
+      .lin, .wave, .fish.student, .gap, .hud, .controls, .bubble {
+        display: none;
+      }
     }
 
-    /* a still, fully-trained pond for reduced motion (the cascade still
-       trains the net at load — only the replay is skipped) */
+    /* ---------- reduced motion: a still, graduated network ---------- */
     @media (prefers-reduced-motion: reduce) {
-      .sea * { animation: none !important; }
-      .bubble { display: none; }
-      .r.last { visibility: visible; --x: 0.18; }
-      .fish.teacher { --x: 0.18; }
+      /* no self-scrolling UI. Hiding the registers deactivates their
+         timelines, so the readers fall back to their base values — the
+         trained parameters — and the scene holds still. */
+      .regs { display: none; }
+      .fish, .gap { animation: none; --x: 0.3; }
+      .bubble { animation: none; }
     }
   </style>
   <body>
-    <h1>A Neural Network in Pure CSS, Training Included</h1>
+    <h1>A JS-less Neural Network on… Scrollbars</h1>
     <p>
-      CSS already knows <code>sin()</code> — it ships in every modern browser,
-      free of charge. The tank below contains a two-layer neural network
-      (1&thinsp;→&thinsp;5&thinsp;→&thinsp;1, ReLU) that has to <em>learn</em>
-      the sine wave anyway. And this time nobody did its homework for it:
-      when this page loads, <strong>your browser runs 80 steps of gradient
-      descent</strong> — forward passes, gradients, momentum, the lot —
-      entirely inside the CSS cascade. The 🐟 swims on the real
-      <code>sin(x)</code>. The 🐠 swims on the network’s output, step by step,
-      as it learns. The bar between them is the error. There is no JavaScript
-      on this page.
+      Modern CSS has superpowers: real
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/sin">trigonometry</a>,
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/pow">exponents</a>,
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@function">custom
+      functions</a>, even conditionals via
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/if"><code>if()</code></a>.
+      Two things it famously does not have: loops, and variables you can
+      update.
+    </p>
+    <p>
+      So, is CSS cool enough to train a neural network anyway — actually
+      train it, run the training loop, without a single drop of JavaScript?
+      Let’s give it a try.
     </p>
 
-    <div class="demo">
+    <h2>The goal</h2>
+    <p>
+      Teach a goldfish to swim with grace — that is, to follow a
+      pre-defined trajectory across the tank. Three ingredients required:
+    </p>
+    <ul>
+      <li>
+        <strong>training data</strong> — sixteen positions in the tank, and
+        a teacher (species: 🐟) who demonstrates the correct height at each
+        of them;
+      </li>
+      <li>
+        <strong>a neural network</strong> — the math that predicts the
+        student’s height from its position;
+      </li>
+      <li>
+        <strong>training mechanics</strong> — the machinery that compares
+        student to teacher and updates the network’s parameters until the
+        student follows.
+      </li>
+    </ul>
+    <p>Like this:</p>
+
+    <div class="demo live">
+      <div class="regs">
+        <div class="reglabel">v₀</div>
+        <div class="regbox"><div class="scroller reg v0"><div class="ruler"><div class="origin" style="top: 475px"></div><div class="pull"></div></div></div></div>
+        <div class="reglabel">v₁</div>
+        <div class="regbox"><div class="scroller reg v1"><div class="ruler"><div class="origin" style="top: 1688.89px"></div><div class="pull"></div></div></div></div>
+        <div class="reglabel">v₂</div>
+        <div class="regbox"><div class="scroller reg v2"><div class="ruler"><div class="origin" style="top: 211.11px"></div><div class="pull"></div></div></div></div>
+        <div class="shadows" aria-hidden="true">
+          <div class="scroller shadow v0"><div class="ruler"><div class="origin" style="top: 475px"></div><div class="pull"></div></div></div>
+          <div class="scroller shadow v1"><div class="ruler"><div class="origin" style="top: 1688.89px"></div><div class="pull"></div></div></div>
+          <div class="scroller shadow v2"><div class="ruler"><div class="origin" style="top: 211.11px"></div><div class="pull"></div></div></div>
+          <div class="scroller mom v0"><div class="ruler"><div class="origin" style="top: 950px"></div><div class="pull"></div></div></div>
+          <div class="scroller mom v1"><div class="ruler"><div class="origin" style="top: 950px"></div><div class="pull"></div></div></div>
+          <div class="scroller mom v2"><div class="ruler"><div class="origin" style="top: 950px"></div><div class="pull"></div></div></div>
+          <div class="scroller mshadow v0"><div class="ruler"><div class="origin" style="top: 950px"></div><div class="pull"></div></div></div>
+          <div class="scroller mshadow v1"><div class="ruler"><div class="origin" style="top: 950px"></div><div class="pull"></div></div></div>
+          <div class="scroller mshadow v2"><div class="ruler"><div class="origin" style="top: 950px"></div><div class="pull"></div></div></div>
+        </div>
+      </div>
+      <div class="hud"></div>
+      <div class="gauges">
+        <div class="reglabel">v₀</div>
+        <div class="gauge g0"><div class="fill"></div><div class="tick"></div></div>
+        <div class="reglabel">v₁</div>
+        <div class="gauge g1"><div class="fill"></div><div class="tick"></div></div>
+        <div class="reglabel">v₂</div>
+        <div class="gauge g2"><div class="fill"></div><div class="tick"></div></div>
+      </div>
+
       <div class="sea panel">
         <div class="track">
           <div class="wave">
-            <i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i>
-            <i style="--i:8"></i><i style="--i:9"></i><i style="--i:10"></i><i style="--i:11"></i><i style="--i:12"></i><i style="--i:13"></i><i style="--i:14"></i><i style="--i:15"></i>
-            <i style="--i:16"></i><i style="--i:17"></i><i style="--i:18"></i><i style="--i:19"></i><i style="--i:20"></i><i style="--i:21"></i><i style="--i:22"></i><i style="--i:23"></i>
-            <i style="--i:24"></i><i style="--i:25"></i><i style="--i:26"></i><i style="--i:27"></i><i style="--i:28"></i><i style="--i:29"></i><i style="--i:30"></i><i style="--i:31"></i>
-            <i style="--i:32"></i><i style="--i:33"></i><i style="--i:34"></i><i style="--i:35"></i><i style="--i:36"></i><i style="--i:37"></i><i style="--i:38"></i><i style="--i:39"></i>
-            <i style="--i:40"></i><i style="--i:41"></i><i style="--i:42"></i><i style="--i:43"></i><i style="--i:44"></i><i style="--i:45"></i><i style="--i:46"></i><i style="--i:47"></i>
-            <i style="--i:48"></i><i style="--i:49"></i><i style="--i:50"></i><i style="--i:51"></i><i style="--i:52"></i><i style="--i:53"></i><i style="--i:54"></i><i style="--i:55"></i>
-            <i style="--i:56"></i><i style="--i:57"></i><i style="--i:58"></i><i style="--i:59"></i><i style="--i:60"></i><i style="--i:61"></i><i style="--i:62"></i><i style="--i:63"></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
           </div>
+          <div class="lin">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <div class="gap"></div>
           <div class="fish teacher">🐟</div>
-          <!-- gen:dom -->
-<i class="r" style="--si:0"><b></b></i><div class="st a"><i class="r" style="--si:1"><b></b></i><div class="st b"><i class="r" style="--si:2"><b></b></i><div class="st a"><i class="r" style="--si:3"><b></b></i><div class="st b"><i class="r" style="--si:4"><b></b></i><div class="st a"><i class="r" style="--si:5"><b></b></i><div class="st b"><i class="r" style="--si:6"><b></b></i><div class="st a"><i class="r" style="--si:7"><b></b></i><div class="st b"><i class="r" style="--si:8"><b></b></i><div class="st a"><i class="r" style="--si:9"><b></b></i><div class="st b"><i class="r" style="--si:10"><b></b></i><div class="st a"><i class="r" style="--si:11"><b></b></i><div class="st b"><i class="r" style="--si:12"><b></b></i><div class="st a"><i class="r" style="--si:13"><b></b></i><div class="st b"><i class="r" style="--si:14"><b></b></i><div class="st a"><i class="r" style="--si:15"><b></b></i><div class="st b"><i class="r" style="--si:16"><b></b></i><div class="st a"><i class="r" style="--si:17"><b></b></i><div class="st b"><i class="r" style="--si:18"><b></b></i><div class="st a"><i class="r" style="--si:19"><b></b></i><div class="st b"><i class="r" style="--si:20"><b></b></i><div class="st a"><i class="r" style="--si:21"><b></b></i><div class="st b"><i class="r" style="--si:22"><b></b></i><div class="st a"><i class="r" style="--si:23"><b></b></i><div class="st b"><i class="r" style="--si:24"><b></b></i><div class="st a"><i class="r" style="--si:25"><b></b></i><div class="st b"><i class="r" style="--si:26"><b></b></i><div class="st a"><i class="r" style="--si:27"><b></b></i><div class="st b"><i class="r" style="--si:28"><b></b></i><div class="st a"><i class="r" style="--si:29"><b></b></i><div class="st b"><i class="r" style="--si:30"><b></b></i><div class="st a"><i class="r" style="--si:31"><b></b></i><div class="st b"><i class="r" style="--si:32"><b></b></i><div class="st a"><i class="r" style="--si:33"><b></b></i><div class="st b"><i class="r" style="--si:34"><b></b></i><div class="st a"><i class="r" style="--si:35"><b></b></i><div class="st b"><i class="r" style="--si:36"><b></b></i><div class="st a"><i class="r" style="--si:37"><b></b></i><div class="st b"><i class="r" style="--si:38"><b></b></i><div class="st a"><i class="r" style="--si:39"><b></b></i><div class="st b"><i class="r" style="--si:40"><b></b></i><div class="st a"><i class="r" style="--si:41"><b></b></i><div class="st b"><i class="r" style="--si:42"><b></b></i><div class="st a"><i class="r" style="--si:43"><b></b></i><div class="st b"><i class="r" style="--si:44"><b></b></i><div class="st a"><i class="r" style="--si:45"><b></b></i><div class="st b"><i class="r" style="--si:46"><b></b></i><div class="st a"><i class="r" style="--si:47"><b></b></i><div class="st b"><i class="r" style="--si:48"><b></b></i><div class="st a"><i class="r" style="--si:49"><b></b></i><div class="st b"><i class="r" style="--si:50"><b></b></i><div class="st a"><i class="r" style="--si:51"><b></b></i><div class="st b"><i class="r" style="--si:52"><b></b></i><div class="st a"><i class="r" style="--si:53"><b></b></i><div class="st b"><i class="r" style="--si:54"><b></b></i><div class="st a"><i class="r" style="--si:55"><b></b></i><div class="st b"><i class="r" style="--si:56"><b></b></i><div class="st a"><i class="r" style="--si:57"><b></b></i><div class="st b"><i class="r" style="--si:58"><b></b></i><div class="st a"><i class="r" style="--si:59"><b></b></i><div class="st b"><i class="r" style="--si:60"><b></b></i><div class="st a"><i class="r" style="--si:61"><b></b></i><div class="st b"><i class="r" style="--si:62"><b></b></i><div class="st a"><i class="r" style="--si:63"><b></b></i><div class="st b"><i class="r" style="--si:64"><b></b></i><div class="st a"><i class="r" style="--si:65"><b></b></i><div class="st b"><i class="r" style="--si:66"><b></b></i><div class="st a"><i class="r" style="--si:67"><b></b></i><div class="st b"><i class="r" style="--si:68"><b></b></i><div class="st a"><i class="r" style="--si:69"><b></b></i><div class="st b"><i class="r" style="--si:70"><b></b></i><div class="st a"><i class="r" style="--si:71"><b></b></i><div class="st b"><i class="r" style="--si:72"><b></b></i><div class="st a"><i class="r" style="--si:73"><b></b></i><div class="st b"><i class="r" style="--si:74"><b></b></i><div class="st a"><i class="r" style="--si:75"><b></b></i><div class="st b"><i class="r" style="--si:76"><b></b></i><div class="st a"><i class="r" style="--si:77"><b></b></i><div class="st b"><i class="r" style="--si:78"><b></b></i><div class="st a"><i class="r" style="--si:79"><b></b></i><div class="st b"><i class="r last" style="--si:80"><b></b></i></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div><!-- /gen:dom -->
+          <div class="fish student">🐠</div>
         </div>
         <div class="bubble"></div>
         <div class="bubble"></div>
@@ -807,115 +849,319 @@
         <i class="flake">❆</i>
         <i class="flake">❄</i>
         <div class="ice"></div>
+        <div class="winternote">
+          ❄ The lab is frozen for the season: this browser is still waiting
+          for
+          <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-timeline">animation-timeline</a>,
+          <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@function">@function</a>
+          and
+          <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/sibling-index">sibling-index()</a>
+          to arrive. The teacher swims on; the goldfish returns with the
+          thaw.
+        </div>
       </div>
       <div class="controls">
         <label>
           <input type="checkbox" id="freeze" />
-          <span class="when-liquid">❄ freeze the tank</span>
-          <span class="when-frozen">☀ thaw the tank</span>
+          <span class="when-liquid">❄ freeze the lab</span>
+          <span class="when-frozen">☀ thaw the lab</span>
         </label>
-        <span>(hovering pauses it too)</span>
+        <span>(pauses the optimizer too — training resumes on thaw)</span>
       </div>
     </div>
 
-    <h2>The training loop is the DOM</h2>
     <p>
-      CSS is famously “Turing-complete” — with an asterisk: it has no clock.
-      A custom property can’t update itself; <code>--w:&nbsp;calc(var(--w)&nbsp;-&nbsp;…)</code>
-      is a cycle, and the cascade politely refuses. So this page does what
-      hardware designers do when they can’t loop: it <em>unrolls</em>. The
-      tank contains 80 nested <code>&lt;div&gt;</code>s — one per training
-      step — and every element computes its weights from the weights it
-      <em>inherits from its parent</em>:
-    </p>
-    <pre class="panel"><code>&lt;div class="st a"&gt;   &lt;!-- computes θ₁ from θ₀  --&gt;
-  &lt;div class="st b"&gt; &lt;!-- computes θ₂ from θ₁  --&gt;
-    &lt;div class="st a"&gt; &lt;!-- computes θ₃ from θ₂ … 80 levels deep --&gt;</code></pre>
-    <p>
-      Self-reference is dodged by ping-ponging two families of properties:
-      even generations write <code>--u1a</code> from <code>--u1b</code>, odd
-      generations write <code>--u1b</code> from <code>--u1a</code>. Which
-      means the entire trainer is <strong>two CSS rules</strong> —
-      <code>.st.a&nbsp;{…}</code> and <code>.st.b&nbsp;{…}</code> — and the
-      DOM runs them 80 times by selector matching. Each generation is one
-      honest step of full-batch gradient descent with momentum: 12 forward
-      passes (<code>max(0,&nbsp;wx+b)</code> is ReLU), residuals against
-      <code>sin()</code>, gradients with the ReLU derivative as
-      <code>sign()</code>, momentum, update:
-    </p>
-    <pre class="panel"><code>.st.a {
-  /* forward: --h3x7 = relu(u₃·x₇ + p₃), for all 5 neurons × 12 samples */
-  --h3x7: max(0, var(--u3b) * 0.5416666666666666 + var(--p3b));
-  /* residual at sample 7: net(x₇) − sin(2πx₇) */
-  --r7: calc(var(--v1b)*var(--h1x7) + … + var(--qb) - 0.13052619222005157);
-  /* momentum + update for u₃  (0.05 = lr · 2/N; sign() is ReLU′) */
-  --mu3a: calc(0.9 * var(--mu3b) - 0.05 * var(--v3b) *
-          (var(--r1)*sign(var(--h3x1))*0.041666… + … ));
-  --u3a: calc(var(--u3b) + var(--mu3a));
-  /* … ×5 neurons, ×3 parameter kinds, +1 output bias */
-}</code></pre>
-    <p>
-      Every arithmetic operation of training happens in your style engine, at
-      page load, in about a millisecond. The only numbers shipped in this file
-      are the random initial weights — and you can watch how little they know:
-      that’s the step-0 fish.
+      That is the whole attempt, and it is already running. The three scrollbars
+      are the three parameters of a tiny neural network, training right now:
+      one optimizer step per frame, momentum and all, forever. Their scroll
+      positions are the network’s memory; the rendering loop is its clock;
+      mandatory snap is the optimizer’s hand. If the green curve hugs the
+      wave when you arrive, it’s because the scrollbars bent it there on
+      their own, moments ago. Grab one and fight it.
     </p>
 
-    <h2>The replay is just visibility</h2>
+    <h2>Two challenges</h2>
     <p>
-      Each step element carries a full-width “rider” layer that knows that
-      step’s weights by inheritance. A rider computes the network’s output at
-      the current swim position — <code>--ys</code> is five
-      <code>max()</code> calls — and puts the 🐠 there with a transform. A
-      staggered <code>animation-delay: calc(var(--si)&nbsp;*&nbsp;0.16s)</code>
-      reveals each rider for its 0.16-second slot, so the fish you watch is
-      hopping along the <em>actual optimization trajectory your browser just
-      computed</em>: 13 seconds from flailing to competence, plus a held bow
-      at step 80, forever, on loop.
+      Two things stand between a stylesheet and a training run: the
+      <strong>loop</strong> and the <strong>update</strong>.
+    </p>
+    <p>
+      The loop is traditionally faked by unrolling: hardcode every
+      iteration, a fixed number of times, in CSS or in the DOM — say,
+      eighty nested <code>&lt;div&gt;</code>s, each computing one step from
+      its parent’s values. It works, it’s even fast, but it trades time for
+      space, and it <em>ends</em>: step eighty-one does not exist, and the
+      step count is written into the markup like a prophecy. We want true
+      recursion — the next state computed from the previous one,
+      indefinitely, with no iteration count written anywhere.
+    </p>
+    <p>
+      The update is harder still: CSS forbids a variable from being
+      defined in terms of itself. Both problems, it turns out, have the
+      same unlikely solution.
     </p>
 
-    <h2>The teacher was born knowing</h2>
-    <pre class="panel"><code>.fish.teacher {
-  --yt: calc(sin(var(--x) * 2 * pi));  /* that’s it. that’s the fish. */
+    <h2>The parameters are scrollbars</h2>
+    <p>
+      To simulate variable assignment, we store the variables in
+      <em>scrollbars</em> — precisely, in scroll positions. How far each
+      one is scrolled <em>is</em> the number. It’s the one
+      continuously-valued piece of state the browser keeps between frames
+      that a stylesheet can both read and write: a
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-timeline"><code>scroll-timeline</code></a>
+      reads the position back as a number, plain
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/calc"><code>calc()</code></a>
+      does the arithmetic, and
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-snap-type"><code>scroll-snap-type:&nbsp;mandatory</code></a>
+      does the writing — the
+      scroller must sit wherever its only snap target is, so parking that
+      target somewhere <em>is</em> the assignment. Read, compute, write.
+      The browser’s frame loop is the <code>for</code> loop.
+    </p>
+    <pre class="panel"><code>.reg.v0 { scroll-timeline: --t0 y; }   /* read port  */
+.reg.v0 .pull {                        /* write port */
+  scroll-snap-align: start;            /* mandatory snap = assignment */
+  animation: read-v0 linear both, …;   /* read last phase’s params   */
+  animation-timeline: --t0s, --t1s, --t2s, --m0s;
+
+  /* …the optimizer’s calc() lives here — the exact lines wait
+     for you in “How it plays together”, at the end… */
+  top: calc((var(--v0) + 4) * 118.75px + var(--vel-next) * 1px);
 }</code></pre>
     <p>
-      Trigonometry landed in CSS in 2023, so the 🐟 gets the answer sheet for
-      free. The dotted wave is 64 static dots, each evaluating
-      <code>sin()</code> at its own position. Talent is not fairly distributed
-      in this tank.
+      The gradient bar inside each register is the write port: it sits at
+      that parameter’s next value, and snap drags the scroller onto it —
+      including while you’re scrolling the other way. Your thumb is
+      competing with a layout constraint. The constraint has more stamina.
+    </p>
+    <p>
+      Nothing in the update is pre-computed. The stylesheet stores the
+      sixteen sample positions as variables and two hyperparameters —
+      that’s the optimizer’s entire allowance. Labels aren’t even stored:
+      <code>--teacher(x)</code> asks <code>sin()</code> at runtime.
+      Residuals, gradient, and the per-weight curvature used as a step
+      size are all computed by <code>calc()</code> from those, every
+      frame; the optimum emerges when the gradient runs out. Momentum is
+      not decoration either: this loss has a nearly-collinear valley, and
+      the velocity registers (six more scrollers you can’t see) work as
+      sub-pixel accumulators — tiny gradients pile up in velocity until
+      they’re big enough to move a whole pixel of parameter. And the
+      gradient is coupled: pin one parameter somewhere stupid and the
+      other two renegotiate around the injury, which is the most lifelike
+      thing a scrollbar has ever done.
     </p>
 
-    <h2>The scoreboard doesn’t cheat either</h2>
+    <h2>The clock</h2>
     <p>
-      The loss in the corner is not a caption — each rider recomputes its
-      step’s mean-squared error from its own weights: twelve forward passes
-      compared against <code>sin()</code>, squared with <code>pow()</code>,
-      averaged in one <code>calc()</code>. The digits reach the screen through
-      the CSS counter trick:
+      And the clock — the one part of a loop CSS never had — turns out to
+      cost nothing, because the browser already has one. Every frame it
+      re-renders: animations resample their timelines, layout re-places the
+      snap targets, snap re-asserts the scroll positions. That <em>is</em>
+      the iteration. Nothing ticks the machine; being rendered is being
+      ticked. The training loop is the render loop.
     </p>
-    <pre class="panel"><code>.r {
-  --L: calc((pow(/* net(x₁) */ - sin(x₁ · 2π), 2) + … ) / 12);
-  --Ld1: mod(round(down, calc(var(--L) * 10), 1), 10);  /* tenths digit */
-}
-.r::after {
-  counter-reset: ep calc(var(--si)) d1 calc(var(--Ld1)) /* … */;
-  content: "step " counter(ep) "  ·  loss " /* … */;
+    <p>
+      One wrinkle: Chrome refuses to run a
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Scroll-driven_animations">scroll-driven
+      animation</a> that scrolls its own scroller. Fair — that’s a layout cycle. It has no
+      opinion, however, about an animation that scrolls <em>somebody
+      else’s</em> scroller. So every parameter has a hidden shadow register
+      that copies it, and parameters read only shadows: a two-phase
+      flip-flop — primary and shadow — 1950s technology rebuilt from
+      <code>overflow:&nbsp;scroll</code>. One optimizer step per
+      copy-then-compute cycle, forever.
+    </p>
+
+    <h2>The tank</h2>
+    <p>
+      The tank, for once, is just a little animated CSS — the only ordinary
+      part of this page. The 🐟 swims <code>sin(x)</code>, which CSS knows
+      natively (an unfair advantage in a teacher). The goldfish 🐠 rides
+      the network’s curve — three line segments, exact formula at the end
+      of the page — drawn live in green with parameters read straight off
+      the registers; the red bar is the current error.
+    </p>
+
+
+
+    <h2>The scoreboard doesn’t cheat</h2>
+    <p>
+      The loss readout is not a caption. <code>calc()</code> recomputes the
+      sixteen-point mean squared error from the live parameters every
+      frame — sixteen <code>pow()</code>s and a division — and the digits
+      reach the screen through
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/counter"><code>counter()</code></a>,
+      the only mechanism by which CSS permits a number to become text. Sabotage a parameter
+      and watch it spike.
+    </p>
+
+    <h2>How it plays together</h2>
+    <p>
+      A little math inside — but it’s nice and simple. The fish’s
+      horizontal position <math><mi>x</mi></math> sweeps across the tank on
+      a loop; its vertical coordinate is whatever the network says it is:
+    </p>
+    <math display="block">
+      <mrow>
+        <mi>y</mi><mo>(</mo><mi>x</mi><mo>)</mo>
+        <mo>=</mo>
+        <msub><mi>v</mi><mn>0</mn></msub><mo>·</mo><mi>x</mi>
+        <mo>+</mo>
+        <msub><mi>v</mi><mn>1</mn></msub><mo>·</mo>
+        <mi>relu</mi><mo>(</mo><mi>x</mi><mo>−</mo><mfrac><mn>1</mn><mn>4</mn></mfrac><mo>)</mo>
+        <mo>+</mo>
+        <msub><mi>v</mi><mn>2</mn></msub><mo>·</mo>
+        <mi>relu</mi><mo>(</mo><mi>x</mi><mo>−</mo><mfrac><mn>3</mn><mn>4</mn></mfrac><mo>)</mo>
+      </mrow>
+    </math>
+    <p>
+      Here <math><mi>relu</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+      <mi>max</mi><mo>(</mo><mn>0</mn><mo>,</mo><mi>t</mi><mo>)</mo></math>
+      — a hinge: zero until its threshold, a straight line after. So the
+      whole curve is three line segments, and the three numbers
+      <math><msub><mi>v</mi><mn>0</mn></msub></math>,
+      <math><msub><mi>v</mi><mn>1</mn></msub></math>,
+      <math><msub><mi>v</mi><mn>2</mn></msub></math> are the parameters we
+      are going to train: <math><msub><mi>v</mi><mn>0</mn></msub></math>
+      sets the opening slope, <math><msub><mi>v</mi><mn>1</mn></msub></math>
+      bends it at the crest
+      (<math><mi>x</mi><mo>=</mo><mfrac><mn>1</mn><mn>4</mn></mfrac></math>),
+      <math><msub><mi>v</mi><mn>2</mn></msub></math> bends it back at the
+      trough
+      (<math><mi>x</mi><mo>=</mo><mfrac><mn>3</mn><mn>4</mn></mfrac></math>).
+      The teacher’s coordinate is
+      <math><mi>sin</mi><mo>(</mo><mn>2</mn><mi>π</mi><mi>x</mi><mo>)</mo></math>;
+      training means making the two functions agree at the sixteen sample
+      positions.
+    </p>
+    <p>
+      On every iteration of the training loop — which here means: on every
+      rendered frame — we calculate our
+      <math><mi>y</mi></math> at each sample position and compare it with
+      the teacher’s answer:
+    </p>
+    <math display="block">
+      <mrow>
+        <msub><mi>r</mi><mi>i</mi></msub>
+        <mo>=</mo>
+        <mi>y</mi><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+        <mo>−</mo>
+        <mi>sin</mi><mo>(</mo><mn>2</mn><mi>π</mi><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+      </mrow>
+    </math>
+    <p>
+      These sixteen residuals are the whole story of how wrong we are.
+      Squared and averaged, they become the loss on the scoreboard.
+      Weighted by each parameter’s own feature and averaged, they become
+      the gradient — the direction that would make things worse, so we go
+      the other way:
+    </p>
+    <math display="block">
+      <mrow>
+        <msub><mi>g</mi><mi>a</mi></msub>
+        <mo>=</mo>
+        <mfrac><mn>2</mn><mi>N</mi></mfrac>
+        <munderover><mo>∑</mo><mi>i</mi><mo></mo></munderover>
+        <msub><mi>φ</mi><mi>a</mi></msub>
+        <mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+        <mo>·</mo>
+        <msub><mi>r</mi><mi>i</mi></msub>
+      </mrow>
+    </math>
+    <p>
+      (<math><msub><mi>φ</mi><mi>a</mi></msub></math> is simply the thing
+      parameter <math><mi>a</mi></math> multiplies in the formula above:
+      <math><mi>x</mi></math>, or one of the two hinges.) Then each
+      parameter takes a small step downhill, with momentum:
+    </p>
+    <math display="block">
+      <mrow>
+        <msub><mi>m</mi><mi>a</mi></msub>
+        <mo>←</mo>
+        <mi>β</mi><mo>·</mo><msub><mi>m</mi><mi>a</mi></msub>
+        <mo>−</mo>
+        <mi>γ</mi><mo>·</mo>
+        <mfrac>
+          <msub><mi>g</mi><mi>a</mi></msub>
+          <msub><mi>H</mi><mi>a</mi></msub>
+        </mfrac>
+        <mo>,</mo>
+        <mspace width="1.5em"></mspace>
+        <msub><mi>v</mi><mi>a</mi></msub>
+        <mo>←</mo>
+        <msub><mi>v</mi><mi>a</mi></msub>
+        <mo>+</mo>
+        <msub><mi>m</mi><mi>a</mi></msub>
+      </mrow>
+    </math>
+    <p>
+      <math><msub><mi>m</mi><mi>a</mi></msub></math> is the parameter’s
+      velocity — the momentum that makes the fish overshoot and ring
+      instead of gliding politely.
+      <math><mi>β</mi><mo>=</mo><mn>0.985</mn></math> is inertia,
+      <math><mi>γ</mi><mo>=</mo><mn>0.02</mn></math> is caution, and
+      <math><msub><mi>H</mi><mi>a</mi></msub></math> is a per-parameter
+      scale computed from the same sixteen positions, so steep features
+      get gentler steps.
+    </p>
+    <p>
+      And here is that optimizer in CSS, piece by piece — shown for
+      <math><msub><mi>v</mi><mn>0</mn></msub></math>; the other two differ
+      only in indices. First, the register itself: a plain scroller. Its
+      scroll position <em>is</em> the parameter. <code>scroll-timeline</code>
+      publishes that position for anyone to read, and mandatory snap
+      obliges the scroller to sit wherever its snap target is — which is
+      how it will be written to:
+    </p>
+    <pre class="panel"><code>.reg.v0 {
+  scroll-timeline: --t0 y;
+  scroll-snap-type: y mandatory;
 }</code></pre>
-    <p class="small">
-      Fine print: the repetitive program text (80 nested divs, two big rules)
-      is printed by <a href="generate.mjs">generate.mjs</a>, which also picked
-      the hyperparameters and the random seed offline — printing text is
-      allowed; it’s the browser that does every multiplication. Between the
-      80 computed steps nothing is interpolated: what you see hop is the real
-      discrete trajectory. If you’ve asked your OS for reduced motion, the
-      cascade still trains the network — you just get the graduation photo
-      instead of the ceremony. Needs <code>@property</code>, trig,
-      <code>pow()</code>, <code>sign()</code> — all Baseline as of 2024.
+    <p>
+      The <strong>read</strong> happens via animations. Inside the register
+      sits its write target — <code>.pull</code> — running four
+      scroll-driven animations. Each one samples a register from the
+      previous phase (the shadows) and delivers its value to
+      <code>calc()</code> as a plain number: the three parameters and this
+      parameter’s velocity.
     </p>
+    <pre class="panel"><code>animation: read-v0 linear both, read-v1 linear both,
+           read-v2 linear both, read-vel linear both;
+animation-timeline: --t0s, --t1s, --t2s, --m0s;</code></pre>
+    <p>
+      The <strong>compute</strong> is the three formulas, transcribed: the
+      sixteen residuals, the gradient, the momentum step (the 118.75 just
+      converts parameter units to rail pixels):
+    </p>
+    <pre class="panel"><code>--r1: calc(--net(var(--x1)) - --teacher(var(--x1)));
+/* … --r2 through --r16 … */
+
+--g0: calc((var(--x1)*var(--r1) + var(--x2)*var(--r2)
+        + … + var(--x16)*var(--r16)) / 8);
+
+--vel-next: clamp(-40, calc(var(--beta) * var(--vel)
+        - var(--gamma) * var(--g0) / var(--H0) * 118.75), 40);</code></pre>
+    <p>
+      And the <strong>write</strong> is geometry. The freshly computed next
+      value becomes this element’s position, and
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/scroll-snap-align"><code>scroll-snap-align</code></a>
+      makes it the register’s one snap target — so the mandatory snap declared above drags the scrollbar
+      onto it. That drag <em>is</em> the assignment,
+      <math><msub><mi>v</mi><mn>0</mn></msub><mo>←</mo><msub><mi>v</mi><mn>0</mn></msub><mo>+</mo><msub><mi>m</mi><mn>0</mn></msub></math>,
+      executed by the layout engine:
+    </p>
+    <pre class="panel"><code>top: calc((var(--v0) + 4) * 118.75px + var(--vel-next) * 1px);
+scroll-snap-align: start;</code></pre>
+    <p>
+      That is the entire optimizer: sixteen subtractions, three weighted
+      sums, momentum, step — once per frame, forever. The scrollbars do
+      the rest.
+    </p>
+
 
     <footer>
-      <a href="/">← all demos</a> · weights trained by your browser ·
-      repetitive text printed by <a href="generate.mjs">generate.mjs</a>
+      <a href="/">← all demos</a> · weights trained by your browser’s scroll
+      physics
     </footer>
   </body>
 </html>
