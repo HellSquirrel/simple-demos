@@ -99,6 +99,23 @@ is 0.5 to 0.75 mm wide in the engine itself (sheath thickness at this grid); soo
 the model candle smokes faintly; a real one in still air closes its tip. Open physics item.
 `window.candleDebug.setBloom(k)` is a console hook for tuning.
 
+**Projection on a bent flame (2026-10-10).** The camera's line-of-sight projection was about the
+wick column; when the draft bent the flame off it, one half projected into a boxy fill and the flame
+looked split in two. Each row is now projected about its own centre of light (`render`).
+
+**The lobes, diagnosed and open.** Several bright lobes stacked up the core are the soot-radiation
+relaxation cycle (T and S in antiphase along the axis, ~11 cells). Root cause: the core is ~1,600 K
+because (a) the hot surface around the wick (`TIP_R` 14 cells) cooks the whole vapour zone, and
+(b) the diffusivity is air's everywhere, while wax vapour (C25H52, 12x denser, higher cp) has ~40x
+lower thermal diffusivity, so a real core stays near 1,000 K and makes no soot. Experiments, all
+behind knobs now: a 2 mm hot tip anchors only with `A` x10 (`fl_set_chem`); vapour cooling
+(`fl_set_wick_model` VMIX) has no effect while the hot surface covers the vapour zone, and none
+against air-like conduction; scaling the entrainment's cooling by O2 (air side only) left the
+geometric dilution in place but the core hot; the vapour diffusivity rule `fl_set_vapour(KF=25)`
+cools the core to ~1,260 K mean but grows the flame to 27 mm and parts of the core still make soot.
+The honest fix is all of it together with a retune: small hot tip, kinetics x10, KF ~25, fuel supply
+down to restore 18 mm, and then check soot inception in the core. Not shipped; defaults restored.
+
 ## Where things stand (2026-10-09)
 
 - Working page with: strike (sparks), steady burn, breeze (bends, turns blue), blow out (goes out,

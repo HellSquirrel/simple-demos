@@ -27,11 +27,15 @@ const D_EXP: f32 = 1.7; // gas diffusivities scale as (T/300)^1.7 (kinetic theor
 const PR: f32 = 0.71; // Prandtl number of air: kinematic viscosity = PR * alpha
 const LE_F: f32 = 3.0; // Lewis number of the fuel vapour: heavy hydrocarbons diffuse about 3x slower than heat
 const LE_O: f32 = 1.0; // oxygen diffuses about like heat
+const VAP_KF: f32 = 0.0; // wax vapour (C25H52) is ~12x denser than air with a higher heat capacity: its diffusivities are far lower, factor 1/(1 + VAP_KF * F). Physical value ~25; off until the core model is retuned around it
 const OHP: f32 = 0.012; // OH proxy for soot oxidation
 const ENT: f32 = 0.25; // out-of-plane entrainment
 const ENT_R: f32 = 20.0; // flame radius the entrainment rate is scaled by, cells (5 mm)
 const EXPAND: f32 = 0.5; // thermal expansion in the pressure solve
 const FUEL: f32 = 0.5; // wax vapour supply of the wick, in fuel-fraction units; sets the flame size
+const TIP_R: f32 = 14.0; // radius of the hot surface around the wick tip, cells (3.5 mm). Experiments with a 2 mm tip and 10x kinetics anchor but need a full retune; see HANDOFF
+const T_VAP: f32 = 700.0; // wax vapour leaves the wick near its boiling range, K
+const VAP_MIX: f32 = 0.0; // per substep, how strongly the vapour region is mixed toward T_VAP (cold vapour inflow); no effect while the hot surface covers the vapour zone
 const WICK_CURL: f32 = 6.0; // a braided wick curls so its tip burns in the sheath: the vapour source sits this many cells to the side of the axis
 const SUPPLY_SIGMA: f32 = 0.12; // the capillary feed and melt pool fluctuate: relative noise on the vapour supply
 const SUPPLY_TAU: f32 = 0.3; // and its correlation time, s
@@ -301,6 +305,8 @@ pub struct Sim {
     alpha0: f32, nu0: f32, // thermal diffusivity and kinematic viscosity at 300 K, mm^2/s
     fuel: f32, // see FUEL
     curl: f32, supply_sigma: f32, supply: f32, // wick curl in cells, supply noise amplitude, and its current state
+    tip_r: f32, t_vap: f32, vap_mix: f32, // the wick model, see TIP_R, T_VAP, VAP_MIX
+    vap_kf: f32, // see VAP_KF
     draft_sigma: f32, draft_tau: f32, draft_coupling: f32, // the room-air model, see the DRAFT_* constants
     soot_scale: f32, krad: f32, // tuning multipliers on the empirical soot-formation rate and the radiative-loss coefficient
     q: f32, // heat release per unit fuel, K (see Q)
@@ -373,7 +379,7 @@ impl Sim {
             u: z(), v: z(), u0: z(), v0: z(), t: z(), t0: z(), f: z(), f0: z(), o: z(), o0: z(), s: z(), s0: z(),
             r: z(), p: z(), dv: z(), cu: z(), solid: vec![0; N],
             o2: 0.21, g: 1.0, swirl: 1.0, draft_k: 1.0,
-            p_iters: P_ITERS, alpha0: ALPHA0, nu0: PR * ALPHA0, fuel: FUEL, curl: WICK_CURL, supply_sigma: SUPPLY_SIGMA, supply: 0.0, draft_sigma: DRAFT_SIGMA, draft_tau: DRAFT_TAU, draft_coupling: DRAFT_COUPLING, soot_scale: 1.0, krad: KRAD, q: Q,
+            p_iters: P_ITERS, alpha0: ALPHA0, nu0: PR * ALPHA0, fuel: FUEL, curl: WICK_CURL, supply_sigma: SUPPLY_SIGMA, supply: 0.0, tip_r: TIP_R, t_vap: T_VAP, vap_mix: VAP_MIX, vap_kf: VAP_KF, draft_sigma: DRAFT_SIGMA, draft_tau: DRAFT_TAU, draft_coupling: DRAFT_COUPLING, soot_scale: 1.0, krad: KRAD, q: Q,
             gtab: (0..RT_N).map(|n| ((RT_MIN + n as f32) / TA).powf(D_EXP)).collect(), gx: z(), gy: z(),
             phase: Phase::Ready, time: 0.0, burned: 0.0, h: 0.0, charge: 0.0, ignite: 0.0, ember: TA,
             out_timer: 0.0, gust: 0.0, gust_v: 0.0, draft: 0.0, qrel: 0.0, qrad: 0.0, since: 0.0,
@@ -570,21 +576,25 @@ impl Sim {
         let hy = self.head_y();
         let pyro = self.src_strength();
         let ts = self.ember.max(if self.phase == Phase::Out { TA + 200.0 * (-self.since / 2.5).exp() } else { TA });
-        // the curled wick: its glowing tip, and most of the vapour, sit to one side of the axis
-        let (cx_heat, cx_fuel) = (0.5 * self.curl, 0.7 * self.curl);
+        // the curled wick: only its glowing tip is a hot surface; the vapour comes off the wick's length, cool
+        let (cx_tip, cx_fuel) = (self.curl, 0.7 * self.curl);
+        let (tip_r2, t_vap, vap_mix) = (self.tip_r * self.tip_r, self.t_vap, self.vap_mix);
         for j in -16..=10i32 {
             for i in -14..=22i32 {
-                let (dh, df) = (i as f32 - cx_heat, i as f32 - cx_fuel);
-                let e = dh * dh / 196.0 + (j * j) as f32 / 200.0;
-                if e > 1.0 { continue; }
+                let (dtip, df) = (i as f32 - cx_tip, i as f32 - cx_fuel);
+                let ei = df * df / 120.0 + (j * j) as f32 / 96.0;
+                let e_tip = (dtip * dtip + ((j + 1) * (j + 1)) as f32) / tip_r2;
+                if ei > 1.0 && e_tip > 1.0 { continue; }
                 let k = (HEAD_X as i32 + i + ((hy + j as f32) as i32) * W as i32) as usize;
                 if self.solid[k] != 0 { continue; }
-                if self.t[k] < ts { self.t[k] += (ts - self.t[k]) * 0.5 * ((1.0 - e) * 2.5).min(1.0); }
-                let ei = df * df / 120.0 + (j * j) as f32 / 96.0;
+                // the glowing tip heats the gas touching it
+                if e_tip < 1.0 && self.t[k] < ts { self.t[k] += (ts - self.t[k]) * 0.5 * ((1.0 - e_tip) * 2.5).min(1.0); }
                 let wi = ((1.0 - ei) * 2.0).clamp(0.0, 1.0);
                 if wi > 0.0 {
                     if pyro > 0.0 {
                         self.f[k] = self.f[k].max(pyro * wi);
+                        // cold vapour: the gas in the vapour region is mixed toward the vapour temperature
+                        if self.t[k] > t_vap && e_tip >= 1.0 { self.t[k] -= (self.t[k] - t_vap) * vap_mix * wi; }
                         self.o[k] *= 1.0 - 0.9 * pyro.min(1.0) * wi;
                         self.v[k] = self.v[k].min(-120.0 * pyro * wi);
                         self.u[k] += df * 8.0 * pyro * wi * dt * 60.0;
@@ -607,12 +617,14 @@ impl Sim {
         std::mem::swap(&mut self.o, &mut self.o0);
         std::mem::swap(&mut self.s, &mut self.s0);
         {
-            let Sim { u, v, u0, v0, t, t0, f, f0, o, o0, s, s0, dv, cu, gtab, gx, gy, solid, alpha0, nu0, .. } = self;
+            let Sim { u, v, u0, v0, t, t0, f, f0, o, o0, s, s0, dv, cu, gtab, gx, gy, solid, alpha0, nu0, vap_kf, .. } = self;
             advect_all([&mut t[..], &mut f[..], &mut o[..], &mut s[..], &mut u[..], &mut v[..]],
                        [&t0[..], &f0[..], &o0[..], &s0[..], &u0[..], &v0[..]],
                        [Some(TA), Some(0.0), Some(oa), Some(0.0), None, None], dt, u0, v0);
             // diffusivity factor per cell, zero in the wax (it insulates), then the face coefficients, harmonic mean
-            for k in 0..N { cu[k] = if solid[k] != 0 { 0.0 } else { gtab[rate_idx(t[k]).0] }; }
+            // heavy fuel vapour transports heat, species and momentum far more slowly than air: mixture rule on the factor
+            let kf = *vap_kf;
+            for k in 0..N { cu[k] = if solid[k] != 0 { 0.0 } else { gtab[rate_idx(t[k]).0] / (1.0 + kf * f[k].max(0.0)) }; }
             let lam = dt / (DX * DX);
             for k in 0..N {
                 let g = cu[k];
@@ -830,27 +842,31 @@ impl Sim {
             for j in 0..H {
                 if !row_lit[j] { continue; }
                 let row = &mut lin[j * W * 3..(j + 1) * W * 3];
-                // annulus n is column HEAD_X + n on the right and HEAD_X - 1 - n on the left: the axis is the edge between them
-                let (cr, cl) = (|n: usize| (HEAD_X + n) * 3, |n: usize| (HEAD_X - 1 - n) * 3);
-                let lit = |o: usize| row[o] > 0.0 || row[o + 1] > 0.0 || row[o + 2] > 0.0;
-                let mut nmax = 0usize; // outermost annulus with any light on either side
-                for n in (0..ABEL_R).rev() { if lit(cr(n)) || lit(cl(n)) { nmax = n + 1; break; } }
+                // a swaying flame is symmetric about its own bent axis, not the wick's: each row is projected about its
+                // centre of light, rounded to a cell edge. Annulus n is column ax + n on the right, ax - 1 - n on the left.
+                let (mut wsum, mut wx, mut xlo, mut xhi) = (0f32, 0f32, W, 0usize);
+                for i in 0..W { let o = i * 3; let l = row[o] + row[o + 1] + row[o + 2]; if l > 0.0 { wsum += l; wx += l * (i as f32 + 0.5); xlo = xlo.min(i); xhi = i; } }
+                if wsum <= 0.0 { continue; }
+                let ax = ((wx / wsum).round() as usize).clamp(1, W - 1);
+                let (cr, cl) = (|n: usize| if ax + n < W { Some((ax + n) * 3) } else { None }, |n: usize| if n < ax { Some((ax - 1 - n) * 3) } else { None });
+                let nmax = ((xhi + 1 - ax).max(ax - xlo)).min(ABEL_R);
                 for m in 0..nmax {
                     let wts = &abel[(m * ABEL_R) * 2..(m * ABEL_R + nmax) * 2];
                     let (mut rr, mut rg, mut rb, mut lr, mut lg, mut lb) = (0f32, 0f32, 0f32, 0f32, 0f32, 0f32);
                     for n in m..nmax {
                         let (wo, wx) = (wts[n * 2], wts[n * 2 + 1]);
-                        let (or, ol) = (cr(n), cl(n));
-                        rr += wo * row[or] + wx * row[ol]; rg += wo * row[or + 1] + wx * row[ol + 1]; rb += wo * row[or + 2] + wx * row[ol + 2];
-                        lr += wo * row[ol] + wx * row[or]; lg += wo * row[ol + 1] + wx * row[or + 1]; lb += wo * row[ol + 2] + wx * row[or + 2];
+                        let (r1, g1, b1) = match cr(n) { Some(o) => (row[o], row[o + 1], row[o + 2]), None => (0.0, 0.0, 0.0) };
+                        let (r2, g2, b2) = match cl(n) { Some(o) => (row[o], row[o + 1], row[o + 2]), None => (0.0, 0.0, 0.0) };
+                        rr += wo * r1 + wx * r2; rg += wo * g1 + wx * g2; rb += wo * b1 + wx * b2;
+                        lr += wo * r2 + wx * r1; lg += wo * g2 + wx * g1; lb += wo * b2 + wx * b1;
                     }
                     let q = m * 6;
                     rowbuf[q] = rr; rowbuf[q + 1] = rg; rowbuf[q + 2] = rb; rowbuf[q + 3] = lr; rowbuf[q + 4] = lg; rowbuf[q + 5] = lb;
                 }
                 for m in 0..nmax {
-                    let (or, ol, q) = (cr(m), cl(m), m * 6);
-                    row[or] = rowbuf[q]; row[or + 1] = rowbuf[q + 1]; row[or + 2] = rowbuf[q + 2];
-                    row[ol] = rowbuf[q + 3]; row[ol + 1] = rowbuf[q + 4]; row[ol + 2] = rowbuf[q + 5];
+                    let q = m * 6;
+                    if let Some(o) = cr(m) { row[o] = rowbuf[q]; row[o + 1] = rowbuf[q + 1]; row[o + 2] = rowbuf[q + 2]; }
+                    if let Some(o) = cl(m) { row[o] = rowbuf[q + 3]; row[o + 1] = rowbuf[q + 4]; row[o + 2] = rowbuf[q + 5]; }
                 }
             }
         }
@@ -951,6 +967,8 @@ impl Sim {
     pub fn set_fuel(&mut self, fuel: f32) { self.fuel = fuel.clamp(0.0, 1.0); }
     pub fn set_soot(&mut self, scale: f32) { self.soot_scale = scale.max(0.0); }
     pub fn set_wick(&mut self, curl: f32, supply_sigma: f32) { self.curl = curl.clamp(-20.0, 20.0); self.supply_sigma = supply_sigma.clamp(0.0, 0.5); }
+    pub fn set_wick_model(&mut self, tip_r: f32, t_vap: f32, vap_mix: f32) { self.tip_r = tip_r.clamp(1.0, 20.0); self.t_vap = t_vap.clamp(TA, 1500.0); self.vap_mix = vap_mix.clamp(0.0, 1.0); }
+    pub fn set_vapour(&mut self, kf: f32) { self.vap_kf = kf.max(0.0); }
     pub fn set_draft_model(&mut self, sigma: f32, tau: f32, coupling: f32) { self.draft_sigma = sigma.max(0.0); self.draft_tau = tau.max(0.05); self.draft_coupling = coupling.max(0.0); }
     pub fn set_krad(&mut self, scale: f32) { self.krad = KRAD * scale.max(0.0); }
     pub fn set_chem(&mut self, a_scale: f32, q_scale: f32) { self.rate = Self::rate_table(a_scale.max(0.01) as f64, 1.0, ESO as f64); self.q = Q * q_scale.max(0.1); }
@@ -1020,6 +1038,8 @@ fn sim() -> &'static mut Sim { unsafe { SIM.as_mut().unwrap_unchecked() } }
 #[no_mangle] pub extern "C" fn fl_set_fuel(fuel: f32) { sim().set_fuel(fuel); }
 #[no_mangle] pub extern "C" fn fl_set_soot(scale: f32) { sim().set_soot(scale); }
 #[no_mangle] pub extern "C" fn fl_set_wick(curl: f32, supply_sigma: f32) { sim().set_wick(curl, supply_sigma); }
+#[no_mangle] pub extern "C" fn fl_set_wick_model(tip_r: f32, t_vap: f32, vap_mix: f32) { sim().set_wick_model(tip_r, t_vap, vap_mix); }
+#[no_mangle] pub extern "C" fn fl_set_vapour(kf: f32) { sim().set_vapour(kf); }
 #[no_mangle] pub extern "C" fn fl_set_draft_model(sigma: f32, tau: f32, coupling: f32) { sim().set_draft_model(sigma, tau, coupling); }
 #[no_mangle] pub extern "C" fn fl_set_krad(scale: f32) { sim().set_krad(scale); }
 #[no_mangle] pub extern "C" fn fl_set_chem(a_scale: f32, q_scale: f32) { sim().set_chem(a_scale, q_scale); }

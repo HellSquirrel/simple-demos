@@ -15,6 +15,8 @@
 //         AS=1 QS=1           multipliers on the burn pre-exponential and the heat release per unit fuel
 //         CURL=6 SUPPLY=0.12  wick curl (cells) and vapour-supply noise; SWIRL=1 vorticity confinement
 //         FLICKER=1           after the first snapshot time, sample the light for 6 s and report sway / bob / flicker
+//         KF=0                vapour diffusivity factor 1/(1 + KF * F); ~25 is physical
+//         TIPR=14 TVAP=700 VMIX=0   wick model: glowing tip radius (cells), vapour temperature, vapour cooling per substep
 //         ESO=11000 KEEP=1700 soot burnout activation temperature; the rate at KEEP kelvin is held fixed
 //         DSIG=60 DTAU=0.8 DCPL=3     room-air model: wind sigma (mm/s at draft 1x), correlation time, coupling rate
 const fs = require('fs'), path = require('path');
@@ -35,6 +37,8 @@ const fs = require('fs'), path = require('path');
   if (E.KRAD !== undefined) w.fl_set_krad(+E.KRAD);
   if (E.AS !== undefined || E.QS !== undefined) w.fl_set_chem(env('AS', 1), env('QS', 1));
   if (E.CURL !== undefined || E.SUPPLY !== undefined) w.fl_set_wick(env('CURL', 6), env('SUPPLY', 0.12));
+  if (E.TIPR !== undefined || E.TVAP !== undefined || E.VMIX !== undefined) w.fl_set_wick_model(env('TIPR', 14), env('TVAP', 700), env('VMIX', 0));
+  if (E.KF !== undefined) w.fl_set_vapour(+E.KF);
   if (E.ESO !== undefined) w.fl_set_oxidation(0, +E.ESO, env('KEEP', 1700));
   if (E.DSIG !== undefined || E.DTAU !== undefined || E.DCPL !== undefined) w.fl_set_draft_model(env('DSIG', 60), env('DTAU', 0.8), env('DCPL', 3));
   w.fl_reset(); w.fl_set_view(env('VIEW', 0)); w.fl_strike(0);
