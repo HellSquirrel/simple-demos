@@ -56,6 +56,10 @@ const ABEL_R: usize = HEAD_X; // half-width of the slice about the wick axis, ce
 const ABEL_NORM: f32 = 1.0 / 20.0; // divides the projected intensity by a typical chord (20 cells) so exposure values stay comparable
 const ENC_N: usize = 65536; // tone-curve table entries over [0, ENC_VMAX] linear
 const ENC_VMAX: f32 = 24.0;
+const BLOOM_DS: usize = 4; // the bloom is a Gaussian of the linear image at 1/4 resolution: a camera's veiling glare
+pub const BW: usize = W / BLOOM_DS;
+pub const BH: usize = H / BLOOM_DS;
+const BLOOM_SIGMA: f32 = 1.5; // in bloom pixels: 1.5 mm
 
 // ---------------------------------------------------------------- spectral tables
 const C2: f64 = 1.4387769e7; // nm*K
@@ -311,6 +315,7 @@ pub struct Sim {
     abel: Vec<f32>, // line-of-sight weights, two per (ray m, annulus n): own side and other side of the slice (see new())
     expo: f32, chemi_gain: f32, view: u32,
     lin: Vec<f32>, pix: Vec<u8>, enc: Vec<u8>, taps: Vec<([u32; 4], [f32; 4])>, rowbuf: Vec<f32>,
+    output: u32, bloom: Vec<f32>, bloom0: Vec<f32>, bloom_w: Vec<f32>, // 0: 8-bit pixels at 2x; 1: linear light + bloom for a GPU presenter
     pub stats: [f32; 24], spark_buf: [f32; MAX_SPARKS * 5], scratch: [f32; 4],
     pub sim_ms: f32,
 }
@@ -337,7 +342,7 @@ impl Sim {
         let chemi = [(c[0] / c[1]) as f32, 1.0, (c[2] / c[1]) as f32];
         // the three Arrhenius rates, integrated over one substep, as functions of temperature (the hot loop then
         // does one table lookup instead of exp calls). Same formulas as before, evaluated once in f64.
-        let rate = Self::rate_table(1.0);
+        let rate = Self::rate_table(1.0, 1.0, ESO as f64);
         // Abel projection of the slice: the camera sees an optically thin, roughly axisymmetric flame, so the intensity at
         // offset x from the axis is the integral of the slice emission along the chord through all annuli at r >= x.
         // Cell n on one side of the axis is the annulus [n, n+1]; the ray through cell m is at x = m + 0.5.
@@ -377,6 +382,8 @@ impl Sim {
             lin: vec![0.0; N * 3], pix: vec![0; UW * UH * 4], enc,
             taps: (0..UW).map(|x| { let (q, w) = cubic_taps(x, W); ([q[0] as u32 * 3, q[1] as u32 * 3, q[2] as u32 * 3, q[3] as u32 * 3], w) }).collect(),
             rowbuf: vec![0.0; W * 3],
+            output: 0, bloom: vec![0.0; BW * BH * 3], bloom0: vec![0.0; BW * BH * 3],
+            bloom_w: (-4..=4).map(|i| (-(i * i) as f32 / (2.0 * BLOOM_SIGMA * BLOOM_SIGMA)).exp()).collect::<Vec<f32>>(),
             stats: [0.0; 24], spark_buf: [0.0; MAX_SPARKS * 5], scratch: [0.0; 4], sim_ms: 0.0,
         };
         sim.set_wb(2800.0);
@@ -385,11 +392,11 @@ impl Sim {
     }
 
     /// The three Arrhenius rates integrated over one substep, per kelvin; `a_scale` multiplies the burn pre-exponential.
-    fn rate_table(a_scale: f64) -> Vec<f32> {
+    fn rate_table(a_scale: f64, so_scale: f64, eso: f64) -> Vec<f32> {
         let mut rate = vec![0f32; RT_N * 3];
         for n in 0..RT_N {
             let t = RT_MIN as f64 + n as f64;
-            let (dt, a, ea, sf, esf, so, eso) = (SUB_DT as f64, A as f64 * a_scale, EA as f64, SF as f64, ESF as f64, SO as f64, ESO as f64);
+            let (dt, a, ea, sf, esf, so) = (SUB_DT as f64, A as f64 * a_scale, EA as f64, SF as f64, ESF as f64, SO as f64 * so_scale);
             rate[n * 3] = (1.0 - (-a * (-ea / t).exp() * dt).exp()) as f32; // fraction of the limiting reactant burned
             rate[n * 3 + 1] = (dt * sf * (-esf / t).exp()) as f32; // soot formed per unit fuel
             rate[n * 3 + 2] = (dt * so * (-eso / t).exp()) as f32; // soot oxidation coefficient, times (O2 + OH proxy)
@@ -847,6 +854,45 @@ impl Sim {
                 }
             }
         }
+        if self.output == 1 {
+            // GPU presenter: it samples `lin` itself; here only the bloom, a Gaussian of the linear image at 1/4 resolution
+            let Sim { lin, bloom, bloom0, bloom_w, .. } = self;
+            let inv = 1.0 / (BLOOM_DS * BLOOM_DS) as f32;
+            for by in 0..BH {
+                for bx in 0..BW {
+                    let (mut r, mut g, mut b) = (0f32, 0f32, 0f32);
+                    for dy in 0..BLOOM_DS { for dx in 0..BLOOM_DS { let o = ((by * BLOOM_DS + dy) * W + bx * BLOOM_DS + dx) * 3; r += lin[o]; g += lin[o + 1]; b += lin[o + 2]; } }
+                    let o = (by * BW + bx) * 3;
+                    bloom0[o] = r * inv; bloom0[o + 1] = g * inv; bloom0[o + 2] = b * inv;
+                }
+            }
+            let wsum: f32 = bloom_w.iter().sum();
+            for by in 0..BH { // rows
+                for bx in 0..BW {
+                    let (mut r, mut g, mut b) = (0f32, 0f32, 0f32);
+                    for (t, w) in bloom_w.iter().enumerate() { let sx = (bx as i32 + t as i32 - 4).clamp(0, BW as i32 - 1) as usize; let o = (by * BW + sx) * 3; r += w * bloom0[o]; g += w * bloom0[o + 1]; b += w * bloom0[o + 2]; }
+                    let o = (by * BW + bx) * 3; bloom[o] = r / wsum; bloom[o + 1] = g / wsum; bloom[o + 2] = b / wsum;
+                }
+            }
+            for by in 0..BH { // columns, back into bloom0 then swap
+                for bx in 0..BW {
+                    let (mut r, mut g, mut b) = (0f32, 0f32, 0f32);
+                    for (t, w) in bloom_w.iter().enumerate() { let sy = (by as i32 + t as i32 - 4).clamp(0, BH as i32 - 1) as usize; let o = (sy * BW + bx) * 3; r += w * bloom[o]; g += w * bloom[o + 1]; b += w * bloom[o + 2]; }
+                    let o = (by * BW + bx) * 3; bloom0[o] = r / wsum; bloom0[o + 1] = g / wsum; bloom0[o + 2] = b / wsum;
+                }
+            }
+            std::mem::swap(bloom, bloom0);
+            let st = &mut self.stats;
+            st[0] = sx * CELL_AREA; st[1] = sy * CELL_AREA; st[2] = sz * CELL_AREA;
+            st[3] = if ws > 1e-3 { wt / ws } else { 0.0 };
+            if sy > 1e-3 { st[4] = cx / sy; st[5] = cy / sy; } else if st[4] == 0.0 { st[4] = HEAD_X as f32; st[5] = 120.0; }
+            st[6] = HEAD0 + self.burned;
+            st[7] = self.phase as u32 as f32;
+            st[8] = self.h; st[9] = self.ember; st[10] = self.burned; st[11] = self.since;
+            st[12] = self.qrel; st[13] = self.qrad; st[14] = self.sparks.len().min(MAX_SPARKS) as f32;
+            st[15] = self.time; st[16] = self.sim_ms;
+            return;
+        }
         // 2x upsample in linear light with a separable Catmull-Rom (bicubic) kernel: blend four source rows once per
         // output row, then four columns per pixel from a precomputed tap table. The camera view then goes through the
         // tone table, so the bright core is clipped at the upsampled resolution rather than at the cell grid.
@@ -907,7 +953,12 @@ impl Sim {
     pub fn set_wick(&mut self, curl: f32, supply_sigma: f32) { self.curl = curl.clamp(-20.0, 20.0); self.supply_sigma = supply_sigma.clamp(0.0, 0.5); }
     pub fn set_draft_model(&mut self, sigma: f32, tau: f32, coupling: f32) { self.draft_sigma = sigma.max(0.0); self.draft_tau = tau.max(0.05); self.draft_coupling = coupling.max(0.0); }
     pub fn set_krad(&mut self, scale: f32) { self.krad = KRAD * scale.max(0.0); }
-    pub fn set_chem(&mut self, a_scale: f32, q_scale: f32) { self.rate = Self::rate_table(a_scale.max(0.01) as f64); self.q = Q * q_scale.max(0.1); }
+    pub fn set_chem(&mut self, a_scale: f32, q_scale: f32) { self.rate = Self::rate_table(a_scale.max(0.01) as f64, 1.0, ESO as f64); self.q = Q * q_scale.max(0.1); }
+    /// Soot burnout kinetics: pre-exponential scale and activation temperature (K); the rate at `keep_k` is held fixed when `so_scale` is 0.
+    pub fn set_oxidation(&mut self, so_scale: f32, eso: f32, keep_k: f32) {
+        let scale = if so_scale > 0.0 { so_scale as f64 } else { ((eso as f64 - ESO as f64) / keep_k as f64).exp() };
+        self.rate = Self::rate_table(1.0, scale, eso as f64);
+    }
     /// RMS over interior cells of the projection residual: divergence minus the thermal-expansion target.
     pub fn divergence_rms(&self) -> f32 {
         let (u, v, r, t) = (&self.u, &self.v, &self.r, &self.t);
@@ -972,9 +1023,14 @@ fn sim() -> &'static mut Sim { unsafe { SIM.as_mut().unwrap_unchecked() } }
 #[no_mangle] pub extern "C" fn fl_set_draft_model(sigma: f32, tau: f32, coupling: f32) { sim().set_draft_model(sigma, tau, coupling); }
 #[no_mangle] pub extern "C" fn fl_set_krad(scale: f32) { sim().set_krad(scale); }
 #[no_mangle] pub extern "C" fn fl_set_chem(a_scale: f32, q_scale: f32) { sim().set_chem(a_scale, q_scale); }
+#[no_mangle] pub extern "C" fn fl_set_oxidation(so_scale: f32, eso: f32, keep_k: f32) { sim().set_oxidation(so_scale, eso, keep_k); }
 #[no_mangle] pub extern "C" fn fl_grey_rgb(t: f32, gain: f32) { sim().grey_rgb(t, gain); }
 #[no_mangle] pub extern "C" fn fl_visible_share(t: f32) -> f32 { visible_share(t as f64) as f32 }
 #[no_mangle] pub extern "C" fn fl_pixels() -> *const u8 { sim().pix.as_ptr() }
+#[no_mangle] pub extern "C" fn fl_set_output(mode: u32) { sim().output = mode; }
+#[no_mangle] pub extern "C" fn fl_linear() -> *const f32 { sim().lin.as_ptr() }
+#[no_mangle] pub extern "C" fn fl_bloom() -> *const f32 { sim().bloom.as_ptr() }
+#[no_mangle] pub extern "C" fn fl_bloomdims() -> u32 { ((BW as u32) << 16) | BH as u32 }
 #[no_mangle] pub extern "C" fn fl_stats() -> *const f32 { sim().stats.as_ptr() }
 #[no_mangle] pub extern "C" fn fl_sparks() -> *const f32 { sim().spark_buf.as_ptr() }
 #[no_mangle] pub extern "C" fn fl_matrix() -> *const f32 { sim().m.as_ptr() }

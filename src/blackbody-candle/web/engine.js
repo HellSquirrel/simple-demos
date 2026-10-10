@@ -8,8 +8,8 @@ async function makeWasmEngine(b64) {
   const { instance } = await WebAssembly.instantiate(bytes, {});
   const w = instance.exports;
   w.fl_init(); w.fl_seed((Math.random() * 4294967296) >>> 0);
-  const d = w.fl_dims(), W = d >>> 16, H = d & 0xffff, u = w.fl_updims(), UW = u >>> 16, UH = u & 0xffff;
-  let buf = null, S, SP, M, SC, PX;
+  const d = w.fl_dims(), W = d >>> 16, H = d & 0xffff, u = w.fl_updims(), UW = u >>> 16, UH = u & 0xffff, bd = w.fl_bloomdims(), BW = bd >>> 16, BH = bd & 0xffff;
+  let buf = null, S, SP, M, SC, PX, LIN, BLOOM;
   const views = () => {
     if (buf === w.memory.buffer) return;
     buf = w.memory.buffer;
@@ -18,6 +18,8 @@ async function makeWasmEngine(b64) {
     M = new Float32Array(buf, w.fl_matrix(), 9);
     SC = new Float32Array(buf, w.fl_scratch(), 4);
     PX = new Uint8ClampedArray(buf, w.fl_pixels(), UW * UH * 4);
+    LIN = new Float32Array(buf, w.fl_linear(), W * H * 3);
+    BLOOM = new Float32Array(buf, w.fl_bloom(), BW * BH * 3);
   };
   views();
   const stats = {};
@@ -29,7 +31,7 @@ async function makeWasmEngine(b64) {
   };
   let room = [0.209, 1, 1];
   const eng = {
-    name: 'wasm', W, H, UW, UH, headX: w.fl_head_x(), stats,
+    name: 'wasm', W, H, UW, UH, BW, BH, headX: w.fl_head_x(), stats,
     step: dt => { w.fl_step(dt); },
     render: () => { w.fl_render(); sync(); },
     strike: sp => { const r = w.fl_strike(sp ? 1 : 0); w.fl_render(); sync(); return r; },
@@ -40,6 +42,9 @@ async function makeWasmEngine(b64) {
     setCamera: (expo, wb, chemi) => { w.fl_set_camera(expo, wb, chemi); views(); },
     setView: v => w.fl_set_view(VIEW_CODE[v]),
     pixels: () => { views(); return PX; },
+    linear: () => { views(); return LIN; },   // W x H x RGB, linear light after exposure (camera view) or 0..1 map values
+    bloom: () => { views(); return BLOOM; },  // BW x BH x RGB, Gaussian of the camera image at 1/4 resolution
+    setOutput: m => w.fl_set_output(m),        // 0: 8-bit pixels at 2x; 1: linear + bloom only
     sparks: () => { const out = []; for (let i = 0; i < stats.nsparks; i++) out.push([SP[i * 5], SP[i * 5 + 1], SP[i * 5 + 2], SP[i * 5 + 3], SP[i * 5 + 4]]); return out; },
     greyRgb: (T, gain) => { w.fl_grey_rgb(T, gain); views(); return [SC[0], SC[1], SC[2]]; },
     matrix: () => { views(); return M; },

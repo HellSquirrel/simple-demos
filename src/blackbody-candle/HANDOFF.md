@@ -86,6 +86,19 @@ filtered most of it out). Measured with `FLICKER=1 node tools/snapshot.js`: sway
 brightness σ 4 % at draft 1x; sway σ 2.5 mm at 3x. Vorticity confinement does nothing for the dance.
 Knobs: `fl_set_wick(curl, supply_sigma)`, `fl_set_draft_model(sigma, tau, coupling)`.
 
+**Rendering (2026-10-10).** The page presents the engine's linear-light field on the GPU
+(`makePresenter` in `web/app.js`, WebGL2): Catmull-Rom over the 168 x 280 field per device pixel, a
+bloom from the engine's 1/4-resolution Gaussian (`fl_bloom`, 1.5 % of linear light: veiling glare),
+then ACES and sRGB in the shader. `fl_set_output(1)` makes the engine skip its own 2x upsample and
+tone table (shading 1.4 -> 0.5 ms); the canvas 2D path with `fl_pixels` stays as the fallback.
+Dithering is disabled (screen-door pattern otherwise). The old "room glow" was a radial gradient
+falling off within ~8 mm of the flame and read as haze; it is now a wall 12 cm behind the candle lit
+by cos(theta)/d^2, nearly flat across the window. Default exposure `EXPO0 = 1.4`. The luminous edge
+is 0.5 to 0.75 mm wide in the engine itself (sheath thickness at this grid); soot burnout activation
+(`fl_set_oxidation`) does not sharpen it. Soot carries ~20 mm above the luminous tip in the soot view:
+the model candle smokes faintly; a real one in still air closes its tip. Open physics item.
+`window.candleDebug.setBloom(k)` is a console hook for tuning.
+
 ## Where things stand (2026-10-09)
 
 - Working page with: strike (sparks), steady burn, breeze (bends, turns blue), blow out (goes out,

@@ -7,6 +7,9 @@
   try { eng = await makeWasmEngine(WASM_B64); }
   catch (e) { $('engNote').textContent = `WebAssembly failed to load here (${e && e.message || e}), so there is no flame.`; return; }
   const W = eng.W, H = eng.H, UW = eng.UW, UH = eng.UH, HX = eng.headX;
+  let BLOOM = 0.015; // a camera's veiling glare: this share of the 1.5 mm Gaussian of the linear image is added back
+  const WALL = 480; // a wall this many cells (12 cm) behind the candle is what the flame lights; irradiance goes as cos(theta) / d^2
+  window.candleDebug = { setBloom: k => { BLOOM = k; } }; // for tuning from the console
 
   // ---------- tone curve for colours drawn by the canvas API (glow, candle, sparks) ----------
   const ACES = x => { x = x < 0 ? 0 : x; const y = (x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14); return y > 1 ? 1 : y; };
@@ -17,7 +20,7 @@
 
   // ---------- camera and room settings ----------
   const CHEMI = 0.00022;               // CH*/C2* light per unit reaction rate, relative to soot
-  const EXPO0 = 1.7; // camera exposure at 0 EV; the line-of-sight projected flame is ~2.5x brighter than the old slice
+  const EXPO0 = 1.4; // camera exposure at 0 EV, set so the core is bright but not a flat clip
   const cam = { expo: EXPO0, wb: 2800 }, room = { o2: 0.209, g: 1, draft: calm ? 0 : 1 };
   let view = 'camera';
   eng.setCamera(cam.expo, cam.wb, CHEMI); eng.setRoom(room.o2, room.g, room.draft); eng.setView(view);
@@ -32,8 +35,75 @@
   function resize() {
     const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1); // full resolution up to 2x; a 3x phone gains nothing visible
     cw = cv.width = Math.round(r.width * d); ch = cv.height = Math.round(r.height * d); s = cw / W;
+    if (glx) glx.resize(cw, ch);
   }
+
+  // ---------- GPU presenter: the engine's linear-light field, resampled and tone-mapped per device pixel ----------
+  // The engine computes light per cell. Presenting it at display resolution is a resampling job, so it goes to the GPU:
+  // Catmull-Rom over the 168 x 280 field, a small bloom from the engine's 1/4-resolution Gaussian, then ACES and sRGB.
+  // Without WebGL2 the engine's own 2x 8-bit output is drawn through the canvas instead.
+  function makePresenter() {
+    const cvs = document.createElement('canvas');
+    const gl = cvs.getContext('webgl2', { alpha: false, antialias: false, depth: false, premultipliedAlpha: false });
+    if (!gl) return null;
+    const vs = `#version 300 es
+in vec2 a; out vec2 v;
+void main() { v = vec2(a.x * .5 + .5, .5 - a.y * .5); gl_Position = vec4(a, 0., 1.); }`;
+    const fs = `#version 300 es
+precision highp float;
+uniform sampler2D uLin, uBloom; uniform vec2 uSrc, uBloomSize; uniform float uTone, uBloomK;
+in vec2 v; out vec4 o;
+vec3 fetchL(ivec2 p) { return texelFetch(uLin, clamp(p, ivec2(0), ivec2(uSrc) - 1), 0).rgb; }
+vec4 cr(float t) { float t2 = t * t, t3 = t2 * t; return vec4(-t3 + 2. * t2 - t, 3. * t3 - 5. * t2 + 2., -3. * t3 + 4. * t2 + t, t3 - t2) * .5; }
+vec3 bicubic(vec2 uv) {
+  vec2 p = uv * uSrc - .5; vec2 f = fract(p); ivec2 i = ivec2(floor(p)); vec4 wx = cr(f.x), wy = cr(f.y); vec3 s = vec3(0.);
+  for (int y = -1; y <= 2; y++) { vec3 row = vec3(0.); for (int x = -1; x <= 2; x++) row += wx[x + 1] * fetchL(i + ivec2(x, y)); s += wy[y + 1] * row; }
+  return max(s, 0.);
+}
+vec3 bloomAt(vec2 uv) {
+  vec2 p = uv * uBloomSize - .5; vec2 f = fract(p); ivec2 i = ivec2(floor(p)); ivec2 m = ivec2(uBloomSize) - 1;
+  vec3 a = texelFetch(uBloom, clamp(i, ivec2(0), m), 0).rgb, b = texelFetch(uBloom, clamp(i + ivec2(1, 0), ivec2(0), m), 0).rgb;
+  vec3 c = texelFetch(uBloom, clamp(i + ivec2(0, 1), ivec2(0), m), 0).rgb, d = texelFetch(uBloom, clamp(i + ivec2(1, 1), ivec2(0), m), 0).rgb;
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+vec3 aces(vec3 x) { return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
+vec3 srgb(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1. / 2.4)) - .055, step(.0031308, c)); }
+void main() { vec3 c = bicubic(v) + uBloomK * bloomAt(v); if (uTone > .5) c = srgb(aces(c)); else c = clamp(c, 0., 1.); o = vec4(c, 1.); }`;
+    const compile = (type, src) => { const sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh); if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh)); return sh; };
+    const prog = gl.createProgram(); gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    gl.useProgram(prog);
+    gl.disable(gl.DITHER); // the 8-bit drawing buffer would otherwise get a screen-door pattern
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    const tex = (unit, w, h) => {
+      const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB32F, w, h, 0, gl.RGB, gl.FLOAT, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return t;
+    };
+    const tLin = tex(0, W, H), tBloom = tex(1, eng.BW, eng.BH);
+    const u = n => gl.getUniformLocation(prog, n);
+    gl.uniform1i(u('uLin'), 0); gl.uniform1i(u('uBloom'), 1); gl.uniform2f(u('uSrc'), W, H); gl.uniform2f(u('uBloomSize'), eng.BW, eng.BH);
+    const uTone = u('uTone'), uBloomK = u('uBloomK');
+    if (gl.getError() !== gl.NO_ERROR) throw new Error('WebGL setup failed');
+    return {
+      canvas: cvs,
+      resize(w, h) { cvs.width = w; cvs.height = h; gl.viewport(0, 0, w, h); },
+      present(tone) {
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tLin); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.RGB, gl.FLOAT, eng.linear());
+        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tBloom); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, eng.BW, eng.BH, gl.RGB, gl.FLOAT, eng.bloom());
+        gl.uniform1f(uTone, tone ? 1 : 0); gl.uniform1f(uBloomK, tone ? BLOOM : 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      },
+    };
+  }
+  let glx = null;
+  try { glx = makePresenter(); eng.setOutput(1); } catch (e) { console.warn('GPU presenter unavailable, using the canvas path:', e); glx = null; }
   new ResizeObserver(resize).observe(cv); resize();
+  if (glx) glx.resize(cw, ch);
 
   // light from the flame, as linear sRGB, at a point (cell coords)
   function flameLight(x, y, gain) {
@@ -44,22 +114,27 @@
 
   function draw() {
     const room = view === 'camera', st = eng.stats, expo = cam.expo;
-    octx.putImageData(new ImageData(eng.pixels(), UW, UH), 0, 0);
+    if (!glx) octx.putImageData(new ImageData(eng.pixels(), UW, UH), 0, 0);
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = room ? '#06090e' : '#000'; ctx.fillRect(0, 0, cw, ch);
-    if (room && st.Y > 0.05) { // the room, lit by the flame
-      const g = ctx.createRadialGradient(st.cx * s, st.cy * s, 0, st.cx * s, st.cy * s, ch * 0.9);
-      const l0 = flameLight(st.cx, st.cy, 0.004 * expo);
-      for (const r of [0, 0.08, 0.2, 0.4, 0.7, 1]) g.addColorStop(r, rgb(l0.map(v => v / (1 + (r / 0.12) ** 2)), 1));
+    if (room && st.Y > 0.05) { // the wall behind the candle, lit by the flame: E(r) = E0 · (WALL² / (WALL² + r²))^1.5, r in the wall plane
+      const R = ch * 1.3, g = ctx.createRadialGradient(st.cx * s, st.cy * s, 0, st.cx * s, st.cy * s, R);
+      const l0 = flameLight(st.cx, st.cy, 0.0022 * expo);
+      for (const f of [0, 0.25, 0.5, 0.75, 1]) { const d = f * R / s, e = Math.pow(WALL * WALL / (WALL * WALL + d * d), 1.5); g.addColorStop(f, rgb(l0.map(v => v * e), 1)); }
       ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0, 0, cw, ch);
       ctx.globalCompositeOperation = 'source-over';
     }
     drawCandle(room);
     // the flame is emissive and optically thin, so it adds
     ctx.globalCompositeOperation = 'lighter';
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(off, 0, 0, cw, ch);
-    if (room) { bctx.clearRect(0, 0, blur.width, blur.height); bctx.drawImage(off, 0, 0, blur.width, blur.height); ctx.globalAlpha = 0.35; ctx.drawImage(blur, 0, 0, cw, ch); ctx.globalAlpha = 1; }
+    if (glx) {
+      glx.present(room); // resampled and tone-mapped at device resolution: a 1:1 copy, no smoothing in between
+      ctx.drawImage(glx.canvas, 0, 0);
+    } else {
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(off, 0, 0, cw, ch);
+      if (room) { bctx.clearRect(0, 0, blur.width, blur.height); bctx.drawImage(off, 0, 0, blur.width, blur.height); ctx.globalAlpha = 0.35; ctx.drawImage(blur, 0, 0, cw, ch); ctx.globalAlpha = 1; }
+    }
     drawSparks();
     ctx.globalCompositeOperation = 'source-over';
     drawScale();

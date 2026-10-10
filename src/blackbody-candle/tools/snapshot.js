@@ -15,6 +15,7 @@
 //         AS=1 QS=1           multipliers on the burn pre-exponential and the heat release per unit fuel
 //         CURL=6 SUPPLY=0.12  wick curl (cells) and vapour-supply noise; SWIRL=1 vorticity confinement
 //         FLICKER=1           after the first snapshot time, sample the light for 6 s and report sway / bob / flicker
+//         ESO=11000 KEEP=1700 soot burnout activation temperature; the rate at KEEP kelvin is held fixed
 //         DSIG=60 DTAU=0.8 DCPL=3     room-air model: wind sigma (mm/s at draft 1x), correlation time, coupling rate
 const fs = require('fs'), path = require('path');
 (async () => {
@@ -34,6 +35,7 @@ const fs = require('fs'), path = require('path');
   if (E.KRAD !== undefined) w.fl_set_krad(+E.KRAD);
   if (E.AS !== undefined || E.QS !== undefined) w.fl_set_chem(env('AS', 1), env('QS', 1));
   if (E.CURL !== undefined || E.SUPPLY !== undefined) w.fl_set_wick(env('CURL', 6), env('SUPPLY', 0.12));
+  if (E.ESO !== undefined) w.fl_set_oxidation(0, +E.ESO, env('KEEP', 1700));
   if (E.DSIG !== undefined || E.DTAU !== undefined || E.DCPL !== undefined) w.fl_set_draft_model(env('DSIG', 60), env('DTAU', 0.8), env('DCPL', 3));
   w.fl_reset(); w.fl_set_view(env('VIEW', 0)); w.fl_strike(0);
   const times = (process.env.TIMES || '0.3,2,4,8').split(',').map(Number);

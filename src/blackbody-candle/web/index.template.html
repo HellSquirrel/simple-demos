@@ -214,7 +214,7 @@ footer a { color: var(--ink); text-decoration-color: var(--ch); text-underline-o
           <tr><td>Shape</td><td>Three teardrops, four quadratic curves each</td><td>Where fuel vapour and air meet in the right ratio, on a 168 × 280 grid of 0.25 mm cells</td></tr>
           <tr><td>Movement</td><td>Three sines at 1.7, 3.3 and 7.1</td><td>Buoyancy (<code>g·ΔT/T</code>), thermal expansion, vortices, a wandering room draft with small eddies, a curled wick, and a vapour supply that fluctuates like a real capillary feed</td></tr>
           <tr><td>Colour</td><td>Three fixed rgba fills</td><td>Planck’s law times soot emissivity, integrated against the CIE 1931 observer and along the line of sight through the flame; CH* and C₂* band light for the blue base</td></tr>
-          <tr><td>Room glow</td><td>Radial gradient tied to flame size</td><td>The flame’s own summed XYZ light, falling off with distance</td></tr>
+          <tr><td>Room glow</td><td>Radial gradient tied to flame size</td><td>A wall 12 cm behind the candle, lit by the flame’s own summed XYZ light with the inverse-square law; a small veiling glare for the lens</td></tr>
           <tr><td>Story</td><td>A timed state machine</td><td>An ignition kernel and a brief flare, then wax vapour off the wick, fed by the flame’s own heat. Blow hard and the feedback collapses: the wick smoulders and smokes.</td></tr>
         </tbody>
       </table>
