@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<!-- Source for the social preview card (blackbody-candle-src.png, a 440x734 capture
+     of the flame stage, composed onto a 1200x630 canvas). Regenerate with:
+     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+       --headless=new --disable-gpu --hide-scrollbars \
+       --user-data-dir=/tmp/og-chrome \
+       --window-size=1200,630 \
+       --screenshot=public/blackbody-candle/og.png \
+       og/blackbody-candle.html -->
+<html lang="en">
+  <meta charset="utf-8" />
+  <style>
+    * {
+      margin: 0;
+    }
+    body {
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 64px;
+      font-family: "IBM Plex Sans", system-ui, sans-serif;
+      color: #e2e6ee;
+      background: radial-gradient(60rem 36rem at 32% 50%, #2a1a1c, transparent 70%),
+        #0c1119;
+    }
+    img {
+      height: 560px;
+      border-radius: 18px;
+      border: 1px solid #253047;
+      box-shadow: 0 2px 8px #00000066, 0 24px 64px #000000aa;
+    }
+    .text {
+      max-width: 620px;
+      display: grid;
+      gap: 22px;
+    }
+    .eyebrow {
+      font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8a94a8;
+    }
+    h1 {
+      font-family: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+      font-weight: 400;
+      font-size: 104px;
+      line-height: 1;
+      letter-spacing: -0.01em;
+    }
+    h1 em {
+      color: #f0b45c;
+    }
+    p {
+      font-size: 27px;
+      line-height: 1.4;
+      color: #8a94a8;
+    }
+    p b {
+      color: #a497ff;
+      font-weight: 500;
+    }
+  </style>
+  <img src="blackbody-candle-src.png" alt="" />
+  <div class="text">
+    <div class="eyebrow">acorns.nutlore.me · simple demos</div>
+    <h1>Blackbody <em>Candle</em></h1>
+    <p>A candle you can light, where nothing about the flame is hand-drawn: shape from a reacting, buoyant flow, colour from <b>Planck’s law</b> through the CIE 1931 eye.</p>
+  </div>
+</html>

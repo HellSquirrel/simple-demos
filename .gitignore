@@ -15,3 +15,8 @@ node_modules/
 # Env
 .env
 .env.*
+
+# Blackbody Candle: cargo output and tool scratch
+src/blackbody-candle/engine/target/
+snapshot.ppm
+__pycache__/
