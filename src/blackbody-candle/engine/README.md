@@ -15,6 +15,12 @@ cargo run --release --example prof     # native per-stage profile
 
 `.cargo/config.toml` enables `simd128`, `bulk-memory` and `nontrapping-fptoint`.
 
+## Layout
+
+- `src/physics.rs` — `Sim`: the reacting buoyant flow, the wick, chemistry and radiation, `step`/`strike`/`blow`/`poke`.
+- `src/render.rs` — `Renderer`: Planck × CIE tables, white balance, the Abel projection and bloom, the readings. It only reads a `Sim`.
+- `src/lib.rs` — the `fl_*` exports: one static `Sim`, one static `Renderer`.
+
 ## Using it from JS
 
 ```js

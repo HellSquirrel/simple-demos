@@ -13,7 +13,9 @@ web/index.template.html   markup + CSS, two script placeholders
 web/app.js                UI, the WebGL2 presenter, the candle and chart drawing
 web/engine.js             the JS side of the wasm engine's C ABI
 engine/                   Rust crate -> flame.wasm  (see engine/README.md for the ABI)
-  src/lib.rs              simulation, spectral tables, white balance, line-of-sight projection
+  src/physics.rs          the simulation: flow, wick, chemistry, radiation, stepping
+  src/render.rs           the light: spectral tables, white balance, line-of-sight projection, bloom, readings
+  src/lib.rs              the C ABI over the two
   examples/prof.rs        native per-stage profiler
 tools/build.py            cargo build + assemble ../../public/blackbody-candle/index.html
 tools/bench.js            Node: per-frame timings and readings
