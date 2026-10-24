@@ -19,6 +19,13 @@
     content="Throw confetti with CSS random(), count what lands inside a circle, and you have measured π. Then functions with no elementary antiderivative, and one piece of confetti thrown forever. Monte Carlo integration in pure CSS, zero JavaScript."
   />
   <meta property="og:url" content="https://acorns.nutlore.me/css-monte-carlo/" />
+  <meta property="og:image" content="https://acorns.nutlore.me/css-monte-carlo/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta
+    property="og:image:alt"
+    content="Five hundred pieces of confetti in a square with a circle drawn in it: colourful inside the circle, grey outside. 392 landed inside, so the estimate of the circle's area is 3.1360, against the exact π = 3.14159."
+  />
   <meta name="twitter:card" content="summary_large_image" />
   <style>
     /* ---------- page chrome ---------- */
@@ -116,10 +123,10 @@
 
     /* ---------- the integrands ----------
        Every integral is ∫ f(u) du over [a, b], fenced into a box of
-       height H. A dart's (x, y) ∈ [0, 1]² maps to (u, H·y) in that box;
+       height H. A piece's (x, y) ∈ [0, 1]² maps to (u, H·y) in that box;
        the box's area is A = (b − a)·H, and the hit fraction times A is
        the estimate. --exact is only used to print the error columns;
-       --sig is the textbook σ² for one dart, I·(A − I). */
+       --sig is the textbook σ² for one piece, I·(A − I). */
     body {
       --a: 0; --b: 1; --H: 4; --A: 4;
       --exact: 3.14159265;
@@ -142,15 +149,12 @@
       --la: "0"; --lb: "1"; --lH: "1.5"; --exact-t: "1.29128599…"; --A-t: "1.5";
     }
 
-    /* ---------- the darts ---------- */
-    @property --x { syntax: "<number>"; inherits: false; initial-value: 0; }
-    @property --y { syntax: "<number>"; inherits: false; initial-value: 0; }
-    @property --hit { syntax: "<number>"; inherits: false; initial-value: 0; }
-    .darts i {
-      /* registered, so each random() is drawn once and stored: one
-         dart, one (x, y), reused by every property below */
-      --x: random(0, 1);
-      --y: random(0, 1);
+    /* ---------- the pieces ---------- */
+    .pieces i {
+      /* a named, element-scoped key: every property of one piece that
+         reads var(--x) gets the same draw, so one piece has one (x, y) */
+      --x: random(--x element-scoped, 0, 1);
+      --y: random(--y element-scoped, 0, 1);
       position: absolute;
       left: calc(var(--x) * 100%);
       bottom: calc(var(--y) * 100%);
@@ -162,26 +166,26 @@
       transition: background-color 0.35s random(0s, 0.5s);
       animation: land 0.4s random(0s, 1.4s) backwards;
     }
-    :is(.darts i, .engine, .ghost) {
+    :is(.pieces i, .engine, .ghost) {
       --u: calc(var(--a) + (var(--b) - var(--a)) * var(--x));
       --f: calc(4 * sqrt(1 - var(--u) * var(--u)));
       /* 1 under the curve, 0 above it */
       --hit: max(0, sign(var(--f) - var(--H) * var(--y)));
     }
-    body:has(#f-sin:checked) :is(.darts i, .engine, .ghost) { --f: sin(var(--u)); }
-    body:has(#f-gauss:checked) :is(.darts i, .engine, .ghost) { --f: exp(-1 * var(--u) * var(--u)); }
-    body:has(#f-soph:checked) :is(.darts i, .engine, .ghost) { --f: pow(var(--u), -1 * var(--u)); }
+    body:has(#f-sin:checked) :is(.pieces i, .engine, .ghost) { --f: sin(var(--u)); }
+    body:has(#f-gauss:checked) :is(.pieces i, .engine, .ghost) { --f: exp(-1 * var(--u) * var(--u)); }
+    body:has(#f-soph:checked) :is(.pieces i, .engine, .ghost) { --f: pow(var(--u), -1 * var(--u)); }
     @keyframes land {
       from { opacity: 0; scale: 3; }
     }
 
     /* ---------- the tally ----------
        Counters only hold integers, so they count in units of 10⁻⁸:
-       a hit among N darts is worth A·10⁸/N, and the counter *is* the
-       estimate. The first 10 darts feed all three checkpoints, the
+       a hit among N pieces is worth A·10⁸/N, and the counter *is* the
+       estimate. The first 10 pieces feed all three checkpoints, the
        next 90 feed two, the last 900 one. --r* start at −exact, so they
        end at the error; --s* are the textbook σ = √(I·(A − I)/N), no
-       darts needed. */
+       pieces needed. */
     .lab {
       --r0: calc(round(var(--exact) * -1e8));
       /* +5000 = half of the last printed digit, so the printed
@@ -192,7 +196,7 @@
         s2 calc(round(sqrt(var(--sig) / 100) * 1e8))
         s3 calc(round(sqrt(var(--sig) / 1000) * 1e8));
     }
-    .darts i {
+    .pieces i {
       --w1: calc(round(var(--hit) * var(--A) * 1e7));
       --w2: calc(round(var(--hit) * var(--A) * 1e6));
       --w3: calc(round(var(--hit) * var(--A) * 1e5));
@@ -355,7 +359,7 @@
       background: linear-gradient(var(--edge) 1px, transparent 0) 0 0 / 100% 25%,
         linear-gradient(90deg, var(--edge) 1px, transparent 0) 0 0 / 25% 100%;
     }
-    .darts,
+    .pieces,
     .curve {
       position: absolute;
       inset: 0;
@@ -432,7 +436,7 @@
       .math { align-self: end; }
     }
 
-    /* ---------- one dart, thrown forever ----------
+    /* ---------- one piece, thrown forever ----------
        random() never re-rolls on a living element, but a value with a
        named key is the same value everywhere. Three step animations
        walk three lists of named random() values, 97, 89 and 83 long,
@@ -441,9 +445,6 @@
        throws. A sum of uniforms mod 1 is uniform again (the trick behind
        Wichmann-Hill, 1982), and x and y can share the third list
        without depending on each other. */
-    @property --g1 { syntax: "<number>"; inherits: true; initial-value: 0; }
-    @property --g2 { syntax: "<number>"; inherits: true; initial-value: 0; }
-    @property --g3 { syntax: "<number>"; inherits: true; initial-value: 0; }
     @property --clk { syntax: "<number>"; inherits: false; initial-value: 0; }
     @property --acc { syntax: "<number>"; inherits: false; initial-value: 0; }
     .engine {
@@ -457,8 +458,8 @@
       --y: mod(var(--g2) + var(--g3), 1);
     }
 
-    /* The dart and its trail are the same thing: dot k runs the lists
-       k steps late, so it sits where the dart landed k throws ago.
+    /* The piece and its trail are the same thing: dot k runs the lists
+       k steps late, so it sits where the piece landed k throws ago.
        Everything is a function of its age in throws, which grows
        smoothly, so nothing jumps: the newest dot fades in and sends
        out a ring, older ones slowly dim. */
@@ -488,14 +489,22 @@
     }
 
     /* The tally: two long linear clocks. --clk always runs; --acc only
-       while the dart is under the curve, which .tally learns by asking
-       its parent. So --acc / --clk is the fraction of darts that hit.
-       A new animation-name restarts both when the integrand changes. */
+       while the piece is under the curve. So --acc / --clk is the
+       fraction of pieces that hit. .tally learns about a hit from its
+       parent, .gate, which is 2px wider during one - a size query can
+       see that. (A style query can't: --hit is unregistered, so it
+       only compares the text "max(0, sign(…))".) A new animation-name
+       restarts both clocks when the integrand changes. */
+    .gate {
+      container: gate / inline-size;
+      width: calc(15rem + var(--hit) * 2px);
+    }
     .tally {
+      width: 15rem;
       animation: clk 100000s linear infinite, acc 100000s linear infinite;
       animation-play-state: running, paused;
     }
-    @container style(--hit: 1) {
+    @container gate (width > 15.05rem) {
       .tally { animation-play-state: running, running; }
     }
     body:has(#f-sin:checked) .tally { animation-name: clk-sin, acc-sin; }
@@ -528,11 +537,13 @@
     }
     .engine .pick { grid-area: pick; }
     .engine .plot { grid-area: plot; }
-    .tally {
+    .gate {
       grid-area: tally;
-      text-align: center;
       align-self: center;
+      /* centred by hand, so a hit only ever widens it to the right */
+      margin-left: max(0px, (100% - 15rem) / 2);
     }
+    .tally { text-align: center; }
     .tally .big {
       font-size: clamp(2.4rem, 11vw, 3.4rem);
       line-height: 1.1;
@@ -850,15 +861,13 @@
 
     /* ---------- +1: the obligatory confetti ----------
        A random() value belongs to its element for life, so a fixed set
-       of confetti would fly the same way on every click. Instead each
-       click flips between two hidden radios, and the confetti lives in
-       ::before in one state and ::after in the other. Every click throws
-       away one set of pseudo-elements and makes a fresh one, with fresh
-       draws - and nothing flies until the first click. */
-    @property --cx { syntax: "<length>"; inherits: false; initial-value: 0px; }
-    @property --cy { syntax: "<length>"; inherits: false; initial-value: 0px; }
-    @property --cr { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
-    @property --ch { syntax: "<number>"; inherits: false; initial-value: 0; }
+       of confetti would fly the same way on every click. Each click
+       checks the next of ten hidden radios, which sets --cs to 0…9.
+       A piece keeps two draws, u and v, and flies to mod(u + s·v, 1):
+       for s ≠ t those two points are independent, so every throw is
+       new. Even states put the confetti in ::before, odd ones in
+       ::after, which restarts the flight. (Chrome also re-rolls a
+       recreated pseudo-element; Safari keeps its values, hence s.) */
     body {
       /* flying confetti must not widen the page on phones */
       overflow-x: clip;
@@ -889,8 +898,17 @@
       transition: scale 0.1s;
     }
     .plus1 label:active { scale: 0.9; }
-    body:not(:has(#c-a:checked)) .plus1 label[for="c-a"],
-    body:has(#c-a:checked) .plus1 label[for="c-b"] { display: inline-block; }
+    body:not(:has(.plus1 input:checked)) .plus1 label[for="c-0"],
+    body:has(#c-0:checked) .plus1 label[for="c-1"],
+    body:has(#c-1:checked) .plus1 label[for="c-2"],
+    body:has(#c-2:checked) .plus1 label[for="c-3"],
+    body:has(#c-3:checked) .plus1 label[for="c-4"],
+    body:has(#c-4:checked) .plus1 label[for="c-5"],
+    body:has(#c-5:checked) .plus1 label[for="c-6"],
+    body:has(#c-6:checked) .plus1 label[for="c-7"],
+    body:has(#c-7:checked) .plus1 label[for="c-8"],
+    body:has(#c-8:checked) .plus1 label[for="c-9"],
+    body:has(#c-9:checked) .plus1 label[for="c-0"] { display: inline-block; }
     body:has(.plus1 input:focus-visible) .plus1 label {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
@@ -904,20 +922,31 @@
     }
     .confetti i::before,
     .confetti i::after {
-      --cx: random(-150px, 150px);
-      --cy: random(-170px, -50px);
-      --cr: random(-720deg, 720deg);
-      --ch: random(0, 360);
+      --cx: calc(300px * mod(random(--cx element-scoped, 0, 1) + var(--cs) * random(--cx2 element-scoped, 0, 1), 1) - 150px);
+      --cy: calc(120px * mod(random(--cy element-scoped, 0, 1) + var(--cs) * random(--cy2 element-scoped, 0, 1), 1) - 170px);
+      --cr: calc(1440deg * mod(random(--cr element-scoped, 0, 1) + var(--cs) * random(--cr2 element-scoped, 0, 1), 1) - 720deg);
+      --ch: calc(360 * mod(random(--ch element-scoped, 0, 1) + var(--cs) * random(--ch2 element-scoped, 0, 1), 1));
       position: absolute;
       width: 7px;
       height: 11px;
       margin: -5.5px 0 0 -3.5px;
       border-radius: 1.5px;
       background: oklch(0.74 0.17 var(--ch));
-      animation: confetti 1.4s forwards;
     }
-    body:has(#c-a:checked) .confetti i::before,
-    body:has(#c-b:checked) .confetti i::after { content: ""; }
+    /* the animation comes with the content: WebKit would otherwise run
+       it on the empty pseudo-element and show the piece already landed */
+    body:has(.plus1 .ev:checked) .confetti i::before,
+    body:has(.plus1 .od:checked) .confetti i::after { content: ""; animation: confetti 1.4s forwards; }
+    body { --cs: 0; --ks: 0; }
+    body:has(#c-1:checked) { --cs: 1; }
+    body:has(#c-2:checked) { --cs: 2; }
+    body:has(#c-3:checked) { --cs: 3; }
+    body:has(#c-4:checked) { --cs: 4; }
+    body:has(#c-5:checked) { --cs: 5; }
+    body:has(#c-6:checked) { --cs: 6; }
+    body:has(#c-7:checked) { --cs: 7; }
+    body:has(#c-8:checked) { --cs: 8; }
+    body:has(#c-9:checked) { --cs: 9; }
     @keyframes confetti {
       0% { translate: 0 0; rotate: 0deg; animation-timing-function: ease-out; }
       40% { translate: var(--cx) var(--cy); animation-timing-function: ease-in; }
@@ -933,8 +962,8 @@
     }
 
     /* ---------- five hundred pieces and a circle ----------
-       Same trick as the party button: every click swaps ::before for
-       ::after, so every throw is fresh. Each piece checks x² + y² < 1
+       Same trick as the party button: ten radios, mod(u + s·v, 1), and
+       ::before/::after taking turns. Each piece checks x² + y² < 1
        for itself and adds to two counters: how many landed inside, and
        the estimate, at 4·10⁸/500 per piece in units of 10⁻⁸. */
     .circle {
@@ -973,11 +1002,11 @@
     }
     .pile i::before,
     .pile i::after {
-      --x: random(-1, 1);
-      --y: random(-1, 1);
+      --x: calc(2 * mod(random(--x element-scoped, 0, 1) + var(--ks) * random(--x2 element-scoped, 0, 1), 1) - 1);
+      --y: calc(2 * mod(random(--y element-scoped, 0, 1) + var(--ks) * random(--y2 element-scoped, 0, 1), 1) - 1);
       --hit: max(0, sign(1 - var(--x) * var(--x) - var(--y) * var(--y)));
-      --ch: random(0, 360);
-      --cr: random(0deg, 360deg);
+      --ch: calc(360 * mod(random(--ch element-scoped, 0, 1) + var(--ks) * random(--ch2 element-scoped, 0, 1), 1));
+      --cr: random(--cr element-scoped, 0deg, 360deg);
       position: absolute;
       left: calc((var(--x) + 1) * 50%);
       bottom: calc((var(--y) + 1) * 50%);
@@ -990,10 +1019,18 @@
       background: color-mix(in oklab, oklch(0.74 0.17 var(--ch)) calc(var(--hit) * 100%),
         color-mix(in oklab, var(--ink-faint) 55%, transparent));
       counter-increment: k-in var(--hit) k-est calc(var(--hit) * 800000);
-      animation: drop 0.5s random(0s, 0.6s) ease-out backwards;
     }
-    body:has(#k-a:checked) .pile i::before,
-    body:has(#k-b:checked) .pile i::after { content: ""; }
+    body:has(.throw .ev:checked) .pile i::before,
+    body:has(.throw .od:checked) .pile i::after { content: ""; animation: drop 0.5s random(0s, 0.6s) ease-out backwards; }
+    body:has(#k-1:checked) { --ks: 1; }
+    body:has(#k-2:checked) { --ks: 2; }
+    body:has(#k-3:checked) { --ks: 3; }
+    body:has(#k-4:checked) { --ks: 4; }
+    body:has(#k-5:checked) { --ks: 5; }
+    body:has(#k-6:checked) { --ks: 6; }
+    body:has(#k-7:checked) { --ks: 7; }
+    body:has(#k-8:checked) { --ks: 8; }
+    body:has(#k-9:checked) { --ks: 9; }
     @keyframes drop {
       from { translate: 0 -50px; opacity: 0; }
     }
@@ -1009,8 +1046,17 @@
       transition: scale 0.1s;
     }
     .throw label:active { scale: 0.95; }
-    body:not(:has(#k-a:checked)) .throw label[for="k-a"],
-    body:has(#k-a:checked) .throw label[for="k-b"] { display: inline-block; }
+    body:not(:has(.throw input:checked)) .throw label[for="k-0"],
+    body:has(#k-0:checked) .throw label[for="k-1"],
+    body:has(#k-1:checked) .throw label[for="k-2"],
+    body:has(#k-2:checked) .throw label[for="k-3"],
+    body:has(#k-3:checked) .throw label[for="k-4"],
+    body:has(#k-4:checked) .throw label[for="k-5"],
+    body:has(#k-5:checked) .throw label[for="k-6"],
+    body:has(#k-6:checked) .throw label[for="k-7"],
+    body:has(#k-7:checked) .throw label[for="k-8"],
+    body:has(#k-8:checked) .throw label[for="k-9"],
+    body:has(#k-9:checked) .throw label[for="k-0"] { display: inline-block; }
     body:has(.throw input:focus-visible) .throw label {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
@@ -1023,9 +1069,10 @@
       font-size: 0.9rem;
       color: var(--ink-faint);
     }
-    .k-res { display: none; }
-    body:has(#k-a:checked, #k-b:checked) .k-res { display: block; }
-    body:has(#k-a:checked, #k-b:checked) .k-wait { display: none; }
+    .k-res,
+    .k-nope { display: none; }
+    body:has(.throw input:checked) .k-res { display: block; }
+    body:has(.throw input:checked) .k-wait { display: none; }
     .k-res .big {
       margin-top: 0.8rem;
       font-size: clamp(2.4rem, 11vw, 3.4rem);
@@ -1036,8 +1083,12 @@
       font: 500 1em ui-monospace, SFMono-Regular, Menlo, monospace;
       color: var(--ink-soft);
     }
-    .k-in::before { content: counter(k-in); }
-    .k-est > b::before { content: counter(k-est, fixed8); }
+    /* WebKit doesn't refresh counter() text when the pieces change, so
+       each throw prints into a new pseudo-element, like the pieces */
+    body:has(.throw .ev:checked) .k-in::before,
+    body:has(.throw .od:checked) .k-in::after { content: counter(k-in); }
+    body:has(.throw .ev:checked) .k-est > b::before,
+    body:has(.throw .od:checked) .k-est > b::after { content: counter(k-est, fixed8); }
 
     .nocel { display: none; }
 
@@ -1058,22 +1109,24 @@
         grid-template-areas: "pick" "nope" "math" "plot";
       }
       .lab > .nope { grid-area: nope; }
-      .darts, .readout, .table, .tally, .ghost, .confetti, .pile, .k-side { display: none; }
+      .pieces, .readout, .table, .tally, .ghost, .confetti, .pile, .throw, .k-wait { display: none; }
       /* the party button answers instead of throwing nothing */
-      body:has(#c-a:checked, #c-b:checked) .nocel { display: inline; }
+      body:has(.plus1 input:checked) .nocel { display: inline; }
+      /* the circle panel explains itself instead of offering a button */
+      .k-nope { display: block; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .darts i { animation: none; transition: none; }
-      /* the dart keeps throwing and the numbers keep counting; only
+      .pieces i { animation: none; transition: none; }
+      /* the piece keeps flying and the numbers keep counting; only
          the jumping dot and its trail go */
       .ghost { display: none; }
       .tally .still { display: block; }
       /* confetti appears where it would have landed and fades, no flight */
-      .confetti i::before,
-      .confetti i::after { animation-name: confetti-still; }
-      .pile i::before,
-      .pile i::after { animation: none; }
+      body:has(.plus1 .ev:checked) .confetti i::before,
+      body:has(.plus1 .od:checked) .confetti i::after { animation-name: confetti-still; }
+      body:has(.throw .ev:checked) .pile i::before,
+      body:has(.throw .od:checked) .pile i::after { animation: none; }
     }
   </style>
   <body>
@@ -1083,9 +1136,17 @@
       <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/random"><code>random()</code></a>
       function! This calls for confetti:
       <span class="plus1">
-        <input type="radio" name="confetti" id="c-a" aria-label="Throw confetti" />
-        <input type="radio" name="confetti" id="c-b" aria-label="Throw more confetti" />
-        <label for="c-a">🎉 Woohoo!</label><label for="c-b">🎉 Woohoo!</label>
+        <input type="radio" name="confetti" id="c-0" class="ev" aria-label="Throw confetti" />
+        <input type="radio" name="confetti" id="c-1" class="od" aria-label="Throw more confetti" />
+        <input type="radio" name="confetti" id="c-2" class="ev" aria-label="Throw more confetti" />
+        <input type="radio" name="confetti" id="c-3" class="od" aria-label="Throw more confetti" />
+        <input type="radio" name="confetti" id="c-4" class="ev" aria-label="Throw more confetti" />
+        <input type="radio" name="confetti" id="c-5" class="od" aria-label="Throw more confetti" />
+        <input type="radio" name="confetti" id="c-6" class="ev" aria-label="Throw more confetti" />
+        <input type="radio" name="confetti" id="c-7" class="od" aria-label="Throw more confetti" />
+        <input type="radio" name="confetti" id="c-8" class="ev" aria-label="Throw more confetti" />
+        <input type="radio" name="confetti" id="c-9" class="od" aria-label="Throw more confetti" />
+        <label for="c-0">🎉 Woohoo!</label><label for="c-1">🎉 Woohoo!</label><label for="c-2">🎉 Woohoo!</label><label for="c-3">🎉 Woohoo!</label><label for="c-4">🎉 Woohoo!</label><label for="c-5">🎉 Woohoo!</label><label for="c-6">🎉 Woohoo!</label><label for="c-7">🎉 Woohoo!</label><label for="c-8">🎉 Woohoo!</label><label for="c-9">🎉 Woohoo!</label>
         <span class="confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
       </span>
       <span class="nocel" role="status">(no confetti here, sorry: this browser
@@ -1109,11 +1170,25 @@
       </div>
       <div class="k-side">
         <span class="throw">
-          <input type="radio" name="pile" id="k-a" aria-label="Throw 500 pieces of confetti" />
-          <input type="radio" name="pile" id="k-b" aria-label="Throw 500 more" />
-          <label for="k-a">Throw 500 pieces</label><label for="k-b">Throw 500 pieces</label>
+          <input type="radio" name="pile" id="k-0" class="ev" aria-label="Throw 500 pieces of confetti" />
+          <input type="radio" name="pile" id="k-1" class="od" aria-label="Throw 500 more" />
+          <input type="radio" name="pile" id="k-2" class="ev" aria-label="Throw 500 more" />
+          <input type="radio" name="pile" id="k-3" class="od" aria-label="Throw 500 more" />
+          <input type="radio" name="pile" id="k-4" class="ev" aria-label="Throw 500 more" />
+          <input type="radio" name="pile" id="k-5" class="od" aria-label="Throw 500 more" />
+          <input type="radio" name="pile" id="k-6" class="ev" aria-label="Throw 500 more" />
+          <input type="radio" name="pile" id="k-7" class="od" aria-label="Throw 500 more" />
+          <input type="radio" name="pile" id="k-8" class="ev" aria-label="Throw 500 more" />
+          <input type="radio" name="pile" id="k-9" class="od" aria-label="Throw 500 more" />
+          <label for="k-0">Throw 500 pieces</label><label for="k-1">Throw 500 pieces</label><label for="k-2">Throw 500 pieces</label><label for="k-3">Throw 500 pieces</label><label for="k-4">Throw 500 pieces</label><label for="k-5">Throw 500 pieces</label><label for="k-6">Throw 500 pieces</label><label for="k-7">Throw 500 pieces</label><label for="k-8">Throw 500 pieces</label><label for="k-9">Throw 500 pieces</label>
         </span>
         <p class="k-wait">The square is empty. Go on.</p>
+        <p class="k-nope">
+          No confetti here, sorry: this panel needs CSS <code>random()</code>,
+          and this browser doesn't support it yet. In Chrome 156+, Safari
+          26.2+ or Firefox Nightly, a button here throws 500 pieces at the
+          circle and counts how many land inside.
+        </p>
         <div class="k-res">
           <div class="big num k-est" aria-hidden="true"><b></b>.<b></b></div>
           <p>
@@ -1135,34 +1210,78 @@
     </p>
     <p>
       Every piece of confetti is an empty <code>&lt;i&gt;</code> element.
-      CSS throws it to a random point, checks whether it's inside or outside
+      CSS throws it to a random position, checks whether it's inside or outside
       the circle, and counts the hits. BTW, this demo is JavaScript-free.
       Doing maths in JavaScript would be very boring.
     </p>
 
+    <details class="panel">
+      <summary>How CSS throws fresh confetti on each click</summary>
+      <h3>Fresh confetti on every click</h3>
+      <p>
+        A piece keeps its random values for life, so the button can't simply
+        re-roll them. Instead, it cycles through ten hidden radio inputs.
+        Clicking a label checks the next one - HTML handles that for us - and
+        CSS uses <code>:has()</code> to turn the checked radio into a number
+        <var>s</var> from 0 to 9.
+      </p>
+      <p>
+        Each piece keeps two random numbers, <var>u</var> and <var>v</var>,
+        and flies to <code>mod(u + s·v, 1)</code>. Two different values of
+        <var>s</var> give two independent positions, so every throw looks
+        new. Even states draw the confetti in <code>::before</code>, odd ones
+        in <code>::after</code>. A brand-new pseudo-element plays its
+        animation from the start, so the confetti flies again.
+      </p>
+      <pre class="panel"><code>body:has(#c-1:checked) { --s: 1; }   /* … up to 9 */
+
+  .confetti i::before,
+  .confetti i::after {
+    --cx: calc(300px * mod(random(--cx element-scoped, 0, 1)
+             + var(--s) * random(--cx2 element-scoped, 0, 1), 1) - 150px);
+  }
+  body:has(.ev:checked) .confetti i::before,
+  body:has(.od:checked) .confetti i::after { content: ""; }</code></pre>
+      <p>
+        After ten clicks the confetti repeats. Chrome hides that by giving
+        a recreated pseudo-element fresh values; Safari keeps the old ones.
+      </p>
+    </details>
+
     <h2>Congratulations, you just did Monte Carlo integration</h2>
     <p>
-      Measuring things by throwing random stuff at them has a name: the
+      Estimating things with random samples is called the
       <a href="https://en.wikipedia.org/wiki/Monte_Carlo_method">Monte Carlo method</a>.
-      In 1946 the mathematician Stanisław Ulam was recovering from an
-      illness, playing a lot of solitaire, and wondered how often a game can
-      be won. The odds were too hard to calculate, so he figured it was
-      easier to deal a few hundred games and count. John von Neumann turned
-      the idea into a program that simulated neutrons at Los Alamos, and
-      <a href="https://mcnp.lanl.gov/pdf_files/Article_1987_LAS_Metropolis_125--130.pdf">Nicholas Metropolis named it after the casino in Monaco</a>: Ulam's uncle
-      used to borrow money from relatives because he “just had to go to
-      Monte Carlo.”
+    </p>
+    <details class="panel">
+      <summary>Why Monte Carlo?</summary>
+      <p>
+        In 1946 the mathematician Stanisław Ulam was recovering from an
+        illness, playing a lot of solitaire, and wondered how often a game can
+        be won. The odds were too hard to calculate, so he figured it was
+        easier to deal a few hundred games and count. John von Neumann turned
+        the idea into a program that simulated neutrons at Los Alamos, and
+        <a href="https://mcnp.lanl.gov/pdf_files/Article_1987_LAS_Metropolis_125--130.pdf">Nicholas Metropolis named it after the casino in Monaco</a>: Ulam's uncle
+        used to borrow money from relatives because he “just had to go to
+        Monte Carlo.”
+      </p>
+    </details>
+
+    <h2>A thousand pieces, one estimate</h2>
+    <p>
+      Now let's estimate an integral. We'll scatter a fixed batch of confetti
+      across a box and use the fraction below the curve to estimate its area.
     </p>
     <p>
-      The same trick works for the area under a curve. Take a nonnegative
-      function over an interval and draw a box around the area beneath it.
+      Take a nonnegative function over an interval and draw a box around
+      the area beneath it.
       Throw confetti across the box, count the fraction below the curve,
       and multiply by the box's area. That gives us an estimate of the
       definite integral.
     </p>
     <p>
-      Below, a thousand pieces of confetti try four functions. They're dots
-      now; they're at work. The first is our quarter circle, stretched
+      Below, a thousand pieces of confetti try four functions. We've shrunk
+      them to fit; they're at work now. The first is our quarter circle, stretched
       vertically by four. Two others, the bell curve and the sophomore's
       dream, have no elementary antiderivative. The confetti doesn't care.
     </p>
@@ -1202,7 +1321,7 @@
 
       <div class="plot" aria-hidden="true">
         <div class="box">
-          <div class="darts"><span class="d1"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="d2"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="d3"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+          <div class="pieces"><span class="d1"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="d2"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="d3"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
           <svg class="curve" viewBox="0 0 1 1" preserveAspectRatio="none">
             <path class="c-pi" d="M0.0000 0.0000 L0.0166 0.0001 L0.0331 0.0005 L0.0494 0.0012 L0.0656 0.0022 L0.0816 0.0033 L0.0975 0.0048 L0.1133 0.0064 L0.1289 0.0083 L0.1444 0.0105 L0.1597 0.0128 L0.1749 0.0154 L0.1900 0.0182 L0.2049 0.0212 L0.2197 0.0244 L0.2344 0.0279 L0.2489 0.0315 L0.2633 0.0353 L0.2775 0.0393 L0.2916 0.0435 L0.3056 0.0478 L0.3194 0.0524 L0.3331 0.0571 L0.3466 0.0620 L0.3600 0.0670 L0.3733 0.0723 L0.3864 0.0777 L0.3994 0.0832 L0.4122 0.0889 L0.4249 0.0948 L0.4375 0.1008 L0.4499 0.1069 L0.4622 0.1132 L0.4744 0.1197 L0.4864 0.1263 L0.4983 0.1330 L0.5100 0.1398 L0.5216 0.1468 L0.5331 0.1539 L0.5444 0.1612 L0.5556 0.1685 L0.5666 0.1760 L0.5775 0.1836 L0.5883 0.1913 L0.5989 0.1992 L0.6094 0.2071 L0.6197 0.2152 L0.6299 0.2233 L0.6400 0.2316 L0.6499 0.2400 L0.6597 0.2485 L0.6694 0.2571 L0.6789 0.2658 L0.6883 0.2745 L0.6975 0.2834 L0.7066 0.2924 L0.7156 0.3014 L0.7244 0.3106 L0.7331 0.3198 L0.7416 0.3292 L0.7500 0.3386 L0.7583 0.3481 L0.7664 0.3576 L0.7744 0.3673 L0.7822 0.3770 L0.7899 0.3868 L0.7975 0.3967 L0.8049 0.4066 L0.8122 0.4167 L0.8194 0.4267 L0.8264 0.4369 L0.8333 0.4471 L0.8400 0.4574 L0.8466 0.4678 L0.8531 0.4782 L0.8594 0.4887 L0.8656 0.4992 L0.8716 0.5098 L0.8775 0.5204 L0.8833 0.5311 L0.8889 0.5419 L0.8944 0.5527 L0.8997 0.5635 L0.9049 0.5744 L0.9100 0.5854 L0.9149 0.5964 L0.9197 0.6074 L0.9244 0.6185 L0.9289 0.6296 L0.9333 0.6408 L0.9375 0.6520 L0.9416 0.6633 L0.9456 0.6745 L0.9494 0.6859 L0.9531 0.6972 L0.9566 0.7086 L0.9600 0.7200 L0.9633 0.7314 L0.9664 0.7429 L0.9694 0.7544 L0.9722 0.7659 L0.9749 0.7775 L0.9775 0.7891 L0.9799 0.8007 L0.9822 0.8123 L0.9844 0.8239 L0.9864 0.8356 L0.9883 0.8472 L0.9900 0.8589 L0.9916 0.8706 L0.9931 0.8824 L0.9944 0.8941 L0.9956 0.9058 L0.9966 0.9176 L0.9975 0.9293 L0.9983 0.9411 L0.9989 0.9529 L0.9994 0.9647 L0.9997 0.9764 L0.9999 0.9882 L1.0000 1.0000" />
             <path class="c-sin" d="M0.0000 1.0000 L0.0083 0.9738 L0.0167 0.9477 L0.0250 0.9215 L0.0333 0.8955 L0.0417 0.8695 L0.0500 0.8436 L0.0583 0.8178 L0.0667 0.7921 L0.0750 0.7666 L0.0833 0.7412 L0.0917 0.7160 L0.1000 0.6910 L0.1083 0.6662 L0.1167 0.6416 L0.1250 0.6173 L0.1333 0.5933 L0.1417 0.5695 L0.1500 0.5460 L0.1583 0.5228 L0.1667 0.5000 L0.1750 0.4775 L0.1833 0.4554 L0.1917 0.4336 L0.2000 0.4122 L0.2083 0.3912 L0.2167 0.3707 L0.2250 0.3506 L0.2333 0.3309 L0.2417 0.3116 L0.2500 0.2929 L0.2583 0.2746 L0.2667 0.2569 L0.2750 0.2396 L0.2833 0.2229 L0.2917 0.2066 L0.3000 0.1910 L0.3083 0.1759 L0.3167 0.1613 L0.3250 0.1474 L0.3333 0.1340 L0.3417 0.1212 L0.3500 0.1090 L0.3583 0.0974 L0.3667 0.0865 L0.3750 0.0761 L0.3833 0.0664 L0.3917 0.0574 L0.4000 0.0489 L0.4083 0.0412 L0.4167 0.0341 L0.4250 0.0276 L0.4333 0.0219 L0.4417 0.0167 L0.4500 0.0123 L0.4583 0.0086 L0.4667 0.0055 L0.4750 0.0031 L0.4833 0.0014 L0.4917 0.0003 L0.5000 0.0000 L0.5083 0.0003 L0.5167 0.0014 L0.5250 0.0031 L0.5333 0.0055 L0.5417 0.0086 L0.5500 0.0123 L0.5583 0.0167 L0.5667 0.0219 L0.5750 0.0276 L0.5833 0.0341 L0.5917 0.0412 L0.6000 0.0489 L0.6083 0.0574 L0.6167 0.0664 L0.6250 0.0761 L0.6333 0.0865 L0.6417 0.0974 L0.6500 0.1090 L0.6583 0.1212 L0.6667 0.1340 L0.6750 0.1474 L0.6833 0.1613 L0.6917 0.1759 L0.7000 0.1910 L0.7083 0.2066 L0.7167 0.2229 L0.7250 0.2396 L0.7333 0.2569 L0.7417 0.2746 L0.7500 0.2929 L0.7583 0.3116 L0.7667 0.3309 L0.7750 0.3506 L0.7833 0.3707 L0.7917 0.3912 L0.8000 0.4122 L0.8083 0.4336 L0.8167 0.4554 L0.8250 0.4775 L0.8333 0.5000 L0.8417 0.5228 L0.8500 0.5460 L0.8583 0.5695 L0.8667 0.5933 L0.8750 0.6173 L0.8833 0.6416 L0.8917 0.6662 L0.9000 0.6910 L0.9083 0.7160 L0.9167 0.7412 L0.9250 0.7666 L0.9333 0.7921 L0.9417 0.8178 L0.9500 0.8436 L0.9583 0.8695 L0.9667 0.8955 L0.9750 0.9215 L0.9833 0.9477 L0.9917 0.9738 L1.0000 1.0000" />
@@ -1246,11 +1365,122 @@
       runs. It isn't a guarantee - your confetti can do worse.
     </p>
 
-    <h2>One piece of confetti</h2>
+    <details class="panel">
+      <summary>How CSS places, checks and counts the thousand pieces</summary>
+      <h3>Where a piece lands</h3>
+      <p>
+        Each piece needs two coordinates. We need to use the same numbers to
+        position it and check whether it landed inside the curve. Otherwise,
+        we'd be counting one throw and drawing another.
+      </p>
+      <p>
+        A custom property doesn't store a random number - it stores the text
+        <code>random(0, 1)</code>, and every <code>var(--x)</code> rolls again.
+        Unless the roll has a name: <code>random(--x element-scoped, 0, 1)</code>
+        gives every property of one piece the same value, and every piece its
+        own:
+      </p>
+      <pre class="panel"><code>.pieces i {
+    --x: random(--x element-scoped, 0, 1);
+    --y: random(--y element-scoped, 0, 1);
+    left: calc(var(--x) * 100%);
+    bottom: calc(var(--y) * 100%);
+  }</code></pre>
+      <p>
+        Each piece gets its own coordinates. The throw you see - the confetti
+        flying, the pieces dropping onto the plot - is a short CSS animation
+        that ends at those coordinates. Replaying the animation doesn't give
+        the piece new ones, though. Throwing the same piece again takes a
+        little more work.
+      </p>
+
+      <h3>Inside or outside</h3>
+      <p>
+        For the unit circle, a piece is inside when
+        <math><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup><mo>&lt;</mo><mn>1</mn></math>.
+        For the other curves, we map the piece's horizontal coordinate onto the
+        integration interval, calculate the function's value there, and
+        compare it with the piece's height.
+      </p>
+      <p>
+        CSS has the maths we need: <code>sqrt()</code>, <code>sin()</code>,
+        <code>exp()</code> and <code>pow()</code>. Taking <code>sign()</code>
+        of the function's value minus the piece's height gives 1 below the
+        curve, 0 on it, and -1 above it. <code>max(0, …)</code> turns this into
+        1 for a hit and 0 for a miss:
+      </p>
+      <pre class="panel"><code>--u: calc(var(--a) + (var(--b) - var(--a)) * var(--x));
+  --f: exp(-1 * var(--u) * var(--u));          /* the bell curve */
+  --hit: max(0, sign(var(--f) - var(--H) * var(--y)));
+
+  background: color-mix(in oklab, var(--hit-c) calc(var(--hit) * 100%), var(--miss-c));</code></pre>
+      <p>
+        Choose another function and CSS checks the same thousand pieces
+        against the new curve. Their positions in the plot stay the same;
+        the function, interval and box height change.
+      </p>
+
+      <h3>Counting and displaying the estimate</h3>
+      <p>
+        CSS <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Lists/Using_counters">counters</a>
+        add up the contributions from each piece. With 100 throws and a box
+        area of 4, each hit adds 4&nbsp;/&nbsp;100&nbsp;=&nbsp;0.04 to the estimate.
+      </p>
+      <p>
+        Counters only store whole numbers, so we multiply everything by
+        100&#8239;000&#8239;000. Each hit adds 4&#8239;000&#8239;000. After 78 hits, the counter holds
+        312&#8239;000&#8239;000, which represents 3.12. An unnecessarily large integer,
+        but a perfectly reasonable estimate of π.
+      </p>
+      <pre class="panel"><code>/* a hit is worth A / 100, in units of 10⁻⁸ */
+  --w: calc(round(var(--hit) * var(--A) * 1e6));
+  counter-increment: estimate var(--w);</code></pre>
+      <p>
+        The table repeats this calculation for the first 10, 100 and
+        1&#8239;000 pieces. Each hit contributes <var>A</var>/<var>N</var>,
+        where <var>A</var> is the box's area and <var>N</var> is the number
+        of throws.
+      </p>
+      <p>
+        Another counter tracks the error. It starts at the negative of the
+        known integral, scaled up by the same factor. Adding the hits leaves
+        us with the estimate minus the known answer.
+      </p>
+      <p>
+        The typical-error column uses
+        <math><msqrt><mi>I</mi><mo>(</mo><mi>A</mi><mo>−</mo><mi>I</mi><mo>)</mo><mo>/</mo><mi>N</mi></msqrt></math>,
+        where <var>I</var> is the known integral. This gives the standard
+        error for independent, uniformly distributed throws. CSS calculates
+        it in <code>counter-reset</code>. It doesn't use the actual hits -
+        this column describes how the method behaves across repeated runs.
+      </p>
+      <p>
+        <code>@counter-style</code> pads the counter to nine digits. For
+        example, <code>314159265</code> represents 3.14159265. We display it
+        twice: one copy is clipped to show the first digit, and the other is
+        shifted and clipped to show the next four. Put a decimal point between
+        them and we get <code>3.1416</code> (thanks to the rounding below).
+      </p>
+      <p>
+        The estimate counters start with an extra 5&#8239;000, equivalent to
+        0.00005, so clipping to four decimal places rounds the estimate
+        instead of truncating it.
+      </p>
+    </details>
+
+    <h2>One piece, a running estimate</h2>
     <p>
-      A thousand pieces seems excessive. Let's reuse one. Throw it, count
-      the hit or miss, and throw it again. The next panel does this ten times
-      a second.
+      A thousand pieces seems excessive. Let's reuse one. This time, we
+      want the estimate to keep updating as new throws arrive. The next
+      panel throws one piece of confetti ten times a second and keeps a running score.
+    </p>
+
+    <p>
+      Two CSS animations act as stopwatches. One measures all the time that
+      passes; the other runs only while the confetti is below the curve.
+      Each position lasts the same amount of time, so the fraction of time
+      below the curve gives us the fraction of throws that hit. Multiply
+      by the box's area, just as before, and we have our running estimate.
     </p>
 
     <section class="engine panel" aria-label="One piece of confetti, thrown forever">
@@ -1273,7 +1503,7 @@
         <span class="ax ax-a"></span><span class="ax ax-b"></span>
         <span class="ax ax-H"></span><span class="ax ax-0">0</span>
       </div>
-      <div class="tally">
+      <div class="gate"><div class="tally">
         <div class="big num t-est" aria-hidden="true"><b></b>.<b></b></div>
         <p class="sr">
           So far <span class="t-hits"></span> of <span class="t-n"></span> throws
@@ -1286,7 +1516,7 @@
         </dl>
         <p class="note">Same function as above. Choose another to restart the count.</p>
         <p class="note still">Your reduced-motion setting hides the moving confetti. The calculation still runs.</p>
-      </div>
+      </div></div>
     </section>
 
     <p>
@@ -1295,202 +1525,86 @@
       the truth before coming back. Confetti makes no promises.
     </p>
 
-    <h2>How the CSS does it</h2>
-
-    <h3>Where a piece lands</h3>
-    <p>
-      Each piece needs two coordinates. We need to use the same numbers to
-      position it and check whether it landed inside the curve. Otherwise,
-      we'd be counting one throw and drawing another. Registering
-      <code>--x</code> and <code>--y</code> as numeric custom properties makes
-      CSS resolve each random value there, so both calculations can reuse it:
-    </p>
-    <pre class="panel"><code>@property --x { syntax: "&lt;number&gt;"; inherits: false; initial-value: 0; }
-@property --y { syntax: "&lt;number&gt;"; inherits: false; initial-value: 0; }
-
-.darts i {
-  --x: random(0, 1);
-  --y: random(0, 1);
-  left: calc(var(--x) * 100%);
-  bottom: calc(var(--y) * 100%);
-}</code></pre>
-    <p>
-      Each piece gets its own coordinates. Replaying an animation doesn't
-      give it new ones, though. Throwing the same piece again takes a little
-      more work.
-    </p>
-
-    <h3>Inside or outside</h3>
-    <p>
-      For the unit circle, a piece is inside when
-      <math><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup><mo>&lt;</mo><mn>1</mn></math>.
-      For the other curves, we map the piece's horizontal coordinate onto the
-      integration interval, calculate the function's value there, and
-      compare it with the piece's height.
-    </p>
-    <p>
-      CSS has the maths we need: <code>sqrt()</code>, <code>sin()</code>,
-      <code>exp()</code> and <code>pow()</code>. Taking <code>sign()</code>
-      of the function's value minus the piece's height gives 1 below the
-      curve, 0 on it, and -1 above it. <code>max(0, …)</code> turns this into
-      1 for a hit and 0 for a miss:
-    </p>
-    <pre class="panel"><code>--u: calc(var(--a) + (var(--b) - var(--a)) * var(--x));
---f: exp(-1 * var(--u) * var(--u));          /* the bell curve */
---hit: max(0, sign(var(--f) - var(--H) * var(--y)));
-
-background: color-mix(in oklab, var(--hit-c) calc(var(--hit) * 100%), var(--miss-c));</code></pre>
-    <p>
-      Choose another function and CSS checks the same thousand pieces
-      against the new curve. Their positions in the plot stay the same;
-      the function, interval and box height change.
+    <p class="note">
+      This animation reuses random values, so its throws aren't independent.
+      Treat “typical error” as a reference, not a reliable measure of its
+      accuracy. Background tabs can also disrupt the timing; choose another
+      function or reload to restart.
     </p>
 
     <details class="panel">
-    <summary>How CSS counters calculate and display the estimate</summary>
-    <p>
-      CSS <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Lists/Using_counters">counters</a>
-      add up the contributions from each piece. With 100 throws and a box
-      area of 4, each hit adds 4&nbsp;/&nbsp;100&nbsp;=&nbsp;0.04 to the estimate.
-    </p>
-    <p>
-      Counters only store whole numbers, so we multiply everything by
-      100&#8239;000&#8239;000. Each hit adds 4&#8239;000&#8239;000. After 78 hits, the counter holds
-      312&#8239;000&#8239;000, which represents 3.12. An unnecessarily large integer,
-      but a perfectly reasonable estimate of π.
-    </p>
-    <pre class="panel"><code>/* a hit is worth A / 100, in units of 10⁻⁸ */
---w: calc(round(var(--hit) * var(--A) * 1e6));
-counter-increment: estimate var(--w);</code></pre>
-    <p>
-      The table repeats this calculation for the first 10, 100 and
-      1&#8239;000 pieces. Each hit contributes <var>A</var>/<var>N</var>,
-      where <var>A</var> is the box's area and <var>N</var> is the number
-      of throws.
-    </p>
-    <p>
-      Another counter tracks the error. It starts at the negative of the
-      known integral, scaled up by the same factor. Adding the hits leaves
-      us with the estimate minus the known answer.
-    </p>
-    <p>
-      The typical-error column uses
-      <math><msqrt><mi>I</mi><mo>(</mo><mi>A</mi><mo>−</mo><mi>I</mi><mo>)</mo><mo>/</mo><mi>N</mi></msqrt></math>,
-      where <var>I</var> is the known integral. This gives the standard
-      error for independent, uniformly distributed throws. CSS calculates
-      it in <code>counter-reset</code>. It doesn't use the actual hits -
-      this column describes how the method behaves across repeated runs.
-    </p>
-    <p>
-      <code>@counter-style</code> pads the counter to nine digits. For
-      example, <code>314159265</code> represents 3.14159265. We display it
-      twice: one copy is clipped to show the first digit, and the other is
-      shifted and clipped to show the next four. Put a decimal point between
-      them and we get <code>3.1416</code> (thanks to the rounding below).
-    </p>
-    <p>
-      The estimate counters start with an extra 5&#8239;000, equivalent to
-      0.00005, so clipping to four decimal places rounds the estimate
-      instead of truncating it.
-    </p>
+      <summary>How CSS generates the sequence and runs the stopwatches</summary>
+      <h3>Throwing one piece, again and again</h3>
+      <p>
+        The continuous sampler needs a new position every 100 ms. Putting
+        <code>random()</code> inside <code>@keyframes</code> doesn't give us a
+        fresh number on every loop. Instead, we give random values names and
+        use animations to cycle through them.
+      </p>
+      <p>
+        A call like <code>random(--g1-17, 0, 1)</code> gives a random value a
+        name. Using that name elsewhere with the same range gives us the same
+        value. Three step animations cycle through lists of named random
+        values: <code>g1</code> has 97 values, <code>g2</code> has 89, and
+        <code>g3</code> has 83. Each advances one entry every 100 ms.
+      </p>
+      <p>
+        One short list would repeat too soon. No two of these list lengths
+        share a factor greater than 1, so their positions line up again after
+        97 × 89 × 83 = 716&#8239;539 throws - nearly twenty hours.
+      </p>
+      <p>
+        To get <var>x</var>, we add the current values from <code>g1</code>
+        and <code>g3</code> and keep the fractional part. For <var>y</var>,
+        we add <code>g2</code> and <code>g3</code>. In CSS, that's
+        <code>mod(var(--g1) + var(--g3), 1)</code> for <var>x</var>, and the
+        same expression with <code>--g2</code> for <var>y</var>.
+      </p>
+      <pre class="panel"><code>@keyframes g1 {
+    0%       { --g1: random(--g1-0, 0, 1); }
+    1.03093% { --g1: random(--g1-1, 0, 1); }
+    /* … 95 more … */
+  }
+  .engine {
+    animation: g1 9700ms step-end infinite, g2 8900ms step-end infinite,
+               g3 8300ms step-end infinite;
+    --x: mod(var(--g1) + var(--g3), 1);
+    --y: mod(var(--g2) + var(--g3), 1);
+  }</code></pre>
+      <p>
+        Fifty elements draw the trail. They run the same sequence with
+        staggered delays, so each marks an earlier landing. New marks fade in
+        with a ring; older marks gradually disappear.
+      </p>
+
+      <h3>Keeping score with animation time</h3>
+      <p>
+        Two CSS animations act as stopwatches. One runs continuously; the
+        other runs only while the confetti is below the curve.
+      </p>
+      <p>
+        How does the second one know? <code>--hit</code> is still the text
+        <code>max(0, sign(…random(…)…))</code>, so a container style query
+        would only compare text. But a width can be measured: the stopwatches
+        sit inside a box that is 2px wider during a hit, and a
+        <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Container_queries">container size query</a>
+        resumes the second animation. Divide its elapsed time by the first
+        stopwatch's time, then multiply by the box's area to get the estimate:
+      </p>
+      <pre class="panel"><code>.gate {
+    container: gate / inline-size;
+    width: calc(15rem + var(--hit) * 2px);
+  }
+  .tally {
+    animation: clk 100000s linear infinite, acc 100000s linear infinite;
+    animation-play-state: running, paused;
+  }
+  @container gate (width > 15.05rem) {
+    .tally { animation-play-state: running, running; }
+  }
+
+  --est: calc(var(--A) * var(--acc) / var(--clk));</code></pre>
     </details>
-
-    <h3>Fresh confetti on every click</h3>
-    <p>
-      To get fresh confetti, the button alternates between two hidden radio
-      inputs. Clicking their labels changes which input is checked - HTML
-      handles that for us. CSS uses <code>:has()</code> to create
-      <code>::before</code> confetti in one state and <code>::after</code>
-      confetti in the other.
-    </p>
-    <pre class="panel"><code>.confetti i::before,
-.confetti i::after {
-  --cx: random(-150px, 150px);
-  --cy: random(-170px, -50px);
-  --ch: random(0, 360);
-  background: oklch(0.74 0.17 var(--ch));
-}
-body:has(#c-a:checked) .confetti i::before,
-body:has(#c-b:checked) .confetti i::after { content: ""; }</code></pre>
-
-    <h3>Throwing one piece, again and again</h3>
-    <p>
-      The continuous sampler needs a new position every 100 ms. Putting
-      <code>random()</code> inside <code>@keyframes</code> doesn't give us a
-      fresh number on every loop. Instead, we give random values names and
-      use animations to cycle through them.
-    </p>
-    <p>
-      A call like <code>random(--g1-17, 0, 1)</code> gives a random value a
-      name. Using that name elsewhere with the same range gives us the same
-      value. Three step animations cycle through lists of named random
-      values: <code>g1</code> has 97 values, <code>g2</code> has 89, and
-      <code>g3</code> has 83. Each advances one entry every 100 ms.
-    </p>
-    <p>
-      One short list would repeat too soon. No two of these list lengths
-      share a factor greater than 1, so their positions line up again after
-      97 × 89 × 83 = 716&#8239;539 throws - nearly twenty hours.
-    </p>
-    <p>
-      To get <var>x</var>, we add the current values from <code>g1</code>
-      and <code>g3</code> and keep the fractional part. For <var>y</var>,
-      we add <code>g2</code> and <code>g3</code>. In CSS, that's
-      <code>mod(var(--g1) + var(--g3), 1)</code> for <var>x</var>, and the
-      same expression with <code>--g2</code> for <var>y</var>.
-    </p>
-    <pre class="panel"><code>@keyframes g1 {
-  0%       { --g1: random(--g1-0, 0, 1); }
-  1.03093% { --g1: random(--g1-1, 0, 1); }
-  /* … 95 more … */
-}
-.engine {
-  animation: g1 9700ms step-end infinite, g2 8900ms step-end infinite,
-             g3 8300ms step-end infinite;
-  --x: mod(var(--g1) + var(--g3), 1);
-  --y: mod(var(--g2) + var(--g3), 1);
-}</code></pre>
-    <p>
-      The full sequence takes nearly twenty hours to repeat, but we're
-      reusing values from three short lists all along. These throws aren't
-      independent random samples. The “typical error” readout assumes
-      independence, so treat it as a reference here, not a reliable measure
-      of this animation's accuracy.
-    </p>
-    <p>
-      Fifty elements draw the trail. They run the same sequence with
-      staggered delays, so each marks an earlier landing. New marks fade in
-      with a ring; older marks gradually disappear.
-    </p>
-
-    <h3>Keeping score with animation time</h3>
-    <p>
-      Two CSS animations act as stopwatches. One runs continuously; the
-      other runs only while the current point is below the curve. A
-      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Container_size_and_style_queries">container style query</a>
-      checks the parent's <code>--hit</code> value and pauses or resumes the
-      second animation. Divide its elapsed time by the first stopwatch's
-      time, then multiply by the box's area to get the estimate:
-    </p>
-    <pre class="panel"><code>.tally {
-  animation: clk 100000s linear infinite, acc 100000s linear infinite;
-  animation-play-state: running, paused;
-}
-@container style(--hit: 1) {
-  .tally { animation-play-state: running, running; }
-}
-
---est: calc(var(--A) * var(--acc) / var(--clk));</code></pre>
-    <p>
-      Each position is scheduled to last 100 ms. With equal time at each
-      position, the fraction of time spent below the curve equals the
-      fraction of throws that hit.
-    </p>
-    <p>
-      Browsers can throttle background tabs, disrupting this timing and
-      distorting the estimate. Reload the page or choose another function
-      to restart.
-    </p>
 
     <h2>Why it is so slow</h2>
     <p>
