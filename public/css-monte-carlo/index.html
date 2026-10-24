@@ -872,10 +872,12 @@
       /* flying confetti must not widen the page on phones */
       overflow-x: clip;
     }
+    /* its own row, centred, so nobody reads past it */
     .plus1 {
       position: relative;
-      display: inline-block;
-      vertical-align: 0.05em;
+      display: flex;
+      justify-content: center;
+      margin: 1rem 0 0.25rem;
     }
     .plus1 input,
     .throw input {
@@ -888,16 +890,21 @@
     }
     .plus1 label {
       display: none;
-      font: 600 0.85rem/1.5 system-ui, sans-serif;
-      padding: 0.05rem 0.65rem;
+      font: 700 1.15rem/1.4 system-ui, sans-serif;
+      padding: 0.55rem 1.6rem;
       border-radius: 999px;
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent), light-dark(#8b31c9, #c77dff));
       color: light-dark(#fff, #141419);
+      box-shadow: 0 4px 16px color-mix(in oklab, var(--accent) 45%, transparent);
       cursor: pointer;
       user-select: none;
-      transition: scale 0.1s;
+      transition: scale 0.1s, translate 0.15s, box-shadow 0.15s;
     }
-    .plus1 label:active { scale: 0.9; }
+    .plus1 label:hover {
+      translate: 0 -2px;
+      box-shadow: 0 8px 22px color-mix(in oklab, var(--accent) 55%, transparent);
+    }
+    .plus1 label:active { scale: 0.92; }
     body:not(:has(.plus1 input:checked)) .plus1 label[for="c-0"],
     body:has(#c-0:checked) .plus1 label[for="c-1"],
     body:has(#c-1:checked) .plus1 label[for="c-2"],
@@ -1069,8 +1076,7 @@
       font-size: 0.9rem;
       color: var(--ink-faint);
     }
-    .k-res,
-    .k-nope { display: none; }
+    .k-res { display: none; }
     body:has(.throw input:checked) .k-res { display: block; }
     body:has(.throw input:checked) .k-wait { display: none; }
     .k-res .big {
@@ -1092,28 +1098,164 @@
 
     .nocel { display: none; }
 
-    /* ---------- no random() yet ---------- */
-    .nope {
-      display: none;
-      margin: 0;
-      padding: 0.8rem 1rem;
-      border-radius: 10px;
-      background: light-dark(#fff4e0, #3a2e17);
-      color: light-dark(#6b4a00, #f5d9a0);
-      font-size: 0.9rem;
-    }
+    /* ---------- no random() yet: a hash instead ----------
+       Browsers without random() get a stand-in that is plain Baseline
+       CSS. Every random() above becomes a hash of a number the element
+       already has: its position among its siblings. :nth-child() gives
+       that position mod 31 and mod 32; 32 ≡ 1 (mod 31) and 961 ≡ 1
+       (mod 32), so the Chinese remainder theorem puts it back together
+       as mod(r31·32 + r32·961, 992), unique up to 992 siblings.
+       The hash is Dave Hoskins' "hash without sine" (shadertoy 4djSRW),
+       built for GPU floats, so it survives a browser that does calc() in
+       single precision. On its own it leans towards 0 (10.8% of outputs
+       in the first tenth, 8.8% in the last), which would push the lab's
+       π up, so every hash gets p·0.618034 added, mod 1: an evenly spread
+       sequence that flattens the lean. It is deterministic: the same
+       confetti on every reload, and the ten radios still give ten
+       different throws. */
+    @property --t1 { syntax: "<number>"; inherits: false; initial-value: 0; }
+    @property --t2 { syntax: "<number>"; inherits: false; initial-value: 0; }
+    @property --t3 { syntax: "<number>"; inherits: false; initial-value: 0; }
     @supports not (order: random(1, 2)) {
-      .nope { display: block; }
-      .lab {
-        grid-template-columns: minmax(0, 26rem);
-        grid-template-areas: "pick" "nope" "math" "plot";
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 1) { --r31: 0; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 2) { --r31: 1; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 3) { --r31: 2; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 4) { --r31: 3; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 5) { --r31: 4; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 6) { --r31: 5; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 7) { --r31: 6; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 8) { --r31: 7; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 9) { --r31: 8; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 10) { --r31: 9; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 11) { --r31: 10; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 12) { --r31: 11; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 13) { --r31: 12; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 14) { --r31: 13; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 15) { --r31: 14; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 16) { --r31: 15; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 17) { --r31: 16; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 18) { --r31: 17; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 19) { --r31: 18; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 20) { --r31: 19; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 21) { --r31: 20; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 22) { --r31: 21; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 23) { --r31: 22; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 24) { --r31: 23; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 25) { --r31: 24; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 26) { --r31: 25; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 27) { --r31: 26; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 28) { --r31: 27; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 29) { --r31: 28; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 30) { --r31: 29; }
+      :is(.pieces, .pile, .confetti) i:nth-child(31n + 31) { --r31: 30; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 1) { --r32: 0; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 2) { --r32: 1; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 3) { --r32: 2; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 4) { --r32: 3; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 5) { --r32: 4; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 6) { --r32: 5; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 7) { --r32: 6; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 8) { --r32: 7; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 9) { --r32: 8; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 10) { --r32: 9; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 11) { --r32: 10; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 12) { --r32: 11; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 13) { --r32: 12; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 14) { --r32: 13; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 15) { --r32: 14; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 16) { --r32: 15; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 17) { --r32: 16; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 18) { --r32: 17; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 19) { --r32: 18; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 20) { --r32: 19; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 21) { --r32: 20; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 22) { --r32: 21; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 23) { --r32: 22; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 24) { --r32: 23; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 25) { --r32: 24; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 26) { --r32: 25; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 27) { --r32: 26; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 28) { --r32: 27; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 29) { --r32: 28; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 30) { --r32: 29; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 31) { --r32: 30; }
+      :is(.pieces, .pile, .confetti) i:nth-child(32n + 32) { --r32: 31; }
+
+      :is(.pieces, .pile, .confetti) i {
+        --idx: mod(var(--r31) * 32 + var(--r32) * 961, 992);
+        /* hash inputs never overlap: the lab uses 0…3999, the circle
+           4000…7999, the party button 8000…8287, the stream 8300…8582 */
+        --h0: mod((var(--seed) + 0) * 0.1031, 1);
+        --h1: mod((var(--seed) + 1) * 0.1031, 1);
+        --h2: mod((var(--seed) + 2) * 0.1031, 1);
+        --h3: mod((var(--seed) + 3) * 0.1031, 1);
+        --h4: mod((var(--seed) + 4) * 0.1031, 1);
+        --h5: mod((var(--seed) + 5) * 0.1031, 1);
+        --h6: mod((var(--seed) + 6) * 0.1031, 1);
+        --h7: mod((var(--seed) + 7) * 0.1031, 1);
+        --u0: mod(2 * pow(var(--h0) * (var(--h0) + 33.33), 2) + (var(--seed) + 0) * 0.618034, 1);
+        --u1: mod(2 * pow(var(--h1) * (var(--h1) + 33.33), 2) + (var(--seed) + 1) * 0.618034, 1);
+        --u2: mod(2 * pow(var(--h2) * (var(--h2) + 33.33), 2) + (var(--seed) + 2) * 0.618034, 1);
+        --u3: mod(2 * pow(var(--h3) * (var(--h3) + 33.33), 2) + (var(--seed) + 3) * 0.618034, 1);
+        --u4: mod(2 * pow(var(--h4) * (var(--h4) + 33.33), 2) + (var(--seed) + 4) * 0.618034, 1);
+        --u5: mod(2 * pow(var(--h5) * (var(--h5) + 33.33), 2) + (var(--seed) + 5) * 0.618034, 1);
+        --u6: mod(2 * pow(var(--h6) * (var(--h6) + 33.33), 2) + (var(--seed) + 6) * 0.618034, 1);
+        --u7: mod(2 * pow(var(--h7) * (var(--h7) + 33.33), 2) + (var(--seed) + 7) * 0.618034, 1);
       }
-      .lab > .nope { grid-area: nope; }
-      .pieces, .readout, .table, .tally, .ghost, .confetti, .pile, .throw, .k-wait { display: none; }
-      /* the party button answers instead of throwing nothing */
-      body:has(.plus1 input:checked) .nocel { display: inline; }
-      /* the circle panel explains itself instead of offering a button */
-      .k-nope { display: block; }
+
+      /* the lab: four numbers per piece, 1000 pieces in three spans */
+      .pieces i { --off: 0; --seed: calc(4 * (var(--off) + var(--idx))); }
+      .d2 i { --off: 10; }
+      .d3 i { --off: 100; }
+      .pieces i {
+        --x: var(--u0);
+        --y: var(--u1);
+        transition: background-color 0.35s calc(var(--u3) * 0.5s);
+        animation: land 0.4s calc(var(--u2) * 1.4s) backwards;
+      }
+      /* a reload would throw the same pieces */
+      .reroll { display: none; }
+
+      /* the circle and the party button: eight numbers per piece */
+      .pile i { --seed: calc(4000 + 8 * var(--idx)); }
+      .confetti i { --seed: calc(8000 + 8 * var(--idx)); }
+      .pile i::before,
+      .pile i::after {
+        --x: calc(2 * mod(var(--u0) + var(--ks) * var(--u1), 1) - 1);
+        --y: calc(2 * mod(var(--u2) + var(--ks) * var(--u3), 1) - 1);
+        --ch: calc(360 * mod(var(--u4) + var(--ks) * var(--u5), 1));
+        --cr: calc(var(--u6) * 360deg);
+      }
+      body:has(.throw .ev:checked) .pile i::before,
+      body:has(.throw .od:checked) .pile i::after { animation: drop 0.5s calc(var(--u7) * 0.6s) ease-out backwards; }
+      .confetti i::before,
+      .confetti i::after {
+        --cx: calc(300px * mod(var(--u0) + var(--cs) * var(--u1), 1) - 150px);
+        --cy: calc(120px * mod(var(--u2) + var(--cs) * var(--u3), 1) - 170px);
+        --cr: calc(1440deg * mod(var(--u4) + var(--cs) * var(--u5), 1) - 720deg);
+        --ch: calc(360 * mod(var(--u6) + var(--cs) * var(--u7), 1));
+      }
+      body:has(.plus1 input:checked) .nocel { display: block; text-align: center; font-size: 0.9rem; }
+
+      /* the stream: instead of stepping through lists of named random()
+         values, three linear clocks count 0…97, 0…89 and 0…83, and the
+         whole part of each count is hashed */
+      .engine {
+        --gen: t1 9700ms linear infinite,
+          t2 8900ms linear infinite,
+          t3 8300ms linear infinite;
+      }
+      :is(.engine, .ghost) {
+        --hg1: mod((8300 + round(down, var(--t1), 1)) * 0.1031, 1);
+        --hg2: mod((8400 + round(down, var(--t2), 1)) * 0.1031, 1);
+        --hg3: mod((8500 + round(down, var(--t3), 1)) * 0.1031, 1);
+        --g1: mod(2 * pow(var(--hg1) * (var(--hg1) + 33.33), 2) + (8300 + round(down, var(--t1), 1)) * 0.618034, 1);
+        --g2: mod(2 * pow(var(--hg2) * (var(--hg2) + 33.33), 2) + (8400 + round(down, var(--t2), 1)) * 0.618034, 1);
+        --g3: mod(2 * pow(var(--hg3) * (var(--hg3) + 33.33), 2) + (8500 + round(down, var(--t3), 1)) * 0.618034, 1);
+      }
+      @keyframes t1 { to { --t1: 97; } }
+      @keyframes t2 { to { --t2: 89; } }
+      @keyframes t3 { to { --t3: 83; } }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1132,9 +1274,9 @@
   <body>
     <h1>Precisely random(): Integrals in Pure CSS</h1>
     <p>
-      Hooray: CSS has a
+      CSS can roll dice now:
       <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/random"><code>random()</code></a>
-      function! This calls for confetti:
+      works in some browsers. Obviously, this calls for confetti:
       <span class="plus1">
         <input type="radio" name="confetti" id="c-0" class="ev" aria-label="Throw confetti" />
         <input type="radio" name="confetti" id="c-1" class="od" aria-label="Throw more confetti" />
@@ -1149,13 +1291,59 @@
         <label for="c-0">🎉 Woohoo!</label><label for="c-1">🎉 Woohoo!</label><label for="c-2">🎉 Woohoo!</label><label for="c-3">🎉 Woohoo!</label><label for="c-4">🎉 Woohoo!</label><label for="c-5">🎉 Woohoo!</label><label for="c-6">🎉 Woohoo!</label><label for="c-7">🎉 Woohoo!</label><label for="c-8">🎉 Woohoo!</label><label for="c-9">🎉 Woohoo!</label>
         <span class="confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
       </span>
-      <span class="nocel" role="status">(no confetti here, sorry: this browser
-        can't do <code>random()</code> yet. Please celebrate in Chrome 156+,
-        Safari 26.2+ or Firefox Nightly.)</span>
+      <span class="nocel" role="status">(fake confetti, but just as
+        festive - <a href="#older">why fake?</a>)</span>
     </p>
-    <p class="note">
-      Works in some browsers - <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/random#browser_compatibility">check browser support</a>.
-    </p>
+
+    <details class="panel" id="older">
+      <summary>Which browsers? And why it works in yours anyway</summary>
+      <p>
+        Real <code>random()</code> arrived in Chrome 156 and Safari 26.2,
+        and Firefox has it in Nightly.
+        <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/random#browser_compatibility">MDN keeps the up-to-date list</a>.
+      </p>
+      <p>
+        Everywhere else, the page swaps every <code>random()</code> for a
+        hash: a formula that turns a number into something that looks
+        random. Shaders on your graphics card do the same - they don't have
+        <code>random()</code> either.
+      </p>
+      <p>
+        Every piece of confetti already has a number: its position among its
+        siblings. CSS can't read it directly - <code>sibling-index()</code>
+        isn't in every browser yet - but <code>:nth-child()</code> gets
+        close. One set of rules gives the position modulo 31, another modulo
+        32, and the
+        <a href="https://en.wikipedia.org/wiki/Chinese_remainder_theorem">Chinese remainder theorem</a>
+        glues the two remainders back into the position. Then a little
+        arithmetic scrambles it:
+      </p>
+      <pre class="panel"><code>i:nth-child(31n + 5) { --r31: 4; }   /* … 31 rules */
+i:nth-child(32n + 5) { --r32: 4; }   /* … 32 rules */
+--idx: mod(var(--r31) * 32 + var(--r32) * 961, 992);
+
+/* a number in, "random" 0…1 out */
+--h: mod(var(--idx) * 0.1031, 1);
+--x: mod(2 * pow(var(--h) * (var(--h) + 33.33), 2)
+         + var(--idx) * 0.618034, 1);</code></pre>
+      <p>
+        Most of that is Dave Hoskins'
+        <a href="https://www.shadertoy.com/view/4djSRW">hash without sine</a>,
+        written for graphics cards. On its own it leans a little towards
+        small numbers, which would nudge our π up, so we add an evenly
+        spread sequence, <code>idx × 0.618034</code>, to flatten it. Each
+        coordinate hashes a different number, so <var>x</var> and
+        <var>y</var> don't follow each other. Everything after that -
+        checking the circle, counting hits, the stopwatches - is the same
+        CSS as in the newest browsers.
+      </p>
+      <p>
+        The catch: a hash isn't random. A reload throws exactly the same
+        confetti, and so does everyone else's copy of your browser. The
+        buttons still give ten different throws, and the estimates still
+        wobble like Monte Carlo estimates should.
+      </p>
+    </details>
     <p>
       That was fun. Let's throw five hundred pieces this time and, for no
       particular reason, draw a circle behind them.
@@ -1183,12 +1371,6 @@
           <label for="k-0">Throw 500 pieces</label><label for="k-1">Throw 500 pieces</label><label for="k-2">Throw 500 pieces</label><label for="k-3">Throw 500 pieces</label><label for="k-4">Throw 500 pieces</label><label for="k-5">Throw 500 pieces</label><label for="k-6">Throw 500 pieces</label><label for="k-7">Throw 500 pieces</label><label for="k-8">Throw 500 pieces</label><label for="k-9">Throw 500 pieces</label>
         </span>
         <p class="k-wait">The square is empty. Go on.</p>
-        <p class="k-nope">
-          No confetti here, sorry: this panel needs CSS <code>random()</code>,
-          and this browser doesn't support it yet. In Chrome 156+, Safari
-          26.2+ or Firefox Nightly, a button here throws 500 pieces at the
-          circle and counts how many land inside.
-        </p>
         <div class="k-res">
           <div class="big num k-est" aria-hidden="true"><b></b>.<b></b></div>
           <p>
@@ -1219,8 +1401,10 @@
       <summary>How CSS throws fresh confetti on each click</summary>
       <h3>Fresh confetti on every click</h3>
       <p>
-        A piece keeps its random values for life, so the button can't simply
-        re-roll them. Instead, it cycles through ten hidden radio inputs.
+        Every click should summon a fresh swarm of confetti. That's harder
+        than it sounds: a piece keeps its random values for life, so the
+        button can't simply re-roll them. Instead, it cycles through ten
+        hidden radio inputs.
         Clicking a label checks the next one - HTML handles that for us - and
         CSS uses <code>:has()</code> to turn the checked radio into a number
         <var>s</var> from 0 to 9.
@@ -1269,15 +1453,15 @@
 
     <h2>A thousand pieces, one estimate</h2>
     <p>
-      Now let's estimate an integral. We'll scatter a fixed batch of confetti
-      across a box and use the fraction below the curve to estimate its area.
+      Now let's estimate an integral. You might remember from school maths
+      that the area under a curve is a definite integral. And we've just
+      seen that confetti can measure areas.
     </p>
     <p>
       Take a nonnegative function over an interval and draw a box around
-      the area beneath it.
-      Throw confetti across the box, count the fraction below the curve,
-      and multiply by the box's area. That gives us an estimate of the
-      definite integral.
+      the area beneath it. Throw confetti across the box, count the
+      fraction below the curve, and multiply by the box's area. That's
+      our integral.
     </p>
     <p>
       Below, a thousand pieces of confetti try four functions. We've shrunk
@@ -1294,11 +1478,6 @@
         <input type="radio" name="f" id="f-gauss" /><label for="f-gauss">bell curve</label>
         <input type="radio" name="f" id="f-soph" /><label for="f-soph">sophomore's dream</label>
       </fieldset>
-
-      <p class="nope">
-        No confetti, sorry. This browser doesn't support CSS
-        <code>random()</code> yet.
-      </p>
 
       <div class="math">
         <div class="m-pi">
@@ -1359,10 +1538,9 @@
     </section>
 
     <p>
-      The table shows our estimate after 10, 100 and 1&#8239;000 throws.
-      “Actual error” is our estimate minus the known answer, shown without its sign. “Typical error”
-      is one standard error: how much estimates tend to vary across repeated
-      runs. It isn't a guarantee - your confetti can do worse.
+      As you can see from the table, the more we throw, the better. The
+      typical error - how much estimates wobble from run to run - shrinks
+      with every row, and the actual error usually follows it down.
     </p>
 
     <details class="panel">
@@ -1407,7 +1585,7 @@
         <code>exp()</code> and <code>pow()</code>. Taking <code>sign()</code>
         of the function's value minus the piece's height gives 1 below the
         curve, 0 on it, and -1 above it. <code>max(0, …)</code> turns this into
-        1 for a hit and 0 for a miss:
+        <code>--hit</code>: 1 for a hit and 0 for a miss:
       </p>
       <pre class="panel"><code>--u: calc(var(--a) + (var(--b) - var(--a)) * var(--x));
   --f: exp(-1 * var(--u) * var(--u));          /* the bell curve */
@@ -1470,17 +1648,19 @@
 
     <h2>One piece, a running estimate</h2>
     <p>
-      A thousand pieces seems excessive. Let's reuse one. This time, we
-      want the estimate to keep updating as new throws arrive. The next
-      panel throws one piece of confetti ten times a second and keeps a running score.
+      A thousand pieces seems excessive. Let's reuse one. The next panel
+      throws a single piece of confetti ten times a second, and every time
+      checks whether it landed below the curve or above it. Throw it
+      enough times and the score turns into our integral - one that keeps
+      updating as we go.
     </p>
 
     <p>
-      Two CSS animations act as stopwatches. One measures all the time that
-      passes; the other runs only while the confetti is below the curve.
-      Each position lasts the same amount of time, so the fraction of time
-      below the curve gives us the fraction of throws that hit. Multiply
-      by the box's area, just as before, and we have our running estimate.
+      To count in CSS, we use two animations as stopwatches. One just
+      runs; the other runs only while the piece is below the curve. Every
+      throw lasts the same 100 ms, so the ratio of the two times is the
+      fraction of throws that hit. Multiply by the box's area, just as
+      before.
     </p>
 
     <section class="engine panel" aria-label="One piece of confetti, thrown forever">
@@ -1579,17 +1759,15 @@
 
       <h3>Keeping score with animation time</h3>
       <p>
-        Two CSS animations act as stopwatches. One runs continuously; the
-        other runs only while the confetti is below the curve.
-      </p>
-      <p>
-        How does the second one know? <code>--hit</code> is still the text
-        <code>max(0, sign(…random(…)…))</code>, so a container style query
-        would only compare text. But a width can be measured: the stopwatches
+        The tricky part of the two stopwatches is the pause button: how
+        does the second one know the piece is below the curve? The piece
+        computes <code>--hit</code>, 1 below the curve and 0 above, as in the
+        thousand-pieces panel. But a custom property only stores text - here
+        <code>max(0, sign(…))</code> - so a container style query would only
+        compare text. A width can be measured, though: the stopwatches
         sit inside a box that is 2px wider during a hit, and a
         <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Container_queries">container size query</a>
-        resumes the second animation. Divide its elapsed time by the first
-        stopwatch's time, then multiply by the box's area to get the estimate:
+        resumes the second animation. The rest is one division:
       </p>
       <pre class="panel"><code>.gate {
     container: gate / inline-size;
