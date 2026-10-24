@@ -1090,7 +1090,7 @@
       </span>
       <span class="nocel" role="status">(no confetti here, sorry: this browser
         can't do <code>random()</code> yet. Please celebrate in Chrome 156+,
-        Safari 26.2+ or Firefox Nightly 158+.)</span>
+        Safari 26.2+ or Firefox Nightly.)</span>
     </p>
     <p class="note">
       Works in some browsers - <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/random#browser_compatibility">check browser support</a>.
@@ -1241,7 +1241,7 @@
 
     <p>
       The table shows our estimate after 10, 100 and 1&#8239;000 throws.
-      “Actual error” is our estimate minus the known answer. “Typical error”
+      “Actual error” is our estimate minus the known answer, shown without its sign. “Typical error”
       is one standard error: how much estimates tend to vary across repeated
       runs. It isn't a guarantee - your confetti can do worse.
     </p>
@@ -1250,7 +1250,7 @@
     <p>
       A thousand pieces seems excessive. Let's reuse one. Throw it, count
       the hit or miss, and throw it again. The next panel does this ten times
-      a second. Two CSS animations act as stopwatches to keep score.
+      a second.
     </p>
 
     <section class="engine panel" aria-label="One piece of confetti, thrown forever">
@@ -1324,7 +1324,7 @@
     <p>
       For the unit circle, a piece is inside when
       <math><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup><mo>&lt;</mo><mn>1</mn></math>.
-      For the other curves, we map its horizontal coordinate onto the
+      For the other curves, we map the piece's horizontal coordinate onto the
       integration interval, calculate the function's value there, and
       compare it with the piece's height.
     </p>
@@ -1355,8 +1355,8 @@ background: color-mix(in oklab, var(--hit-c) calc(var(--hit) * 100%), var(--miss
     </p>
     <p>
       Counters only store whole numbers, so we multiply everything by
-      100,000,000. Each hit adds 4,000,000. After 78 hits, the counter holds
-      312,000,000, which represents 3.12. An unnecessarily large integer,
+      100&#8239;000&#8239;000. Each hit adds 4&#8239;000&#8239;000. After 78 hits, the counter holds
+      312&#8239;000&#8239;000, which represents 3.12. An unnecessarily large integer,
       but a perfectly reasonable estimate of π.
     </p>
     <pre class="panel"><code>/* a hit is worth A / 100, in units of 10⁻⁸ */
@@ -1386,10 +1386,10 @@ counter-increment: estimate var(--w);</code></pre>
       example, <code>314159265</code> represents 3.14159265. We display it
       twice: one copy is clipped to show the first digit, and the other is
       shifted and clipped to show the next four. Put a decimal point between
-      them and we get <code>3.1415</code>.
+      them and we get <code>3.1416</code> (thanks to the rounding below).
     </p>
     <p>
-      The estimate counters start with an extra 5,000, equivalent to
+      The estimate counters start with an extra 5&#8239;000, equivalent to
       0.00005, so clipping to four decimal places rounds the estimate
       instead of truncating it.
     </p>
@@ -1430,7 +1430,7 @@ body:has(#c-b:checked) .confetti i::after { content: ""; }</code></pre>
     <p>
       One short list would repeat too soon. No two of these list lengths
       share a factor greater than 1, so their positions line up again after
-      97 × 89 × 83 = 716,539 throws - nearly twenty hours.
+      97 × 89 × 83 = 716&#8239;539 throws - nearly twenty hours.
     </p>
     <p>
       To get <var>x</var>, we add the current values from <code>g1</code>
@@ -1497,7 +1497,7 @@ body:has(#c-b:checked) .confetti i::after { content: ""; }</code></pre>
       For independent throws, the standard error shrinks as
       <math><mn>1</mn><mo>/</mo><msqrt><mi>N</mi></msqrt></math>.
       Making it ten times smaller takes a hundred times as many throws.
-      At ten throws a second, collecting 10,000 samples takes about
+      At ten throws a second, collecting 10&#8239;000 samples takes about
       seventeen minutes. Confetti is not in a hurry.
     </p>
     <p>
