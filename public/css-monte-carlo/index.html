@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Precisely random(): Integrals in Pure CSS</title>
+  <meta
+    name="description"
+    content="Throw confetti with CSS random(), count what lands inside a circle, and you have measured π. Then integrals with no formula at all, and one piece of confetti thrown forever. Monte Carlo integration in pure CSS, zero JavaScript."
+  />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://acorns.nutlore.me/css-monte-carlo/" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141419" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Simple Demos" />
+  <meta property="og:title" content="Precisely random(): Integrals in Pure CSS" />
+  <meta
+    property="og:description"
+    content="Throw confetti with CSS random(), count what lands inside a circle, and you have measured π. Then integrals with no formula at all, and one piece of confetti thrown forever. Monte Carlo integration in pure CSS, zero JavaScript."
+  />
+  <meta property="og:url" content="https://acorns.nutlore.me/css-monte-carlo/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    /* ---------- page chrome ---------- */
+    :root {
+      color-scheme: light dark;
+      --accent: light-dark(#4f39fa, #8f7dff);
+      --accent-strong: light-dark(#3d28d8, #a99bff);
+      --surface: light-dark(#ffffff, #1d1d24);
+      --edge: light-dark(#e6e6ec, #2e2e38);
+      --ink-soft: light-dark(#42424c, #d2d2dd);
+      --ink-faint: light-dark(#70707a, #a2a2b0);
+      --hit-c: light-dark(#4f39fa, #9d8cff);
+      --miss-c: light-dark(#e0598b, #f07aa5);
+    }
+    body {
+      font: 16px/1.6 system-ui, sans-serif;
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 3rem 1.25rem 6rem;
+      background: radial-gradient(
+          60rem 30rem at 50% -10rem,
+          light-dark(#eeebff, #221f3a),
+          transparent
+        ),
+        light-dark(#fafafa, #141419);
+      color: light-dark(#1a1a1f, #e8e8ec);
+    }
+    h1 {
+      font-size: clamp(1.7rem, 5vw, 2.2rem);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      background: linear-gradient(
+        90deg,
+        var(--accent-strong),
+        light-dark(#8b31c9, #d68fff)
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    h3 {
+      font-size: 1rem;
+      margin: 2rem 0 0.4rem;
+    }
+    h2 {
+      font-size: 1.15rem;
+      margin: 3rem 0 0.5rem;
+      letter-spacing: -0.01em;
+    }
+    p {
+      color: var(--ink-soft);
+      margin: 0.5rem 0 1rem;
+    }
+    code {
+      font: 0.85em/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: light-dark(#eeeef3, #26262f);
+      border-radius: 4px;
+      padding: 0.1em 0.35em;
+    }
+    pre.panel {
+      overflow-x: auto;
+      padding: 1rem 1.25rem;
+      line-height: 1.55;
+    }
+    pre.panel code {
+      background: none;
+      padding: 0;
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--edge);
+      border-radius: 14px;
+    }
+    a { color: var(--accent); }
+    footer {
+      margin-top: 4rem;
+      font-size: 0.9rem;
+      color: var(--ink-faint);
+    }
+
+    /* ---------- the integrands ----------
+       Every integral is ∫ f(u) du over [a, b], fenced into a box of
+       height H. A dart's (x, y) ∈ [0, 1]² maps to (u, H·y) in that box;
+       the box's area is A = (b − a)·H, and the hit fraction times A is
+       the estimate. --exact is only used to print the error columns;
+       --sig is the textbook σ² for one dart, I·(A − I). */
+    body {
+      --a: 0; --b: 1; --H: 4; --A: 4;
+      --exact: 3.14159265;
+      --la: "0"; --lb: "1"; --lH: "4"; --exact-t: "3.14159265…"; --A-t: "4";
+      --sig: calc(var(--exact) * (var(--A) - var(--exact)));
+    }
+    body:has(#f-sin:checked) {
+      --a: 0; --b: pi; --H: 1; --A: pi;
+      --exact: 2;
+      --la: "0"; --lb: "π"; --lH: "1"; --exact-t: "2"; --A-t: "π";
+    }
+    body:has(#f-gauss:checked) {
+      --a: -2; --b: 2; --H: 1; --A: 4;
+      --exact: 1.76416278;
+      --la: "−2"; --lb: "2"; --lH: "1"; --exact-t: "1.76416278…"; --A-t: "4";
+    }
+    body:has(#f-soph:checked) {
+      --a: 0; --b: 1; --H: 1.5; --A: 1.5;
+      --exact: 1.29128600;
+      --la: "0"; --lb: "1"; --lH: "1.5"; --exact-t: "1.29128599…"; --A-t: "1.5";
+    }
+
+    /* ---------- the darts ---------- */
+    @property --x { syntax: "<number>"; inherits: false; initial-value: 0; }
+    @property --y { syntax: "<number>"; inherits: false; initial-value: 0; }
+    @property --hit { syntax: "<number>"; inherits: false; initial-value: 0; }
+    .darts i {
+      /* registered, so each random() is drawn once and stored: one
+         dart, one (x, y), reused by every property below */
+      --x: random(0, 1);
+      --y: random(0, 1);
+      position: absolute;
+      left: calc(var(--x) * 100%);
+      bottom: calc(var(--y) * 100%);
+      width: 3px;
+      height: 3px;
+      margin: 0 0 -1.5px -1.5px;
+      border-radius: 50%;
+      background: color-mix(in oklab, var(--hit-c) calc(var(--hit) * 100%), var(--miss-c));
+      transition: background-color 0.35s random(0s, 0.5s);
+      animation: land 0.4s random(0s, 1.4s) backwards;
+    }
+    :is(.darts i, .engine, .ghost) {
+      --u: calc(var(--a) + (var(--b) - var(--a)) * var(--x));
+      --f: calc(4 * sqrt(1 - var(--u) * var(--u)));
+      /* 1 under the curve, 0 above it */
+      --hit: max(0, sign(var(--f) - var(--H) * var(--y)));
+    }
+    body:has(#f-sin:checked) :is(.darts i, .engine, .ghost) { --f: sin(var(--u)); }
+    body:has(#f-gauss:checked) :is(.darts i, .engine, .ghost) { --f: exp(-1 * var(--u) * var(--u)); }
+    body:has(#f-soph:checked) :is(.darts i, .engine, .ghost) { --f: pow(var(--u), -1 * var(--u)); }
+    @keyframes land {
+      from { opacity: 0; scale: 3; }
+    }
+
+    /* ---------- the tally ----------
+       Counters only hold integers, so they count in units of 10⁻⁸:
+       a hit among N darts is worth A·10⁸/N, and the counter *is* the
+       estimate. The first 10 darts feed all three checkpoints, the
+       next 90 feed two, the last 900 one. --r* start at −exact, so they
+       end at the error; --s* are the textbook σ = √(I·(A − I)/N), no
+       darts needed. */
+    .lab {
+      --r0: calc(round(var(--exact) * -1e8));
+      /* +5000 = half of the last printed digit, so the printed
+         estimate is rounded rather than truncated */
+      counter-reset: hits e1 5000 e2 5000 e3 5000
+        r1 var(--r0) r2 var(--r0) r3 var(--r0)
+        s1 calc(round(sqrt(var(--sig) / 10) * 1e8))
+        s2 calc(round(sqrt(var(--sig) / 100) * 1e8))
+        s3 calc(round(sqrt(var(--sig) / 1000) * 1e8));
+    }
+    .darts i {
+      --w1: calc(round(var(--hit) * var(--A) * 1e7));
+      --w2: calc(round(var(--hit) * var(--A) * 1e6));
+      --w3: calc(round(var(--hit) * var(--A) * 1e5));
+    }
+    .d1 i {
+      counter-increment: hits var(--hit) e1 var(--w1) r1 var(--w1)
+        e2 var(--w2) r2 var(--w2) e3 var(--w3) r3 var(--w3);
+    }
+    .d2 i {
+      counter-increment: hits var(--hit) e2 var(--w2) r2 var(--w2) e3 var(--w3) r3 var(--w3);
+    }
+    .d3 i {
+      counter-increment: hits var(--hit) e3 var(--w3) r3 var(--w3);
+    }
+
+    /* ---------- printing a decimal with an integer counter ----------
+       Pad to nine digits ("314159265"), then show the counter twice:
+       once clipped to its first digit, once shifted left by one digit
+       and clipped to the next four. The dot in between is plain text. */
+    @counter-style fixed8 { system: extends decimal; pad: 9 "0"; }
+    @counter-style fixed8abs { system: extends decimal; pad: 9 "0"; negative: ""; }
+    .num {
+      font: 500 1em ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .num > b {
+      display: inline-block;
+      overflow: hidden;
+      vertical-align: bottom;
+      font-weight: inherit;
+      width: 1ch;
+    }
+    .num > b + b {
+      width: 4ch;
+      text-indent: -1ch;
+    }
+    .e1 > b::before { content: counter(e1, fixed8); }
+    .e2 > b::before { content: counter(e2, fixed8); }
+    .e3 > b::before { content: counter(e3, fixed8); }
+    .r1 > b::before { content: counter(r1, fixed8abs); }
+    .r2 > b::before { content: counter(r2, fixed8abs); }
+    .r3 > b::before { content: counter(r3, fixed8abs); }
+    .s1 > b::before { content: counter(s1, fixed8); }
+    .s2 > b::before { content: counter(s2, fixed8); }
+    .s3 > b::before { content: counter(s3, fixed8); }
+    .t-est > b::before { content: counter(t-est, fixed8); }
+    .t-err > b::before { content: counter(t-err, fixed8abs); }
+    .t-sig > b::before { content: counter(t-sig, fixed8); }
+    .t-n::before { content: counter(t-n); }
+    .hits::before { content: counter(hits); }
+    .t-hits::before { content: counter(t-hits); }
+    .A-t::before { content: var(--A-t); }
+
+    /* ---------- the lab layout ---------- */
+    .lab {
+      padding: 1.25rem;
+      display: grid;
+      gap: 1.25rem;
+      grid-template-areas: "pick" "math" "plot" "readout" "table";
+    }
+    .pick { grid-area: pick; }
+    .math { grid-area: math; }
+    .readout { grid-area: readout; }
+    .plot { grid-area: plot; }
+    .table { grid-area: table; }
+
+    .pick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      border: 0;
+      margin: 0;
+      padding: 0;
+    }
+    .sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    /* fixed, so it is always "in view": the stream panel's labels focus
+       these radios, and focusing an absolutely positioned one scrolls
+       the page back up to the first panel */
+    .pick input {
+      position: fixed;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .pick label {
+      font-size: 0.9rem;
+      padding: 0.3rem 0.8rem;
+      border: 1px solid var(--edge);
+      border-radius: 999px;
+      cursor: pointer;
+      color: var(--ink-soft);
+      user-select: none;
+    }
+    body:has(#f-pi:checked) .pick label[for="f-pi"],
+    body:has(#f-sin:checked) .pick label[for="f-sin"],
+    body:has(#f-gauss:checked) .pick label[for="f-gauss"],
+    body:has(#f-soph:checked) .pick label[for="f-soph"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: light-dark(#fff, #141419);
+    }
+    .pick input:focus-visible + label {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .math {
+      text-align: center;
+      font-size: 1.35rem;
+      min-height: 2.6em;
+    }
+    .math > * { display: none; }
+    body:has(#f-pi:checked) .m-pi,
+    body:has(#f-sin:checked) .m-sin,
+    body:has(#f-gauss:checked) .m-gauss,
+    body:has(#f-soph:checked) .m-soph { display: block; }
+    .math small {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--ink-faint);
+    }
+
+    .readout {
+      text-align: center;
+    }
+    .readout .big {
+      font-size: clamp(2.4rem, 11vw, 3.4rem);
+      line-height: 1.1;
+      color: var(--accent-strong);
+    }
+    .readout p {
+      margin: 0.35rem 0 0;
+      font-size: 0.9rem;
+      color: var(--ink-faint);
+    }
+    .readout .hits {
+      font: 500 1em ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--hit-c);
+    }
+
+    .plot {
+      /* room for the axis labels around the box */
+      padding: 0 0 1.4rem 2rem;
+      position: relative;
+    }
+    .box {
+      position: relative;
+      aspect-ratio: 1;
+      border-left: 1px solid var(--ink-faint);
+      border-bottom: 1px solid var(--ink-faint);
+      background: linear-gradient(var(--edge) 1px, transparent 0) 0 0 / 100% 25%,
+        linear-gradient(90deg, var(--edge) 1px, transparent 0) 0 0 / 25% 100%;
+    }
+    .darts,
+    .curve {
+      position: absolute;
+      inset: 0;
+    }
+    .curve {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+    .curve path {
+      display: none;
+      fill: none;
+      stroke: light-dark(#1a1a1f, #e8e8ec);
+      stroke-width: 2;
+      vector-effect: non-scaling-stroke;
+      stroke-linejoin: round;
+    }
+    body:has(#f-pi:checked) .c-pi,
+    body:has(#f-sin:checked) .c-sin,
+    body:has(#f-gauss:checked) .c-gauss,
+    body:has(#f-soph:checked) .c-soph { display: inline; }
+    .ax {
+      position: absolute;
+      font: 0.8rem ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--ink-faint);
+    }
+    .ax-a { left: 2rem; bottom: 0; translate: -50% 0; }
+    .ax-b { right: 0; bottom: 0; translate: 50% 0; }
+    .ax-H { left: 0; top: 0; translate: 0 -50%; width: 1.6rem; text-align: right; }
+    .ax-0 { left: 0; bottom: 1.4rem; translate: 0 50%; width: 1.6rem; text-align: right; }
+    .ax-a::before { content: var(--la); }
+    .ax-b::before { content: var(--lb); }
+    .ax-H::before { content: var(--lH); }
+
+    .table table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .table th,
+    .table td {
+      padding: 0.35rem 0.5rem;
+      text-align: right;
+      border-bottom: 1px solid var(--edge);
+    }
+    .table th {
+      font-weight: 500;
+      color: var(--ink-faint);
+      font-size: 0.8rem;
+    }
+    .table th:first-child,
+    .table td:first-child { text-align: left; }
+    .table tr:last-child td { border-bottom: 0; }
+    .table td { color: var(--ink-soft); }
+    .table .exact::before { content: var(--exact-t); }
+    .table .exact-row td { color: var(--ink-faint); }
+    .reroll {
+      display: inline-block;
+      margin-top: 0.9rem;
+      font-size: 0.9rem;
+    }
+
+    @media (min-width: 44rem) {
+      .lab {
+        grid-template-columns: 1fr 15.5rem;
+        grid-template-areas:
+          "pick pick"
+          "plot math"
+          "plot readout"
+          "table table";
+        align-items: start;
+      }
+      .math { align-self: end; }
+    }
+
+    /* ---------- one dart, thrown forever ----------
+       random() never re-rolls on a living element, but a value with a
+       named key is the same value everywhere. Three step animations
+       walk three lists of named random() values, 97, 89 and 83 long,
+       one entry every 100 ms. The lengths are coprime, so the lists
+       drift past each other and only line up again after 716 539
+       throws. A sum of uniforms mod 1 is uniform again (the trick behind
+       Wichmann–Hill, 1982), and x and y can share the third list
+       without depending on each other. */
+    @property --g1 { syntax: "<number>"; inherits: true; initial-value: 0; }
+    @property --g2 { syntax: "<number>"; inherits: true; initial-value: 0; }
+    @property --g3 { syntax: "<number>"; inherits: true; initial-value: 0; }
+    @property --clk { syntax: "<number>"; inherits: false; initial-value: 0; }
+    @property --acc { syntax: "<number>"; inherits: false; initial-value: 0; }
+    .engine {
+      --gen: g1 9700ms step-end infinite,
+        g2 8900ms step-end infinite,
+        g3 8300ms step-end infinite;
+      animation: var(--gen);
+    }
+    :is(.engine, .ghost) {
+      --x: mod(var(--g1) + var(--g3), 1);
+      --y: mod(var(--g2) + var(--g3), 1);
+    }
+
+    /* The dart and its trail are the same thing: dot k runs the lists
+       k steps late, so it sits where the dart landed k throws ago.
+       Everything is a function of its age in throws, which grows
+       smoothly, so nothing jumps: the newest dot fades in and sends
+       out a ring, older ones slowly dim. */
+    @property --p { syntax: "<number>"; inherits: false; initial-value: 0; }
+    @keyframes step-fade { to { --p: 1; } }
+    .ghost {
+      --age: calc(var(--k) + var(--p));
+      --c: color-mix(in oklab, var(--hit-c) calc(var(--hit) * 100%), var(--miss-c));
+      position: absolute;
+      left: calc(var(--x) * 100%);
+      bottom: calc(var(--y) * 100%);
+      width: 5px;
+      height: 8px;
+      margin: 0 0 -4px -2.5px;
+      border-radius: 1px;
+      rotate: calc(mod(var(--g1) + var(--g2), 1) * 360deg);
+      background: var(--c);
+      opacity: calc(min(1, var(--age) * 5) * (1 - var(--age) / 50));
+      outline: 1.5px solid color-mix(in oklab, var(--c) calc(max(0, 1 - var(--age) / 6) * 100%), transparent);
+      outline-offset: calc(sqrt(var(--age)) * 6px);
+      z-index: calc(50 - var(--k));
+      /* the delay is a whole number of steps, so the age stays in phase
+         with the throws */
+      animation: var(--gen), step-fade 100ms linear infinite;
+      animation-delay: calc(var(--k) * 100ms);
+      animation-fill-mode: backwards;
+    }
+
+    /* The tally: two long linear clocks. --clk always runs; --acc only
+       while the dart is under the curve, which .tally learns by asking
+       its parent. So --acc / --clk is the fraction of darts that hit.
+       A new animation-name restarts both when the integrand changes. */
+    .tally {
+      animation: clk 100000s linear infinite, acc 100000s linear infinite;
+      animation-play-state: running, paused;
+    }
+    @container style(--hit: 1) {
+      .tally { animation-play-state: running, running; }
+    }
+    body:has(#f-sin:checked) .tally { animation-name: clk-sin, acc-sin; }
+    body:has(#f-gauss:checked) .tally { animation-name: clk-gauss, acc-gauss; }
+    body:has(#f-soph:checked) .tally { animation-name: clk-soph, acc-soph; }
+    @keyframes clk { to { --clk: 100000; } }
+    @keyframes acc { to { --acc: 100000; } }
+    @keyframes clk-sin { to { --clk: 100000; } }
+    @keyframes acc-sin { to { --acc: 100000; } }
+    @keyframes clk-gauss { to { --clk: 100000; } }
+    @keyframes acc-gauss { to { --acc: 100000; } }
+    @keyframes clk-soph { to { --clk: 100000; } }
+    @keyframes acc-soph { to { --acc: 100000; } }
+    .tally {
+      --n: max(var(--clk) * 10, 1);
+      --est: calc(var(--A) * var(--acc) / max(var(--clk), 0.001));
+      counter-reset: t-est calc(round(var(--est) * 1e8) + 5000)
+        t-err calc(round((var(--est) - var(--exact)) * 1e8))
+        t-sig calc(round(sqrt(var(--sig) / var(--n)) * 1e8))
+        t-n calc(round(down, var(--clk) * 10, 1))
+        t-hits calc(round(var(--acc) * 10));
+    }
+
+    /* ---------- the stream layout ---------- */
+    .engine {
+      padding: 1.25rem;
+      display: grid;
+      gap: 1.25rem;
+      grid-template-areas: "pick" "plot" "tally";
+    }
+    .engine .pick { grid-area: pick; }
+    .engine .plot { grid-area: plot; }
+    .tally {
+      grid-area: tally;
+      text-align: center;
+      align-self: center;
+    }
+    .tally .big {
+      font-size: clamp(2.4rem, 11vw, 3.4rem);
+      line-height: 1.1;
+      color: var(--accent-strong);
+    }
+    .tally dl {
+      display: grid;
+      grid-template-columns: auto auto;
+      justify-content: center;
+      gap: 0.15rem 0.9rem;
+      margin: 0.6rem 0 0;
+      font-size: 0.9rem;
+    }
+    .tally dt {
+      color: var(--ink-faint);
+      text-align: right;
+    }
+    .tally dd {
+      margin: 0;
+      text-align: left;
+      color: var(--ink-soft);
+    }
+    .tally .t-n {
+      font: 500 1em ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .tally .still { display: none; }
+    .tally .note {
+      margin: 0.9rem 0 0;
+      font-size: 0.8rem;
+      color: var(--ink-faint);
+    }
+    @media (min-width: 44rem) {
+      .engine {
+        grid-template-columns: 1fr 15.5rem;
+        grid-template-areas: "pick pick" "plot tally";
+      }
+    }
+
+
+    @keyframes g1 {
+      0.00000% { --g1: random(--g1-0, 0, 1); }
+      1.03093% { --g1: random(--g1-1, 0, 1); }
+      2.06186% { --g1: random(--g1-2, 0, 1); }
+      3.09278% { --g1: random(--g1-3, 0, 1); }
+      4.12371% { --g1: random(--g1-4, 0, 1); }
+      5.15464% { --g1: random(--g1-5, 0, 1); }
+      6.18557% { --g1: random(--g1-6, 0, 1); }
+      7.21649% { --g1: random(--g1-7, 0, 1); }
+      8.24742% { --g1: random(--g1-8, 0, 1); }
+      9.27835% { --g1: random(--g1-9, 0, 1); }
+      10.30928% { --g1: random(--g1-10, 0, 1); }
+      11.34021% { --g1: random(--g1-11, 0, 1); }
+      12.37113% { --g1: random(--g1-12, 0, 1); }
+      13.40206% { --g1: random(--g1-13, 0, 1); }
+      14.43299% { --g1: random(--g1-14, 0, 1); }
+      15.46392% { --g1: random(--g1-15, 0, 1); }
+      16.49485% { --g1: random(--g1-16, 0, 1); }
+      17.52577% { --g1: random(--g1-17, 0, 1); }
+      18.55670% { --g1: random(--g1-18, 0, 1); }
+      19.58763% { --g1: random(--g1-19, 0, 1); }
+      20.61856% { --g1: random(--g1-20, 0, 1); }
+      21.64948% { --g1: random(--g1-21, 0, 1); }
+      22.68041% { --g1: random(--g1-22, 0, 1); }
+      23.71134% { --g1: random(--g1-23, 0, 1); }
+      24.74227% { --g1: random(--g1-24, 0, 1); }
+      25.77320% { --g1: random(--g1-25, 0, 1); }
+      26.80412% { --g1: random(--g1-26, 0, 1); }
+      27.83505% { --g1: random(--g1-27, 0, 1); }
+      28.86598% { --g1: random(--g1-28, 0, 1); }
+      29.89691% { --g1: random(--g1-29, 0, 1); }
+      30.92784% { --g1: random(--g1-30, 0, 1); }
+      31.95876% { --g1: random(--g1-31, 0, 1); }
+      32.98969% { --g1: random(--g1-32, 0, 1); }
+      34.02062% { --g1: random(--g1-33, 0, 1); }
+      35.05155% { --g1: random(--g1-34, 0, 1); }
+      36.08247% { --g1: random(--g1-35, 0, 1); }
+      37.11340% { --g1: random(--g1-36, 0, 1); }
+      38.14433% { --g1: random(--g1-37, 0, 1); }
+      39.17526% { --g1: random(--g1-38, 0, 1); }
+      40.20619% { --g1: random(--g1-39, 0, 1); }
+      41.23711% { --g1: random(--g1-40, 0, 1); }
+      42.26804% { --g1: random(--g1-41, 0, 1); }
+      43.29897% { --g1: random(--g1-42, 0, 1); }
+      44.32990% { --g1: random(--g1-43, 0, 1); }
+      45.36082% { --g1: random(--g1-44, 0, 1); }
+      46.39175% { --g1: random(--g1-45, 0, 1); }
+      47.42268% { --g1: random(--g1-46, 0, 1); }
+      48.45361% { --g1: random(--g1-47, 0, 1); }
+      49.48454% { --g1: random(--g1-48, 0, 1); }
+      50.51546% { --g1: random(--g1-49, 0, 1); }
+      51.54639% { --g1: random(--g1-50, 0, 1); }
+      52.57732% { --g1: random(--g1-51, 0, 1); }
+      53.60825% { --g1: random(--g1-52, 0, 1); }
+      54.63918% { --g1: random(--g1-53, 0, 1); }
+      55.67010% { --g1: random(--g1-54, 0, 1); }
+      56.70103% { --g1: random(--g1-55, 0, 1); }
+      57.73196% { --g1: random(--g1-56, 0, 1); }
+      58.76289% { --g1: random(--g1-57, 0, 1); }
+      59.79381% { --g1: random(--g1-58, 0, 1); }
+      60.82474% { --g1: random(--g1-59, 0, 1); }
+      61.85567% { --g1: random(--g1-60, 0, 1); }
+      62.88660% { --g1: random(--g1-61, 0, 1); }
+      63.91753% { --g1: random(--g1-62, 0, 1); }
+      64.94845% { --g1: random(--g1-63, 0, 1); }
+      65.97938% { --g1: random(--g1-64, 0, 1); }
+      67.01031% { --g1: random(--g1-65, 0, 1); }
+      68.04124% { --g1: random(--g1-66, 0, 1); }
+      69.07216% { --g1: random(--g1-67, 0, 1); }
+      70.10309% { --g1: random(--g1-68, 0, 1); }
+      71.13402% { --g1: random(--g1-69, 0, 1); }
+      72.16495% { --g1: random(--g1-70, 0, 1); }
+      73.19588% { --g1: random(--g1-71, 0, 1); }
+      74.22680% { --g1: random(--g1-72, 0, 1); }
+      75.25773% { --g1: random(--g1-73, 0, 1); }
+      76.28866% { --g1: random(--g1-74, 0, 1); }
+      77.31959% { --g1: random(--g1-75, 0, 1); }
+      78.35052% { --g1: random(--g1-76, 0, 1); }
+      79.38144% { --g1: random(--g1-77, 0, 1); }
+      80.41237% { --g1: random(--g1-78, 0, 1); }
+      81.44330% { --g1: random(--g1-79, 0, 1); }
+      82.47423% { --g1: random(--g1-80, 0, 1); }
+      83.50515% { --g1: random(--g1-81, 0, 1); }
+      84.53608% { --g1: random(--g1-82, 0, 1); }
+      85.56701% { --g1: random(--g1-83, 0, 1); }
+      86.59794% { --g1: random(--g1-84, 0, 1); }
+      87.62887% { --g1: random(--g1-85, 0, 1); }
+      88.65979% { --g1: random(--g1-86, 0, 1); }
+      89.69072% { --g1: random(--g1-87, 0, 1); }
+      90.72165% { --g1: random(--g1-88, 0, 1); }
+      91.75258% { --g1: random(--g1-89, 0, 1); }
+      92.78351% { --g1: random(--g1-90, 0, 1); }
+      93.81443% { --g1: random(--g1-91, 0, 1); }
+      94.84536% { --g1: random(--g1-92, 0, 1); }
+      95.87629% { --g1: random(--g1-93, 0, 1); }
+      96.90722% { --g1: random(--g1-94, 0, 1); }
+      97.93814% { --g1: random(--g1-95, 0, 1); }
+      98.96907% { --g1: random(--g1-96, 0, 1); }
+    }
+    @keyframes g2 {
+      0.00000% { --g2: random(--g2-0, 0, 1); }
+      1.12360% { --g2: random(--g2-1, 0, 1); }
+      2.24719% { --g2: random(--g2-2, 0, 1); }
+      3.37079% { --g2: random(--g2-3, 0, 1); }
+      4.49438% { --g2: random(--g2-4, 0, 1); }
+      5.61798% { --g2: random(--g2-5, 0, 1); }
+      6.74157% { --g2: random(--g2-6, 0, 1); }
+      7.86517% { --g2: random(--g2-7, 0, 1); }
+      8.98876% { --g2: random(--g2-8, 0, 1); }
+      10.11236% { --g2: random(--g2-9, 0, 1); }
+      11.23596% { --g2: random(--g2-10, 0, 1); }
+      12.35955% { --g2: random(--g2-11, 0, 1); }
+      13.48315% { --g2: random(--g2-12, 0, 1); }
+      14.60674% { --g2: random(--g2-13, 0, 1); }
+      15.73034% { --g2: random(--g2-14, 0, 1); }
+      16.85393% { --g2: random(--g2-15, 0, 1); }
+      17.97753% { --g2: random(--g2-16, 0, 1); }
+      19.10112% { --g2: random(--g2-17, 0, 1); }
+      20.22472% { --g2: random(--g2-18, 0, 1); }
+      21.34831% { --g2: random(--g2-19, 0, 1); }
+      22.47191% { --g2: random(--g2-20, 0, 1); }
+      23.59551% { --g2: random(--g2-21, 0, 1); }
+      24.71910% { --g2: random(--g2-22, 0, 1); }
+      25.84270% { --g2: random(--g2-23, 0, 1); }
+      26.96629% { --g2: random(--g2-24, 0, 1); }
+      28.08989% { --g2: random(--g2-25, 0, 1); }
+      29.21348% { --g2: random(--g2-26, 0, 1); }
+      30.33708% { --g2: random(--g2-27, 0, 1); }
+      31.46067% { --g2: random(--g2-28, 0, 1); }
+      32.58427% { --g2: random(--g2-29, 0, 1); }
+      33.70787% { --g2: random(--g2-30, 0, 1); }
+      34.83146% { --g2: random(--g2-31, 0, 1); }
+      35.95506% { --g2: random(--g2-32, 0, 1); }
+      37.07865% { --g2: random(--g2-33, 0, 1); }
+      38.20225% { --g2: random(--g2-34, 0, 1); }
+      39.32584% { --g2: random(--g2-35, 0, 1); }
+      40.44944% { --g2: random(--g2-36, 0, 1); }
+      41.57303% { --g2: random(--g2-37, 0, 1); }
+      42.69663% { --g2: random(--g2-38, 0, 1); }
+      43.82022% { --g2: random(--g2-39, 0, 1); }
+      44.94382% { --g2: random(--g2-40, 0, 1); }
+      46.06742% { --g2: random(--g2-41, 0, 1); }
+      47.19101% { --g2: random(--g2-42, 0, 1); }
+      48.31461% { --g2: random(--g2-43, 0, 1); }
+      49.43820% { --g2: random(--g2-44, 0, 1); }
+      50.56180% { --g2: random(--g2-45, 0, 1); }
+      51.68539% { --g2: random(--g2-46, 0, 1); }
+      52.80899% { --g2: random(--g2-47, 0, 1); }
+      53.93258% { --g2: random(--g2-48, 0, 1); }
+      55.05618% { --g2: random(--g2-49, 0, 1); }
+      56.17978% { --g2: random(--g2-50, 0, 1); }
+      57.30337% { --g2: random(--g2-51, 0, 1); }
+      58.42697% { --g2: random(--g2-52, 0, 1); }
+      59.55056% { --g2: random(--g2-53, 0, 1); }
+      60.67416% { --g2: random(--g2-54, 0, 1); }
+      61.79775% { --g2: random(--g2-55, 0, 1); }
+      62.92135% { --g2: random(--g2-56, 0, 1); }
+      64.04494% { --g2: random(--g2-57, 0, 1); }
+      65.16854% { --g2: random(--g2-58, 0, 1); }
+      66.29213% { --g2: random(--g2-59, 0, 1); }
+      67.41573% { --g2: random(--g2-60, 0, 1); }
+      68.53933% { --g2: random(--g2-61, 0, 1); }
+      69.66292% { --g2: random(--g2-62, 0, 1); }
+      70.78652% { --g2: random(--g2-63, 0, 1); }
+      71.91011% { --g2: random(--g2-64, 0, 1); }
+      73.03371% { --g2: random(--g2-65, 0, 1); }
+      74.15730% { --g2: random(--g2-66, 0, 1); }
+      75.28090% { --g2: random(--g2-67, 0, 1); }
+      76.40449% { --g2: random(--g2-68, 0, 1); }
+      77.52809% { --g2: random(--g2-69, 0, 1); }
+      78.65169% { --g2: random(--g2-70, 0, 1); }
+      79.77528% { --g2: random(--g2-71, 0, 1); }
+      80.89888% { --g2: random(--g2-72, 0, 1); }
+      82.02247% { --g2: random(--g2-73, 0, 1); }
+      83.14607% { --g2: random(--g2-74, 0, 1); }
+      84.26966% { --g2: random(--g2-75, 0, 1); }
+      85.39326% { --g2: random(--g2-76, 0, 1); }
+      86.51685% { --g2: random(--g2-77, 0, 1); }
+      87.64045% { --g2: random(--g2-78, 0, 1); }
+      88.76404% { --g2: random(--g2-79, 0, 1); }
+      89.88764% { --g2: random(--g2-80, 0, 1); }
+      91.01124% { --g2: random(--g2-81, 0, 1); }
+      92.13483% { --g2: random(--g2-82, 0, 1); }
+      93.25843% { --g2: random(--g2-83, 0, 1); }
+      94.38202% { --g2: random(--g2-84, 0, 1); }
+      95.50562% { --g2: random(--g2-85, 0, 1); }
+      96.62921% { --g2: random(--g2-86, 0, 1); }
+      97.75281% { --g2: random(--g2-87, 0, 1); }
+      98.87640% { --g2: random(--g2-88, 0, 1); }
+    }
+    @keyframes g3 {
+      0.00000% { --g3: random(--g3-0, 0, 1); }
+      1.20482% { --g3: random(--g3-1, 0, 1); }
+      2.40964% { --g3: random(--g3-2, 0, 1); }
+      3.61446% { --g3: random(--g3-3, 0, 1); }
+      4.81928% { --g3: random(--g3-4, 0, 1); }
+      6.02410% { --g3: random(--g3-5, 0, 1); }
+      7.22892% { --g3: random(--g3-6, 0, 1); }
+      8.43373% { --g3: random(--g3-7, 0, 1); }
+      9.63855% { --g3: random(--g3-8, 0, 1); }
+      10.84337% { --g3: random(--g3-9, 0, 1); }
+      12.04819% { --g3: random(--g3-10, 0, 1); }
+      13.25301% { --g3: random(--g3-11, 0, 1); }
+      14.45783% { --g3: random(--g3-12, 0, 1); }
+      15.66265% { --g3: random(--g3-13, 0, 1); }
+      16.86747% { --g3: random(--g3-14, 0, 1); }
+      18.07229% { --g3: random(--g3-15, 0, 1); }
+      19.27711% { --g3: random(--g3-16, 0, 1); }
+      20.48193% { --g3: random(--g3-17, 0, 1); }
+      21.68675% { --g3: random(--g3-18, 0, 1); }
+      22.89157% { --g3: random(--g3-19, 0, 1); }
+      24.09639% { --g3: random(--g3-20, 0, 1); }
+      25.30120% { --g3: random(--g3-21, 0, 1); }
+      26.50602% { --g3: random(--g3-22, 0, 1); }
+      27.71084% { --g3: random(--g3-23, 0, 1); }
+      28.91566% { --g3: random(--g3-24, 0, 1); }
+      30.12048% { --g3: random(--g3-25, 0, 1); }
+      31.32530% { --g3: random(--g3-26, 0, 1); }
+      32.53012% { --g3: random(--g3-27, 0, 1); }
+      33.73494% { --g3: random(--g3-28, 0, 1); }
+      34.93976% { --g3: random(--g3-29, 0, 1); }
+      36.14458% { --g3: random(--g3-30, 0, 1); }
+      37.34940% { --g3: random(--g3-31, 0, 1); }
+      38.55422% { --g3: random(--g3-32, 0, 1); }
+      39.75904% { --g3: random(--g3-33, 0, 1); }
+      40.96386% { --g3: random(--g3-34, 0, 1); }
+      42.16867% { --g3: random(--g3-35, 0, 1); }
+      43.37349% { --g3: random(--g3-36, 0, 1); }
+      44.57831% { --g3: random(--g3-37, 0, 1); }
+      45.78313% { --g3: random(--g3-38, 0, 1); }
+      46.98795% { --g3: random(--g3-39, 0, 1); }
+      48.19277% { --g3: random(--g3-40, 0, 1); }
+      49.39759% { --g3: random(--g3-41, 0, 1); }
+      50.60241% { --g3: random(--g3-42, 0, 1); }
+      51.80723% { --g3: random(--g3-43, 0, 1); }
+      53.01205% { --g3: random(--g3-44, 0, 1); }
+      54.21687% { --g3: random(--g3-45, 0, 1); }
+      55.42169% { --g3: random(--g3-46, 0, 1); }
+      56.62651% { --g3: random(--g3-47, 0, 1); }
+      57.83133% { --g3: random(--g3-48, 0, 1); }
+      59.03614% { --g3: random(--g3-49, 0, 1); }
+      60.24096% { --g3: random(--g3-50, 0, 1); }
+      61.44578% { --g3: random(--g3-51, 0, 1); }
+      62.65060% { --g3: random(--g3-52, 0, 1); }
+      63.85542% { --g3: random(--g3-53, 0, 1); }
+      65.06024% { --g3: random(--g3-54, 0, 1); }
+      66.26506% { --g3: random(--g3-55, 0, 1); }
+      67.46988% { --g3: random(--g3-56, 0, 1); }
+      68.67470% { --g3: random(--g3-57, 0, 1); }
+      69.87952% { --g3: random(--g3-58, 0, 1); }
+      71.08434% { --g3: random(--g3-59, 0, 1); }
+      72.28916% { --g3: random(--g3-60, 0, 1); }
+      73.49398% { --g3: random(--g3-61, 0, 1); }
+      74.69880% { --g3: random(--g3-62, 0, 1); }
+      75.90361% { --g3: random(--g3-63, 0, 1); }
+      77.10843% { --g3: random(--g3-64, 0, 1); }
+      78.31325% { --g3: random(--g3-65, 0, 1); }
+      79.51807% { --g3: random(--g3-66, 0, 1); }
+      80.72289% { --g3: random(--g3-67, 0, 1); }
+      81.92771% { --g3: random(--g3-68, 0, 1); }
+      83.13253% { --g3: random(--g3-69, 0, 1); }
+      84.33735% { --g3: random(--g3-70, 0, 1); }
+      85.54217% { --g3: random(--g3-71, 0, 1); }
+      86.74699% { --g3: random(--g3-72, 0, 1); }
+      87.95181% { --g3: random(--g3-73, 0, 1); }
+      89.15663% { --g3: random(--g3-74, 0, 1); }
+      90.36145% { --g3: random(--g3-75, 0, 1); }
+      91.56627% { --g3: random(--g3-76, 0, 1); }
+      92.77108% { --g3: random(--g3-77, 0, 1); }
+      93.97590% { --g3: random(--g3-78, 0, 1); }
+      95.18072% { --g3: random(--g3-79, 0, 1); }
+      96.38554% { --g3: random(--g3-80, 0, 1); }
+      97.59036% { --g3: random(--g3-81, 0, 1); }
+      98.79518% { --g3: random(--g3-82, 0, 1); }
+    }
+
+    /* ---------- +1: the obligatory confetti ----------
+       A random() value belongs to its element for life, so a fixed set
+       of confetti would fly the same way on every click. Instead each
+       click flips between two hidden radios, and the confetti lives in
+       ::before in one state and ::after in the other. Every click throws
+       away one set of pseudo-elements and makes a fresh one, with fresh
+       draws - and nothing flies until the first click. */
+    @property --cx { syntax: "<length>"; inherits: false; initial-value: 0px; }
+    @property --cy { syntax: "<length>"; inherits: false; initial-value: 0px; }
+    @property --cr { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+    @property --ch { syntax: "<number>"; inherits: false; initial-value: 0; }
+    body {
+      /* flying confetti must not widen the page on phones */
+      overflow-x: clip;
+    }
+    .plus1 {
+      position: relative;
+      display: inline-block;
+      vertical-align: 0.05em;
+    }
+    .plus1 input,
+    .throw input {
+      /* fixed, so focusing it never scrolls the page */
+      position: fixed;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .plus1 label {
+      display: none;
+      font: 600 0.85rem/1.5 system-ui, sans-serif;
+      padding: 0.05rem 0.65rem;
+      border-radius: 999px;
+      background: var(--accent);
+      color: light-dark(#fff, #141419);
+      cursor: pointer;
+      user-select: none;
+      transition: scale 0.1s;
+    }
+    .plus1 label:active { scale: 0.9; }
+    body:not(:has(#c-a:checked)) .plus1 label[for="c-a"],
+    body:has(#c-a:checked) .plus1 label[for="c-b"] { display: inline-block; }
+    body:has(.plus1 input:focus-visible) .plus1 label {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .confetti {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .confetti i::before,
+    .confetti i::after {
+      --cx: random(-150px, 150px);
+      --cy: random(-170px, -50px);
+      --cr: random(-720deg, 720deg);
+      --ch: random(0, 360);
+      position: absolute;
+      width: 7px;
+      height: 11px;
+      margin: -5.5px 0 0 -3.5px;
+      border-radius: 1.5px;
+      background: oklch(0.74 0.17 var(--ch));
+      animation: confetti 1.4s forwards;
+    }
+    body:has(#c-a:checked) .confetti i::before,
+    body:has(#c-b:checked) .confetti i::after { content: ""; }
+    @keyframes confetti {
+      0% { translate: 0 0; rotate: 0deg; animation-timing-function: ease-out; }
+      40% { translate: var(--cx) var(--cy); animation-timing-function: ease-in; }
+      100% {
+        translate: calc(var(--cx) * 1.3) calc(var(--cy) + 170px);
+        rotate: var(--cr);
+        opacity: 0;
+      }
+    }
+    @keyframes confetti-still {
+      from { translate: var(--cx) var(--cy); }
+      to { translate: var(--cx) var(--cy); opacity: 0; }
+    }
+
+    /* ---------- five hundred pieces and a circle ----------
+       Same trick as the party button: every click swaps ::before for
+       ::after, so every throw is fresh. Each piece checks x² + y² < 1
+       for itself and adds to two counters: how many landed inside, and
+       the estimate, at 4·10⁸/500 per piece in units of 10⁻⁸. */
+    .circle {
+      padding: 1.25rem;
+      display: grid;
+      gap: 1.25rem;
+      align-items: center;
+      counter-reset: k-in k-est 5000;
+    }
+    @media (min-width: 44rem) {
+      .circle { grid-template-columns: 1fr 15.5rem; }
+    }
+    /* .plot elsewhere names a grid area and leaves room for axis labels;
+       the circle needs neither */
+    .circle .plot {
+      grid-area: auto;
+      padding: 0;
+    }
+    .sq {
+      position: relative;
+      aspect-ratio: 1;
+      max-width: 26rem;
+      margin: 0 auto;
+      border: 1px solid var(--ink-faint);
+    }
+    .ring {
+      position: absolute;
+      inset: 0;
+      overflow: visible;
+    }
+    .ring circle {
+      fill: light-dark(#4f39fa0d, #8f7dff12);
+      stroke: light-dark(#1a1a1f, #e8e8ec);
+      stroke-width: 2;
+      vector-effect: non-scaling-stroke;
+    }
+    .pile i::before,
+    .pile i::after {
+      --x: random(-1, 1);
+      --y: random(-1, 1);
+      --hit: max(0, sign(1 - var(--x) * var(--x) - var(--y) * var(--y)));
+      --ch: random(0, 360);
+      --cr: random(0deg, 360deg);
+      position: absolute;
+      left: calc((var(--x) + 1) * 50%);
+      bottom: calc((var(--y) + 1) * 50%);
+      width: 6px;
+      height: 9px;
+      margin: 0 0 -4.5px -3px;
+      border-radius: 1px;
+      rotate: var(--cr);
+      /* inside: party colours; outside: grey */
+      background: color-mix(in oklab, oklch(0.74 0.17 var(--ch)) calc(var(--hit) * 100%),
+        color-mix(in oklab, var(--ink-faint) 55%, transparent));
+      counter-increment: k-in var(--hit) k-est calc(var(--hit) * 800000);
+      animation: drop 0.5s random(0s, 0.6s) ease-out backwards;
+    }
+    body:has(#k-a:checked) .pile i::before,
+    body:has(#k-b:checked) .pile i::after { content: ""; }
+    @keyframes drop {
+      from { translate: 0 -50px; opacity: 0; }
+    }
+    .throw label {
+      display: none;
+      font: 600 0.95rem/1.5 system-ui, sans-serif;
+      padding: 0.45rem 1.1rem;
+      border-radius: 999px;
+      background: var(--accent);
+      color: light-dark(#fff, #141419);
+      cursor: pointer;
+      user-select: none;
+      transition: scale 0.1s;
+    }
+    .throw label:active { scale: 0.95; }
+    body:not(:has(#k-a:checked)) .throw label[for="k-a"],
+    body:has(#k-a:checked) .throw label[for="k-b"] { display: inline-block; }
+    body:has(.throw input:focus-visible) .throw label {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .k-side {
+      text-align: center;
+    }
+    .k-side p {
+      margin: 0.6rem 0 0;
+      font-size: 0.9rem;
+      color: var(--ink-faint);
+    }
+    .k-res { display: none; }
+    body:has(#k-a:checked, #k-b:checked) .k-res { display: block; }
+    body:has(#k-a:checked, #k-b:checked) .k-wait { display: none; }
+    .k-res .big {
+      margin-top: 0.8rem;
+      font-size: clamp(2.4rem, 11vw, 3.4rem);
+      line-height: 1.1;
+      color: var(--accent-strong);
+    }
+    .k-in {
+      font: 500 1em ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--ink-soft);
+    }
+    .k-in::before { content: counter(k-in); }
+    .k-est > b::before { content: counter(k-est, fixed8); }
+
+    .nocel { display: none; }
+
+    /* ---------- no random() yet ---------- */
+    .nope {
+      display: none;
+      margin: 0;
+      padding: 0.8rem 1rem;
+      border-radius: 10px;
+      background: light-dark(#fff4e0, #3a2e17);
+      color: light-dark(#6b4a00, #f5d9a0);
+      font-size: 0.9rem;
+    }
+    @supports not (order: random(1, 2)) {
+      .nope { display: block; }
+      .lab {
+        grid-template-columns: minmax(0, 26rem);
+        grid-template-areas: "pick" "nope" "math" "plot";
+      }
+      .lab > .nope { grid-area: nope; }
+      .darts, .readout, .table, .tally, .ghost, .confetti, .pile, .k-side { display: none; }
+      /* the party button answers instead of throwing nothing */
+      body:has(#c-a:checked, #c-b:checked) .nocel { display: inline; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .darts i { animation: none; transition: none; }
+      /* the dart keeps throwing and the numbers keep counting; only
+         the jumping dot and its trail go */
+      .ghost { display: none; }
+      .tally .still { display: block; }
+      /* confetti appears where it would have landed and fades, no flight */
+      .confetti i::before,
+      .confetti i::after { animation-name: confetti-still; }
+      .pile i::before,
+      .pile i::after { animation: none; }
+    }
+  </style>
+  <body>
+    <h1>Precisely random(): Integrals in Pure CSS</h1>
+    <p>
+      Hooray: CSS has a
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/random"><code>random()</code></a>
+      function! It isn’t
+      <a href="https://web.dev/baseline">Baseline</a> yet - Safari shipped it
+      in December 2025, Chrome and Edge in October 2026, and Firefox only has
+      it in Nightly - but it’s here, and there is exactly one correct way to
+      celebrate:
+      <span class="plus1">
+        <input type="radio" name="confetti" id="c-a" aria-label="Throw confetti" />
+        <input type="radio" name="confetti" id="c-b" aria-label="Throw more confetti" />
+        <label for="c-a">🎉 Woohoo!</label><label for="c-b">🎉 Woohoo!</label>
+        <span class="confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      </span>
+      <span class="nocel" role="status">(no confetti here, sorry: this browser
+        can’t do <code>random()</code> yet. Please celebrate in Chrome,
+        Safari or Firefox Nightly.)</span>
+    </p>
+    <p>
+      That was fun. Let’s throw some more - five hundred pieces this time -
+      and, for no particular reason, draw a circle behind them.
+    </p>
+
+    <section class="circle panel" aria-label="Confetti on a circle">
+      <div class="plot" aria-hidden="true">
+        <div class="sq">
+          <svg class="ring" viewBox="-1 -1 2 2"><circle r="1" /></svg>
+          <span class="pile"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
+      </div>
+      <div class="k-side">
+        <span class="throw">
+          <input type="radio" name="pile" id="k-a" aria-label="Throw 500 pieces of confetti" />
+          <input type="radio" name="pile" id="k-b" aria-label="Throw 500 more" />
+          <label for="k-a">Throw 500 pieces</label><label for="k-b">Throw 500 pieces</label>
+        </span>
+        <p class="k-wait">The square is empty. Go on.</p>
+        <div class="k-res">
+          <div class="big num k-est" aria-hidden="true"><b></b>.<b></b></div>
+          <p>
+            <span class="k-in"></span> of 500 pieces landed inside the circle.
+            The square is 2&nbsp;×&nbsp;2&nbsp;=&nbsp;4, so the circle covers
+            about 4&nbsp;×&nbsp;<span class="k-in"></span>&nbsp;/&nbsp;500.
+          </p>
+          <p class="k-exact">A circle of radius 1 covers exactly π = 3.14159…</p>
+        </div>
+      </div>
+    </section>
+
+    <p>
+      The confetti knows nothing about circles: each piece just lands
+      somewhere in the square. But since every spot is equally likely, the
+      share of pieces that land inside is the share of the square the circle
+      covers - which is exactly what the panel multiplies out. We just
+      measured π with confetti. Throw again: the number wobbles, but stays
+      near 3.14.
+    </p>
+    <p>
+      Every piece is an empty <code>&lt;i&gt;</code>. CSS decides where it
+      lands, CSS checks whether it’s inside, and CSS does the counting.
+      There is no JavaScript on this page.
+    </p>
+
+    <h2>Congratulations, you just did Monte Carlo integration</h2>
+    <p>
+      Measuring things by throwing random stuff at them has a name: the
+      <a href="https://en.wikipedia.org/wiki/Monte_Carlo_method">Monte Carlo method</a>.
+      In 1946 the mathematician Stanisław Ulam was recovering from an
+      illness, playing a lot of solitaire, and wondered how often a game can
+      be won. The odds were too hard to calculate, so he figured it was
+      easier to deal a few hundred games and count. John von Neumann turned
+      the idea into a program that simulated neutrons at Los Alamos, and
+      Nicholas Metropolis named it after the casino in Monaco: Ulam’s uncle
+      used to borrow money from relatives because he “just had to go to
+      Monte Carlo.”
+    </p>
+    <p>
+      The area under a curve is exactly what an integral is. So the trick
+      works for any curve: fence it in with a box, throw, count what lands
+      under the curve, and multiply by the box’s area. Below, a thousand
+      pieces (shrunk to dots - they’re at work now) are thrown at four
+      functions. The first is a quarter of our circle again. Two others,
+      the bell curve and the sophomore’s dream, have no formula you could
+      integrate by hand. The confetti doesn’t care.
+    </p>
+
+    <section class="lab panel" aria-label="Monte Carlo integrator">
+      <fieldset class="pick">
+        <legend class="sr">Integrand</legend>
+        <input type="radio" name="f" id="f-pi" checked /><label for="f-pi">quarter circle</label>
+        <input type="radio" name="f" id="f-sin" /><label for="f-sin">sin x</label>
+        <input type="radio" name="f" id="f-gauss" /><label for="f-gauss">bell curve</label>
+        <input type="radio" name="f" id="f-soph" /><label for="f-soph">sophomore’s dream</label>
+      </fieldset>
+
+      <p class="nope">
+        Your browser doesn’t speak <code>random()</code> yet, so there is no
+        confetti to throw here.
+      </p>
+
+      <div class="math">
+        <div class="m-pi">
+          <math display="block"><mrow><msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><mn>4</mn><msqrt><mn>1</mn><mo>−</mo><msup><mi>x</mi><mn>2</mn></msup></msqrt><mspace width="0.2em"/><mi>d</mi><mi>x</mi><mo>=</mo><mi>π</mi></mrow></math>
+          <small>a quarter disc, stretched ×4</small>
+        </div>
+        <div class="m-sin">
+          <math display="block"><mrow><msubsup><mo>∫</mo><mn>0</mn><mi>π</mi></msubsup><mi>sin</mi><mspace width="0.2em"/><mi>x</mi><mspace width="0.2em"/><mi>d</mi><mi>x</mi><mo>=</mo><mn>2</mn></mrow></math>
+          <small>one arch of a sine wave</small>
+        </div>
+        <div class="m-gauss">
+          <math display="block"><mrow><msubsup><mo>∫</mo><mrow><mo>−</mo><mn>2</mn></mrow><mn>2</mn></msubsup><msup><mi>e</mi><mrow><mo>−</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></msup><mspace width="0.2em"/><mi>d</mi><mi>x</mi><mo>=</mo><msqrt><mi>π</mi></msqrt><mspace width="0.15em"/><mi>erf</mi><mo stretchy="false">(</mo><mn>2</mn><mo stretchy="false">)</mo></mrow></math>
+          <small>the bell curve, from −2 to 2</small>
+        </div>
+        <div class="m-soph">
+          <math display="block"><mrow><msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><msup><mi>x</mi><mrow><mo>−</mo><mi>x</mi></mrow></msup><mspace width="0.2em"/><mi>d</mi><mi>x</mi><mo>=</mo><munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><mi>∞</mi></munderover><msup><mi>n</mi><mrow><mo>−</mo><mi>n</mi></mrow></msup></mrow></math>
+          <small>Johann Bernoulli, 1697 - too good to be true, but true</small>
+        </div>
+      </div>
+
+      <div class="plot" aria-hidden="true">
+        <div class="box">
+          <div class="darts"><span class="d1"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="d2"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="d3"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+          <svg class="curve" viewBox="0 0 1 1" preserveAspectRatio="none">
+            <path class="c-pi" d="M0.0000 0.0000 L0.0166 0.0001 L0.0331 0.0005 L0.0494 0.0012 L0.0656 0.0022 L0.0816 0.0033 L0.0975 0.0048 L0.1133 0.0064 L0.1289 0.0083 L0.1444 0.0105 L0.1597 0.0128 L0.1749 0.0154 L0.1900 0.0182 L0.2049 0.0212 L0.2197 0.0244 L0.2344 0.0279 L0.2489 0.0315 L0.2633 0.0353 L0.2775 0.0393 L0.2916 0.0435 L0.3056 0.0478 L0.3194 0.0524 L0.3331 0.0571 L0.3466 0.0620 L0.3600 0.0670 L0.3733 0.0723 L0.3864 0.0777 L0.3994 0.0832 L0.4122 0.0889 L0.4249 0.0948 L0.4375 0.1008 L0.4499 0.1069 L0.4622 0.1132 L0.4744 0.1197 L0.4864 0.1263 L0.4983 0.1330 L0.5100 0.1398 L0.5216 0.1468 L0.5331 0.1539 L0.5444 0.1612 L0.5556 0.1685 L0.5666 0.1760 L0.5775 0.1836 L0.5883 0.1913 L0.5989 0.1992 L0.6094 0.2071 L0.6197 0.2152 L0.6299 0.2233 L0.6400 0.2316 L0.6499 0.2400 L0.6597 0.2485 L0.6694 0.2571 L0.6789 0.2658 L0.6883 0.2745 L0.6975 0.2834 L0.7066 0.2924 L0.7156 0.3014 L0.7244 0.3106 L0.7331 0.3198 L0.7416 0.3292 L0.7500 0.3386 L0.7583 0.3481 L0.7664 0.3576 L0.7744 0.3673 L0.7822 0.3770 L0.7899 0.3868 L0.7975 0.3967 L0.8049 0.4066 L0.8122 0.4167 L0.8194 0.4267 L0.8264 0.4369 L0.8333 0.4471 L0.8400 0.4574 L0.8466 0.4678 L0.8531 0.4782 L0.8594 0.4887 L0.8656 0.4992 L0.8716 0.5098 L0.8775 0.5204 L0.8833 0.5311 L0.8889 0.5419 L0.8944 0.5527 L0.8997 0.5635 L0.9049 0.5744 L0.9100 0.5854 L0.9149 0.5964 L0.9197 0.6074 L0.9244 0.6185 L0.9289 0.6296 L0.9333 0.6408 L0.9375 0.6520 L0.9416 0.6633 L0.9456 0.6745 L0.9494 0.6859 L0.9531 0.6972 L0.9566 0.7086 L0.9600 0.7200 L0.9633 0.7314 L0.9664 0.7429 L0.9694 0.7544 L0.9722 0.7659 L0.9749 0.7775 L0.9775 0.7891 L0.9799 0.8007 L0.9822 0.8123 L0.9844 0.8239 L0.9864 0.8356 L0.9883 0.8472 L0.9900 0.8589 L0.9916 0.8706 L0.9931 0.8824 L0.9944 0.8941 L0.9956 0.9058 L0.9966 0.9176 L0.9975 0.9293 L0.9983 0.9411 L0.9989 0.9529 L0.9994 0.9647 L0.9997 0.9764 L0.9999 0.9882 L1.0000 1.0000" />
+            <path class="c-sin" d="M0.0000 1.0000 L0.0083 0.9738 L0.0167 0.9477 L0.0250 0.9215 L0.0333 0.8955 L0.0417 0.8695 L0.0500 0.8436 L0.0583 0.8178 L0.0667 0.7921 L0.0750 0.7666 L0.0833 0.7412 L0.0917 0.7160 L0.1000 0.6910 L0.1083 0.6662 L0.1167 0.6416 L0.1250 0.6173 L0.1333 0.5933 L0.1417 0.5695 L0.1500 0.5460 L0.1583 0.5228 L0.1667 0.5000 L0.1750 0.4775 L0.1833 0.4554 L0.1917 0.4336 L0.2000 0.4122 L0.2083 0.3912 L0.2167 0.3707 L0.2250 0.3506 L0.2333 0.3309 L0.2417 0.3116 L0.2500 0.2929 L0.2583 0.2746 L0.2667 0.2569 L0.2750 0.2396 L0.2833 0.2229 L0.2917 0.2066 L0.3000 0.1910 L0.3083 0.1759 L0.3167 0.1613 L0.3250 0.1474 L0.3333 0.1340 L0.3417 0.1212 L0.3500 0.1090 L0.3583 0.0974 L0.3667 0.0865 L0.3750 0.0761 L0.3833 0.0664 L0.3917 0.0574 L0.4000 0.0489 L0.4083 0.0412 L0.4167 0.0341 L0.4250 0.0276 L0.4333 0.0219 L0.4417 0.0167 L0.4500 0.0123 L0.4583 0.0086 L0.4667 0.0055 L0.4750 0.0031 L0.4833 0.0014 L0.4917 0.0003 L0.5000 0.0000 L0.5083 0.0003 L0.5167 0.0014 L0.5250 0.0031 L0.5333 0.0055 L0.5417 0.0086 L0.5500 0.0123 L0.5583 0.0167 L0.5667 0.0219 L0.5750 0.0276 L0.5833 0.0341 L0.5917 0.0412 L0.6000 0.0489 L0.6083 0.0574 L0.6167 0.0664 L0.6250 0.0761 L0.6333 0.0865 L0.6417 0.0974 L0.6500 0.1090 L0.6583 0.1212 L0.6667 0.1340 L0.6750 0.1474 L0.6833 0.1613 L0.6917 0.1759 L0.7000 0.1910 L0.7083 0.2066 L0.7167 0.2229 L0.7250 0.2396 L0.7333 0.2569 L0.7417 0.2746 L0.7500 0.2929 L0.7583 0.3116 L0.7667 0.3309 L0.7750 0.3506 L0.7833 0.3707 L0.7917 0.3912 L0.8000 0.4122 L0.8083 0.4336 L0.8167 0.4554 L0.8250 0.4775 L0.8333 0.5000 L0.8417 0.5228 L0.8500 0.5460 L0.8583 0.5695 L0.8667 0.5933 L0.8750 0.6173 L0.8833 0.6416 L0.8917 0.6662 L0.9000 0.6910 L0.9083 0.7160 L0.9167 0.7412 L0.9250 0.7666 L0.9333 0.7921 L0.9417 0.8178 L0.9500 0.8436 L0.9583 0.8695 L0.9667 0.8955 L0.9750 0.9215 L0.9833 0.9477 L0.9917 0.9738 L1.0000 1.0000" />
+            <path class="c-gauss" d="M0.0000 0.9817 L0.0083 0.9791 L0.0167 0.9762 L0.0250 0.9729 L0.0333 0.9693 L0.0417 0.9653 L0.0500 0.9608 L0.0583 0.9559 L0.0667 0.9504 L0.0750 0.9444 L0.0833 0.9378 L0.0917 0.9306 L0.1000 0.9227 L0.1083 0.9141 L0.1167 0.9047 L0.1250 0.8946 L0.1333 0.8836 L0.1417 0.8718 L0.1500 0.8591 L0.1583 0.8455 L0.1667 0.8310 L0.1750 0.8155 L0.1833 0.7990 L0.1917 0.7815 L0.2000 0.7631 L0.2083 0.7436 L0.2167 0.7232 L0.2250 0.7018 L0.2333 0.6795 L0.2417 0.6562 L0.2500 0.6321 L0.2583 0.6072 L0.2667 0.5815 L0.2750 0.5551 L0.2833 0.5282 L0.2917 0.5006 L0.3000 0.4727 L0.3083 0.4444 L0.3167 0.4160 L0.3250 0.3874 L0.3333 0.3588 L0.3417 0.3304 L0.3500 0.3023 L0.3583 0.2747 L0.3667 0.2476 L0.3750 0.2212 L0.3833 0.1957 L0.3917 0.1712 L0.4000 0.1479 L0.4083 0.1258 L0.4167 0.1052 L0.4250 0.0861 L0.4333 0.0686 L0.4417 0.0530 L0.4500 0.0392 L0.4583 0.0274 L0.4667 0.0176 L0.4750 0.0100 L0.4833 0.0044 L0.4917 0.0011 L0.5000 0.0000 L0.5083 0.0011 L0.5167 0.0044 L0.5250 0.0100 L0.5333 0.0176 L0.5417 0.0274 L0.5500 0.0392 L0.5583 0.0530 L0.5667 0.0686 L0.5750 0.0861 L0.5833 0.1052 L0.5917 0.1258 L0.6000 0.1479 L0.6083 0.1712 L0.6167 0.1957 L0.6250 0.2212 L0.6333 0.2476 L0.6417 0.2747 L0.6500 0.3023 L0.6583 0.3304 L0.6667 0.3588 L0.6750 0.3874 L0.6833 0.4160 L0.6917 0.4444 L0.7000 0.4727 L0.7083 0.5006 L0.7167 0.5282 L0.7250 0.5551 L0.7333 0.5815 L0.7417 0.6072 L0.7500 0.6321 L0.7583 0.6562 L0.7667 0.6795 L0.7750 0.7018 L0.7833 0.7232 L0.7917 0.7436 L0.8000 0.7631 L0.8083 0.7815 L0.8167 0.7990 L0.8250 0.8155 L0.8333 0.8310 L0.8417 0.8455 L0.8500 0.8591 L0.8583 0.8718 L0.8667 0.8836 L0.8750 0.8946 L0.8833 0.9047 L0.8917 0.9141 L0.9000 0.9227 L0.9083 0.9306 L0.9167 0.9378 L0.9250 0.9444 L0.9333 0.9504 L0.9417 0.9559 L0.9500 0.9608 L0.9583 0.9653 L0.9667 0.9693 L0.9750 0.9729 L0.9833 0.9762 L0.9917 0.9791 L1.0000 0.9817" />
+            <path class="c-soph" d="M0.0000 0.3333 L0.0083 0.3062 L0.0167 0.2863 L0.0250 0.2689 L0.0333 0.2533 L0.0417 0.2389 L0.0500 0.2256 L0.0583 0.2131 L0.0667 0.2014 L0.0750 0.1904 L0.0833 0.1799 L0.0917 0.1701 L0.1000 0.1607 L0.1083 0.1518 L0.1167 0.1434 L0.1250 0.1354 L0.1333 0.1279 L0.1417 0.1207 L0.1500 0.1139 L0.1583 0.1074 L0.1667 0.1013 L0.1750 0.0956 L0.1833 0.0901 L0.1917 0.0850 L0.2000 0.0802 L0.2083 0.0757 L0.2167 0.0714 L0.2250 0.0675 L0.2333 0.0638 L0.2417 0.0604 L0.2500 0.0572 L0.2583 0.0543 L0.2667 0.0516 L0.2750 0.0492 L0.2833 0.0470 L0.2917 0.0450 L0.3000 0.0433 L0.3083 0.0418 L0.3167 0.0405 L0.3250 0.0394 L0.3333 0.0385 L0.3417 0.0378 L0.3500 0.0373 L0.3583 0.0370 L0.3667 0.0369 L0.3750 0.0370 L0.3833 0.0372 L0.3917 0.0376 L0.4000 0.0382 L0.4083 0.0390 L0.4167 0.0399 L0.4250 0.0409 L0.4333 0.0422 L0.4417 0.0436 L0.4500 0.0451 L0.4583 0.0468 L0.4667 0.0486 L0.4750 0.0505 L0.4833 0.0526 L0.4917 0.0548 L0.5000 0.0572 L0.5083 0.0597 L0.5167 0.0623 L0.5250 0.0650 L0.5333 0.0678 L0.5417 0.0707 L0.5500 0.0738 L0.5583 0.0769 L0.5667 0.0802 L0.5750 0.0836 L0.5833 0.0870 L0.5917 0.0906 L0.6000 0.0942 L0.6083 0.0980 L0.6167 0.1018 L0.6250 0.1057 L0.6333 0.1097 L0.6417 0.1138 L0.6500 0.1179 L0.6583 0.1221 L0.6667 0.1264 L0.6750 0.1308 L0.6833 0.1352 L0.6917 0.1397 L0.7000 0.1443 L0.7083 0.1489 L0.7167 0.1536 L0.7250 0.1583 L0.7333 0.1631 L0.7417 0.1679 L0.7500 0.1728 L0.7583 0.1777 L0.7667 0.1827 L0.7750 0.1877 L0.7833 0.1928 L0.7917 0.1979 L0.8000 0.2030 L0.8083 0.2082 L0.8167 0.2134 L0.8250 0.2187 L0.8333 0.2239 L0.8417 0.2292 L0.8500 0.2346 L0.8583 0.2399 L0.8667 0.2453 L0.8750 0.2507 L0.8833 0.2561 L0.8917 0.2616 L0.9000 0.2670 L0.9083 0.2725 L0.9167 0.2780 L0.9250 0.2835 L0.9333 0.2890 L0.9417 0.2945 L0.9500 0.3000 L0.9583 0.3056 L0.9667 0.3111 L0.9750 0.3167 L0.9833 0.3222 L0.9917 0.3278 L1.0000 0.3333" />
+          </svg>
+        </div>
+        <span class="ax ax-a"></span><span class="ax ax-b"></span>
+        <span class="ax ax-H"></span><span class="ax ax-0">0</span>
+      </div>
+
+      <div class="readout">
+        <div class="big num e3" aria-hidden="true"><b></b>.<b></b></div>
+        <p>
+          <span class="hits"></span> of 1&#8239;000 pieces landed under the
+          curve. The box’s area is <span class="A-t"></span>, so the estimate
+          is <span class="A-t"></span>&nbsp;×&nbsp;<span class="hits"></span>&nbsp;/&nbsp;1&#8239;000.
+        </p>
+        <a class="reroll" href="">Throw again ↻</a>
+      </div>
+
+      <div class="table" aria-hidden="true">
+        <table>
+          <thead>
+            <tr><th>pieces</th><th>estimate</th><th>actual error</th><th>typical error</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>10</td><td class="num e1"><b></b>.<b></b></td><td class="num r1"><b></b>.<b></b></td><td class="num s1">±<b></b>.<b></b></td></tr>
+            <tr><td>100</td><td class="num e2"><b></b>.<b></b></td><td class="num r2"><b></b>.<b></b></td><td class="num s2">±<b></b>.<b></b></td></tr>
+            <tr><td>1&#8239;000</td><td class="num e3"><b></b>.<b></b></td><td class="num r3"><b></b>.<b></b></td><td class="num s3">±<b></b>.<b></b></td></tr>
+            <tr class="exact-row"><td>exact</td><td class="num exact"></td><td></td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <p>
+      The table shows the estimate after the first 10, 100 and 1&#8239;000
+      pieces, how far off it actually is, and how far off it should
+      typically be.
+    </p>
+
+    <h2>One piece of confetti</h2>
+    <p>
+      Five hundred pieces, a thousand pieces. But what if you only had one?
+      You would throw it, note where it landed, pick it up, and throw it
+      again. Below is a single piece of confetti doing exactly that, ten
+      times a second, ever since you opened this page - while CSS keeps
+      score.
+    </p>
+
+    <section class="engine panel" aria-label="One piece of confetti, thrown forever">
+      <div class="pick" aria-hidden="true">
+        <label for="f-pi">quarter circle</label>
+        <label for="f-sin">sin x</label>
+        <label for="f-gauss">bell curve</label>
+        <label for="f-soph">sophomore’s dream</label>
+      </div>
+      <div class="plot" aria-hidden="true">
+        <div class="box">
+          <i class="ghost" style="--k: 0"></i><i class="ghost" style="--k: 1"></i><i class="ghost" style="--k: 2"></i><i class="ghost" style="--k: 3"></i><i class="ghost" style="--k: 4"></i><i class="ghost" style="--k: 5"></i><i class="ghost" style="--k: 6"></i><i class="ghost" style="--k: 7"></i><i class="ghost" style="--k: 8"></i><i class="ghost" style="--k: 9"></i><i class="ghost" style="--k: 10"></i><i class="ghost" style="--k: 11"></i><i class="ghost" style="--k: 12"></i><i class="ghost" style="--k: 13"></i><i class="ghost" style="--k: 14"></i><i class="ghost" style="--k: 15"></i><i class="ghost" style="--k: 16"></i><i class="ghost" style="--k: 17"></i><i class="ghost" style="--k: 18"></i><i class="ghost" style="--k: 19"></i><i class="ghost" style="--k: 20"></i><i class="ghost" style="--k: 21"></i><i class="ghost" style="--k: 22"></i><i class="ghost" style="--k: 23"></i><i class="ghost" style="--k: 24"></i><i class="ghost" style="--k: 25"></i><i class="ghost" style="--k: 26"></i><i class="ghost" style="--k: 27"></i><i class="ghost" style="--k: 28"></i><i class="ghost" style="--k: 29"></i><i class="ghost" style="--k: 30"></i><i class="ghost" style="--k: 31"></i><i class="ghost" style="--k: 32"></i><i class="ghost" style="--k: 33"></i><i class="ghost" style="--k: 34"></i><i class="ghost" style="--k: 35"></i><i class="ghost" style="--k: 36"></i><i class="ghost" style="--k: 37"></i><i class="ghost" style="--k: 38"></i><i class="ghost" style="--k: 39"></i><i class="ghost" style="--k: 40"></i><i class="ghost" style="--k: 41"></i><i class="ghost" style="--k: 42"></i><i class="ghost" style="--k: 43"></i><i class="ghost" style="--k: 44"></i><i class="ghost" style="--k: 45"></i><i class="ghost" style="--k: 46"></i><i class="ghost" style="--k: 47"></i><i class="ghost" style="--k: 48"></i><i class="ghost" style="--k: 49"></i>
+          <svg class="curve" viewBox="0 0 1 1" preserveAspectRatio="none">
+            <path class="c-pi" d="M0.0000 0.0000 L0.0166 0.0001 L0.0331 0.0005 L0.0494 0.0012 L0.0656 0.0022 L0.0816 0.0033 L0.0975 0.0048 L0.1133 0.0064 L0.1289 0.0083 L0.1444 0.0105 L0.1597 0.0128 L0.1749 0.0154 L0.1900 0.0182 L0.2049 0.0212 L0.2197 0.0244 L0.2344 0.0279 L0.2489 0.0315 L0.2633 0.0353 L0.2775 0.0393 L0.2916 0.0435 L0.3056 0.0478 L0.3194 0.0524 L0.3331 0.0571 L0.3466 0.0620 L0.3600 0.0670 L0.3733 0.0723 L0.3864 0.0777 L0.3994 0.0832 L0.4122 0.0889 L0.4249 0.0948 L0.4375 0.1008 L0.4499 0.1069 L0.4622 0.1132 L0.4744 0.1197 L0.4864 0.1263 L0.4983 0.1330 L0.5100 0.1398 L0.5216 0.1468 L0.5331 0.1539 L0.5444 0.1612 L0.5556 0.1685 L0.5666 0.1760 L0.5775 0.1836 L0.5883 0.1913 L0.5989 0.1992 L0.6094 0.2071 L0.6197 0.2152 L0.6299 0.2233 L0.6400 0.2316 L0.6499 0.2400 L0.6597 0.2485 L0.6694 0.2571 L0.6789 0.2658 L0.6883 0.2745 L0.6975 0.2834 L0.7066 0.2924 L0.7156 0.3014 L0.7244 0.3106 L0.7331 0.3198 L0.7416 0.3292 L0.7500 0.3386 L0.7583 0.3481 L0.7664 0.3576 L0.7744 0.3673 L0.7822 0.3770 L0.7899 0.3868 L0.7975 0.3967 L0.8049 0.4066 L0.8122 0.4167 L0.8194 0.4267 L0.8264 0.4369 L0.8333 0.4471 L0.8400 0.4574 L0.8466 0.4678 L0.8531 0.4782 L0.8594 0.4887 L0.8656 0.4992 L0.8716 0.5098 L0.8775 0.5204 L0.8833 0.5311 L0.8889 0.5419 L0.8944 0.5527 L0.8997 0.5635 L0.9049 0.5744 L0.9100 0.5854 L0.9149 0.5964 L0.9197 0.6074 L0.9244 0.6185 L0.9289 0.6296 L0.9333 0.6408 L0.9375 0.6520 L0.9416 0.6633 L0.9456 0.6745 L0.9494 0.6859 L0.9531 0.6972 L0.9566 0.7086 L0.9600 0.7200 L0.9633 0.7314 L0.9664 0.7429 L0.9694 0.7544 L0.9722 0.7659 L0.9749 0.7775 L0.9775 0.7891 L0.9799 0.8007 L0.9822 0.8123 L0.9844 0.8239 L0.9864 0.8356 L0.9883 0.8472 L0.9900 0.8589 L0.9916 0.8706 L0.9931 0.8824 L0.9944 0.8941 L0.9956 0.9058 L0.9966 0.9176 L0.9975 0.9293 L0.9983 0.9411 L0.9989 0.9529 L0.9994 0.9647 L0.9997 0.9764 L0.9999 0.9882 L1.0000 1.0000" />
+            <path class="c-sin" d="M0.0000 1.0000 L0.0083 0.9738 L0.0167 0.9477 L0.0250 0.9215 L0.0333 0.8955 L0.0417 0.8695 L0.0500 0.8436 L0.0583 0.8178 L0.0667 0.7921 L0.0750 0.7666 L0.0833 0.7412 L0.0917 0.7160 L0.1000 0.6910 L0.1083 0.6662 L0.1167 0.6416 L0.1250 0.6173 L0.1333 0.5933 L0.1417 0.5695 L0.1500 0.5460 L0.1583 0.5228 L0.1667 0.5000 L0.1750 0.4775 L0.1833 0.4554 L0.1917 0.4336 L0.2000 0.4122 L0.2083 0.3912 L0.2167 0.3707 L0.2250 0.3506 L0.2333 0.3309 L0.2417 0.3116 L0.2500 0.2929 L0.2583 0.2746 L0.2667 0.2569 L0.2750 0.2396 L0.2833 0.2229 L0.2917 0.2066 L0.3000 0.1910 L0.3083 0.1759 L0.3167 0.1613 L0.3250 0.1474 L0.3333 0.1340 L0.3417 0.1212 L0.3500 0.1090 L0.3583 0.0974 L0.3667 0.0865 L0.3750 0.0761 L0.3833 0.0664 L0.3917 0.0574 L0.4000 0.0489 L0.4083 0.0412 L0.4167 0.0341 L0.4250 0.0276 L0.4333 0.0219 L0.4417 0.0167 L0.4500 0.0123 L0.4583 0.0086 L0.4667 0.0055 L0.4750 0.0031 L0.4833 0.0014 L0.4917 0.0003 L0.5000 0.0000 L0.5083 0.0003 L0.5167 0.0014 L0.5250 0.0031 L0.5333 0.0055 L0.5417 0.0086 L0.5500 0.0123 L0.5583 0.0167 L0.5667 0.0219 L0.5750 0.0276 L0.5833 0.0341 L0.5917 0.0412 L0.6000 0.0489 L0.6083 0.0574 L0.6167 0.0664 L0.6250 0.0761 L0.6333 0.0865 L0.6417 0.0974 L0.6500 0.1090 L0.6583 0.1212 L0.6667 0.1340 L0.6750 0.1474 L0.6833 0.1613 L0.6917 0.1759 L0.7000 0.1910 L0.7083 0.2066 L0.7167 0.2229 L0.7250 0.2396 L0.7333 0.2569 L0.7417 0.2746 L0.7500 0.2929 L0.7583 0.3116 L0.7667 0.3309 L0.7750 0.3506 L0.7833 0.3707 L0.7917 0.3912 L0.8000 0.4122 L0.8083 0.4336 L0.8167 0.4554 L0.8250 0.4775 L0.8333 0.5000 L0.8417 0.5228 L0.8500 0.5460 L0.8583 0.5695 L0.8667 0.5933 L0.8750 0.6173 L0.8833 0.6416 L0.8917 0.6662 L0.9000 0.6910 L0.9083 0.7160 L0.9167 0.7412 L0.9250 0.7666 L0.9333 0.7921 L0.9417 0.8178 L0.9500 0.8436 L0.9583 0.8695 L0.9667 0.8955 L0.9750 0.9215 L0.9833 0.9477 L0.9917 0.9738 L1.0000 1.0000" />
+            <path class="c-gauss" d="M0.0000 0.9817 L0.0083 0.9791 L0.0167 0.9762 L0.0250 0.9729 L0.0333 0.9693 L0.0417 0.9653 L0.0500 0.9608 L0.0583 0.9559 L0.0667 0.9504 L0.0750 0.9444 L0.0833 0.9378 L0.0917 0.9306 L0.1000 0.9227 L0.1083 0.9141 L0.1167 0.9047 L0.1250 0.8946 L0.1333 0.8836 L0.1417 0.8718 L0.1500 0.8591 L0.1583 0.8455 L0.1667 0.8310 L0.1750 0.8155 L0.1833 0.7990 L0.1917 0.7815 L0.2000 0.7631 L0.2083 0.7436 L0.2167 0.7232 L0.2250 0.7018 L0.2333 0.6795 L0.2417 0.6562 L0.2500 0.6321 L0.2583 0.6072 L0.2667 0.5815 L0.2750 0.5551 L0.2833 0.5282 L0.2917 0.5006 L0.3000 0.4727 L0.3083 0.4444 L0.3167 0.4160 L0.3250 0.3874 L0.3333 0.3588 L0.3417 0.3304 L0.3500 0.3023 L0.3583 0.2747 L0.3667 0.2476 L0.3750 0.2212 L0.3833 0.1957 L0.3917 0.1712 L0.4000 0.1479 L0.4083 0.1258 L0.4167 0.1052 L0.4250 0.0861 L0.4333 0.0686 L0.4417 0.0530 L0.4500 0.0392 L0.4583 0.0274 L0.4667 0.0176 L0.4750 0.0100 L0.4833 0.0044 L0.4917 0.0011 L0.5000 0.0000 L0.5083 0.0011 L0.5167 0.0044 L0.5250 0.0100 L0.5333 0.0176 L0.5417 0.0274 L0.5500 0.0392 L0.5583 0.0530 L0.5667 0.0686 L0.5750 0.0861 L0.5833 0.1052 L0.5917 0.1258 L0.6000 0.1479 L0.6083 0.1712 L0.6167 0.1957 L0.6250 0.2212 L0.6333 0.2476 L0.6417 0.2747 L0.6500 0.3023 L0.6583 0.3304 L0.6667 0.3588 L0.6750 0.3874 L0.6833 0.4160 L0.6917 0.4444 L0.7000 0.4727 L0.7083 0.5006 L0.7167 0.5282 L0.7250 0.5551 L0.7333 0.5815 L0.7417 0.6072 L0.7500 0.6321 L0.7583 0.6562 L0.7667 0.6795 L0.7750 0.7018 L0.7833 0.7232 L0.7917 0.7436 L0.8000 0.7631 L0.8083 0.7815 L0.8167 0.7990 L0.8250 0.8155 L0.8333 0.8310 L0.8417 0.8455 L0.8500 0.8591 L0.8583 0.8718 L0.8667 0.8836 L0.8750 0.8946 L0.8833 0.9047 L0.8917 0.9141 L0.9000 0.9227 L0.9083 0.9306 L0.9167 0.9378 L0.9250 0.9444 L0.9333 0.9504 L0.9417 0.9559 L0.9500 0.9608 L0.9583 0.9653 L0.9667 0.9693 L0.9750 0.9729 L0.9833 0.9762 L0.9917 0.9791 L1.0000 0.9817" />
+            <path class="c-soph" d="M0.0000 0.3333 L0.0083 0.3062 L0.0167 0.2863 L0.0250 0.2689 L0.0333 0.2533 L0.0417 0.2389 L0.0500 0.2256 L0.0583 0.2131 L0.0667 0.2014 L0.0750 0.1904 L0.0833 0.1799 L0.0917 0.1701 L0.1000 0.1607 L0.1083 0.1518 L0.1167 0.1434 L0.1250 0.1354 L0.1333 0.1279 L0.1417 0.1207 L0.1500 0.1139 L0.1583 0.1074 L0.1667 0.1013 L0.1750 0.0956 L0.1833 0.0901 L0.1917 0.0850 L0.2000 0.0802 L0.2083 0.0757 L0.2167 0.0714 L0.2250 0.0675 L0.2333 0.0638 L0.2417 0.0604 L0.2500 0.0572 L0.2583 0.0543 L0.2667 0.0516 L0.2750 0.0492 L0.2833 0.0470 L0.2917 0.0450 L0.3000 0.0433 L0.3083 0.0418 L0.3167 0.0405 L0.3250 0.0394 L0.3333 0.0385 L0.3417 0.0378 L0.3500 0.0373 L0.3583 0.0370 L0.3667 0.0369 L0.3750 0.0370 L0.3833 0.0372 L0.3917 0.0376 L0.4000 0.0382 L0.4083 0.0390 L0.4167 0.0399 L0.4250 0.0409 L0.4333 0.0422 L0.4417 0.0436 L0.4500 0.0451 L0.4583 0.0468 L0.4667 0.0486 L0.4750 0.0505 L0.4833 0.0526 L0.4917 0.0548 L0.5000 0.0572 L0.5083 0.0597 L0.5167 0.0623 L0.5250 0.0650 L0.5333 0.0678 L0.5417 0.0707 L0.5500 0.0738 L0.5583 0.0769 L0.5667 0.0802 L0.5750 0.0836 L0.5833 0.0870 L0.5917 0.0906 L0.6000 0.0942 L0.6083 0.0980 L0.6167 0.1018 L0.6250 0.1057 L0.6333 0.1097 L0.6417 0.1138 L0.6500 0.1179 L0.6583 0.1221 L0.6667 0.1264 L0.6750 0.1308 L0.6833 0.1352 L0.6917 0.1397 L0.7000 0.1443 L0.7083 0.1489 L0.7167 0.1536 L0.7250 0.1583 L0.7333 0.1631 L0.7417 0.1679 L0.7500 0.1728 L0.7583 0.1777 L0.7667 0.1827 L0.7750 0.1877 L0.7833 0.1928 L0.7917 0.1979 L0.8000 0.2030 L0.8083 0.2082 L0.8167 0.2134 L0.8250 0.2187 L0.8333 0.2239 L0.8417 0.2292 L0.8500 0.2346 L0.8583 0.2399 L0.8667 0.2453 L0.8750 0.2507 L0.8833 0.2561 L0.8917 0.2616 L0.9000 0.2670 L0.9083 0.2725 L0.9167 0.2780 L0.9250 0.2835 L0.9333 0.2890 L0.9417 0.2945 L0.9500 0.3000 L0.9583 0.3056 L0.9667 0.3111 L0.9750 0.3167 L0.9833 0.3222 L0.9917 0.3278 L1.0000 0.3333" />
+          </svg>
+        </div>
+        <span class="ax ax-a"></span><span class="ax ax-b"></span>
+        <span class="ax ax-H"></span><span class="ax ax-0">0</span>
+      </div>
+      <div class="tally">
+        <div class="big num t-est" aria-hidden="true"><b></b>.<b></b></div>
+        <p class="sr">
+          So far <span class="t-hits"></span> of <span class="t-n"></span> throws
+          landed under the curve, and the box’s area is <span class="A-t"></span>.
+        </p>
+        <dl aria-hidden="true">
+          <dt>throws</dt><dd><span class="t-n"></span></dd>
+          <dt>actual error</dt><dd class="num t-err"><b></b>.<b></b></dd>
+          <dt>typical error</dt><dd class="num t-sig">±<b></b>.<b></b></dd>
+        </dl>
+        <p class="note">Same integrand as above - pick another and the count starts over.</p>
+        <p class="note still">Your system asks for reduced motion, so the confetti is hidden. It is still being thrown - watch the count.</p>
+      </div>
+    </section>
+
+    <p>
+      It’s the same method, spread out over time instead of over the page.
+      The longer you watch, the closer it gets - and the slower it gets
+      closer.
+    </p>
+
+    <h2>How the CSS does it</h2>
+
+    <h3>Where a piece lands</h3>
+    <p>
+      A piece needs two coordinates, and it has to keep them: the same
+      <var>x</var> places the piece on the page <em>and</em> goes into the
+      inside-or-outside check. A bare <code>random()</code> draws a fresh
+      number in every property it appears in. A registered custom property
+      draws once per element and keeps it:
+    </p>
+    <pre class="panel"><code>@property --x { syntax: "&lt;number&gt;"; inherits: false; initial-value: 0; }
+@property --y { syntax: "&lt;number&gt;"; inherits: false; initial-value: 0; }
+
+.darts i {
+  --x: random(0, 1);
+  --y: random(0, 1);
+  left: calc(var(--x) * 100%);
+  bottom: calc(var(--y) * 100%);
+}</code></pre>
+    <p>
+      Each element gets its own draw, and keeps it for life. That’s what
+      makes the sampler work - and, as we’ll see, the main obstacle to
+      everything else.
+    </p>
+
+    <h3>Inside or outside</h3>
+    <p>
+      For the circle, a piece is inside when
+      <math><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup><mo>&lt;</mo><mn>1</mn></math>.
+      For a curve, map <var>x</var> onto the interval, evaluate the function
+      - CSS has <code>sqrt()</code>, <code>sin()</code>, <code>exp()</code>
+      and <code>pow()</code> - and compare it to the piece’s height.
+      <code>sign()</code> turns the comparison into a number, and
+      <code>max(0, …)</code> clips it to the 0 or 1 we want:
+    </p>
+    <pre class="panel"><code>--u: calc(var(--a) + (var(--b) - var(--a)) * var(--x));
+--f: exp(-1 * var(--u) * var(--u));          /* the bell curve */
+--hit: max(0, sign(var(--f) - var(--H) * var(--y)));
+
+background: color-mix(in oklab, var(--hit-c) calc(var(--hit) * 100%), var(--miss-c));</code></pre>
+    <p>
+      Switching the function swaps <code>--f</code>, but not the confetti:
+      the same thousand pieces just get judged against a different curve.
+    </p>
+
+    <h3>Counting</h3>
+    <p>
+      Adding up a number from a thousand elements sounds like the one thing
+      CSS can’t do. It can: that’s what
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Lists/Using_counters">counters</a>
+      are for. Say we throw 100 pieces at the quarter circle. Its box has
+      an area of 4, so every piece that lands under the curve adds
+      4&nbsp;/&nbsp;100&nbsp;=&nbsp;0.04 to the estimate. Counters only hold
+      whole numbers, so we count in hundred-millionths: each hit adds
+      4&#8239;000&#8239;000, and 78 hits leave the counter at
+      312&#8239;000&#8239;000 - which is 3.12. The counter doesn’t hold a
+      count; it holds the answer:
+    </p>
+    <pre class="panel"><code>/* a hit is worth A / 100, in units of 10⁻⁸ */
+--w: calc(round(var(--hit) * var(--A) * 1e6));
+counter-increment: estimate var(--w);</code></pre>
+    <p>
+      Nothing is special about 100: weight a hit by <var>A</var>/10 or
+      <var>A</var>/1&#8239;000 instead, and the same pieces give the
+      estimate after 10 or after 1&#8239;000 throws. That’s where the
+      table’s three rows come from. Two more counters fill in the other
+      columns. One starts at minus the exact answer, so after the confetti
+      it holds the error. The other ignores the confetti entirely: it’s
+      the textbook standard error,
+      <math><msqrt><mi>I</mi><mo>(</mo><mi>A</mi><mo>−</mo><mi>I</mi><mo>)</mo><mo>/</mo><mi>N</mi></msqrt></math>,
+      computed in <code>counter-reset</code>.
+    </p>
+    <p>
+      Printing it is the last trick. <code>@counter-style</code> pads the
+      counter to nine digits - <code>314159265</code> - and the page shows
+      it twice, once clipped to the first digit and once shifted left by a
+      digit and clipped to the next four. The decimal point between them is
+      literal text.
+    </p>
+
+    <h3>Fresh confetti on every click</h3>
+    <p>
+      Because a piece keeps its numbers for life, a plain confetti button
+      would throw the identical burst on every click. Pseudo-elements are
+      the way out: CSS creates and destroys them, and a new one draws new
+      numbers. Each button flips between two hidden radio buttons, and the
+      confetti lives in <code>::before</code> in one state and in
+      <code>::after</code> in the other, so every click throws one set
+      away and creates a fresh one:
+    </p>
+    <pre class="panel"><code>.confetti i::before,
+.confetti i::after {
+  --cx: random(-150px, 150px);
+  --cy: random(-170px, -50px);
+  --ch: random(0, 360);
+  background: oklch(0.74 0.17 var(--ch));
+}
+body:has(#c-a:checked) .confetti i::before,
+body:has(#c-b:checked) .confetti i::after { content: ""; }</code></pre>
+
+    <h3>Throwing one piece, again and again</h3>
+    <p>
+      The single piece has no click to rely on, and nothing else gets a
+      fresh number: <code>random()</code> inside <code>@keyframes</code> is
+      drawn once, not once per loop, and hiding, re-inserting or restyling
+      the element hands back the same value.
+    </p>
+    <p>
+      What does work is a <em>named</em> key: <code>random(--g1-17, 0, 1)</code>
+      is one fixed value, the same everywhere in the document. So a step
+      animation can walk through a list of them, one every 100&nbsp;ms. One
+      list would repeat quickly, so there are three, 97, 89 and 83 long.
+      Their lengths share no common factor, so the lists drift past each
+      other and don’t line up the same way again for 716&#8239;539 throws.
+      <var>x</var> adds the first and third lists, <var>y</var> the second
+      and third, both mod 1. A sum of random numbers mod 1 is just as
+      random - the trick behind the
+      <a href="https://en.wikipedia.org/wiki/Wichmann%E2%80%93Hill">Wichmann–Hill generator</a>
+      from 1982 - and sharing the third list doesn’t tie <var>x</var> and
+      <var>y</var> together.
+    </p>
+    <pre class="panel"><code>@keyframes g1 {
+  0%       { --g1: random(--g1-0, 0, 1); }
+  1.03093% { --g1: random(--g1-1, 0, 1); }
+  /* … 95 more … */
+}
+.engine {
+  animation: g1 9700ms step-end infinite, g2 8900ms step-end infinite,
+             g3 8300ms step-end infinite;
+  --x: mod(var(--g1) + var(--g3), 1);
+  --y: mod(var(--g2) + var(--g3), 1);
+}</code></pre>
+    <p>
+      It isn’t a perfect generator: after about ten thousand throws, a
+      quarter of an hour of watching, the repeats start to show.
+    </p>
+    <p>
+      The piece you see is fifty elements running the same lists, each one
+      step later than the last, so each sits exactly where the piece landed
+      that many throws ago. Their age in throws drives everything else: the
+      newest fades in and sends out a ring, older ones slowly dim.
+    </p>
+
+    <h3>Keeping score without counters</h3>
+    <p>
+      One element, nothing to add up - so the score is kept in time
+      instead. A child of the piece runs two long linear animations: a clock
+      that always runs, and a second clock that only runs while the piece is
+      under the curve. To find out, the child asks its parent with a
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Container_size_and_style_queries">container style query</a>:
+    </p>
+    <pre class="panel"><code>.tally {
+  animation: clk 100000s linear infinite, acc 100000s linear infinite;
+  animation-play-state: running, paused;
+}
+@container style(--hit: 1) {
+  .tally { animation-play-state: running, running; }
+}
+
+--est: calc(var(--A) * var(--acc) / var(--clk));</code></pre>
+    <p>
+      Every throw lasts the same 100&nbsp;ms, so the share of time spent
+      under the curve is the share of throws that hit. One caveat: a
+      background tab draws no frames, so the piece freezes wherever it was,
+      and your time away counts as one very long throw. Reload, or pick
+      another function, to start clean.
+    </p>
+
+    <h2>Why it is so slow</h2>
+    <p>
+      Look at the typical error in the last two panels: a hundred times more
+      confetti buys one more correct digit. The single piece needs about
+      seventeen minutes to get as precise as a mere 10&#8239;000 pieces would
+      be. The error of Monte Carlo shrinks like <math><mn>1</mn><mo>/</mo><msqrt><mi>N</mi></msqrt></math>, which is
+      terrible for a one-dimensional integral - Simpson’s rule would nail
+      all four of these with a few dozen points. The method earns its keep
+      in high dimensions, where grids explode and <math><mn>1</mn><mo>/</mo><msqrt><mi>N</mi></msqrt></math> stays exactly
+      as bad as it always was, no matter how many dimensions you add. A
+      neutron at Los Alamos needed seven numbers (position, direction,
+      energy and time). A stylesheet, admittedly, is not where you’d do that.
+    </p>
+
+    <footer>
+      <a href="/">← all demos</a> · every reload throws new confetti
+    </footer>
+  </body>
+</html>
