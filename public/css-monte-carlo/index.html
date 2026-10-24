@@ -5,7 +5,7 @@
   <title>Precisely random(): Integrals in Pure CSS</title>
   <meta
     name="description"
-    content="Throw confetti with CSS random(), count what lands inside a circle, and you have measured π. Then integrals with no formula at all, and one piece of confetti thrown forever. Monte Carlo integration in pure CSS, zero JavaScript."
+    content="Throw confetti with CSS random(), count what lands inside a circle, and you have measured π. Then functions with no elementary antiderivative, and one piece of confetti thrown forever. Monte Carlo integration in pure CSS, zero JavaScript."
   />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="canonical" href="https://acorns.nutlore.me/css-monte-carlo/" />
@@ -16,7 +16,7 @@
   <meta property="og:title" content="Precisely random(): Integrals in Pure CSS" />
   <meta
     property="og:description"
-    content="Throw confetti with CSS random(), count what lands inside a circle, and you have measured π. Then integrals with no formula at all, and one piece of confetti thrown forever. Monte Carlo integration in pure CSS, zero JavaScript."
+    content="Throw confetti with CSS random(), count what lands inside a circle, and you have measured π. Then functions with no elementary antiderivative, and one piece of confetti thrown forever. Monte Carlo integration in pure CSS, zero JavaScript."
   />
   <meta property="og:url" content="https://acorns.nutlore.me/css-monte-carlo/" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -95,6 +95,19 @@
       border-radius: 14px;
     }
     a { color: var(--accent); }
+    details.panel {
+      margin: 2rem 0;
+      padding: 1rem 1.25rem;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+    summary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+    }
+    details[open] > summary { margin-bottom: 1rem; }
     footer {
       margin-top: 4rem;
       font-size: 0.9rem;
@@ -426,7 +439,7 @@
        one entry every 100 ms. The lengths are coprime, so the lists
        drift past each other and only line up again after 716 539
        throws. A sum of uniforms mod 1 is uniform again (the trick behind
-       Wichmann–Hill, 1982), and x and y can share the third list
+       Wichmann-Hill, 1982), and x and y can share the third list
        without depending on each other. */
     @property --g1 { syntax: "<number>"; inherits: true; initial-value: 0; }
     @property --g2 { syntax: "<number>"; inherits: true; initial-value: 0; }
@@ -1068,11 +1081,7 @@
     <p>
       Hooray: CSS has a
       <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/random"><code>random()</code></a>
-      function! It isn’t
-      <a href="https://web.dev/baseline">Baseline</a> yet - Safari shipped it
-      in December 2025, Chrome and Edge in October 2026, and Firefox only has
-      it in Nightly - but it’s here, and there is exactly one correct way to
-      celebrate:
+      function! This calls for confetti:
       <span class="plus1">
         <input type="radio" name="confetti" id="c-a" aria-label="Throw confetti" />
         <input type="radio" name="confetti" id="c-b" aria-label="Throw more confetti" />
@@ -1080,12 +1089,15 @@
         <span class="confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
       </span>
       <span class="nocel" role="status">(no confetti here, sorry: this browser
-        can’t do <code>random()</code> yet. Please celebrate in Chrome,
-        Safari or Firefox Nightly.)</span>
+        can't do <code>random()</code> yet. Please celebrate in Chrome 156+,
+        Safari 26.2+ or Firefox Nightly 158+.)</span>
+    </p>
+    <p class="note">
+      Works in some browsers - <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/random#browser_compatibility">check browser support</a>.
     </p>
     <p>
-      That was fun. Let’s throw some more - five hundred pieces this time -
-      and, for no particular reason, draw a circle behind them.
+      That was fun. Let's throw five hundred pieces this time and, for no
+      particular reason, draw a circle behind them.
     </p>
 
     <section class="circle panel" aria-label="Confetti on a circle">
@@ -1106,26 +1118,26 @@
           <div class="big num k-est" aria-hidden="true"><b></b>.<b></b></div>
           <p>
             <span class="k-in"></span> of 500 pieces landed inside the circle.
-            The square is 2&nbsp;×&nbsp;2&nbsp;=&nbsp;4, so the circle covers
-            about 4&nbsp;×&nbsp;<span class="k-in"></span>&nbsp;/&nbsp;500.
+            The square has an area of 2&nbsp;×&nbsp;2&nbsp;=&nbsp;4, so our
+            estimate of the circle's area is
+            4&nbsp;×&nbsp;<span class="k-in"></span>&nbsp;/&nbsp;500.
           </p>
-          <p class="k-exact">A circle of radius 1 covers exactly π = 3.14159…</p>
+          <p class="k-exact">A circle of radius 1 has an area of exactly π = 3.14159…</p>
         </div>
       </div>
     </section>
 
     <p>
-      The confetti knows nothing about circles: each piece just lands
-      somewhere in the square. But since every spot is equally likely, the
-      share of pieces that land inside is the share of the square the circle
-      covers - which is exactly what the panel multiplies out. We just
-      measured π with confetti. Throw again: the number wobbles, but stays
-      near 3.14.
+      The confetti spreads roughly evenly across the square. So the fraction
+      that lands inside the circle tells us roughly what fraction of the
+      square the circle covers. Multiply by the square's area, and we've
+      estimated π with confetti. Throw again and you'll get a different answer.
     </p>
     <p>
-      Every piece is an empty <code>&lt;i&gt;</code>. CSS decides where it
-      lands, CSS checks whether it’s inside, and CSS does the counting.
-      There is no JavaScript on this page.
+      Every piece of confetti is an empty <code>&lt;i&gt;</code> element.
+      CSS throws it to a random point, checks whether it's inside or outside
+      the circle, and counts the hits. BTW, this demo is JavaScript-free.
+      Doing maths in JavaScript would be very boring.
     </p>
 
     <h2>Congratulations, you just did Monte Carlo integration</h2>
@@ -1137,18 +1149,22 @@
       be won. The odds were too hard to calculate, so he figured it was
       easier to deal a few hundred games and count. John von Neumann turned
       the idea into a program that simulated neutrons at Los Alamos, and
-      Nicholas Metropolis named it after the casino in Monaco: Ulam’s uncle
+      <a href="https://mcnp.lanl.gov/pdf_files/Article_1987_LAS_Metropolis_125--130.pdf">Nicholas Metropolis named it after the casino in Monaco</a>: Ulam's uncle
       used to borrow money from relatives because he “just had to go to
       Monte Carlo.”
     </p>
     <p>
-      The area under a curve is exactly what an integral is. So the trick
-      works for any curve: fence it in with a box, throw, count what lands
-      under the curve, and multiply by the box’s area. Below, a thousand
-      pieces (shrunk to dots - they’re at work now) are thrown at four
-      functions. The first is a quarter of our circle again. Two others,
-      the bell curve and the sophomore’s dream, have no formula you could
-      integrate by hand. The confetti doesn’t care.
+      The same trick works for the area under a curve. Take a nonnegative
+      function over an interval and draw a box around the area beneath it.
+      Throw confetti across the box, count the fraction below the curve,
+      and multiply by the box's area. That gives us an estimate of the
+      definite integral.
+    </p>
+    <p>
+      Below, a thousand pieces of confetti try four functions. They're dots
+      now; they're at work. The first is our quarter circle, stretched
+      vertically by four. Two others, the bell curve and the sophomore's
+      dream, have no elementary antiderivative. The confetti doesn't care.
     </p>
 
     <section class="lab panel" aria-label="Monte Carlo integrator">
@@ -1157,18 +1173,18 @@
         <input type="radio" name="f" id="f-pi" checked /><label for="f-pi">quarter circle</label>
         <input type="radio" name="f" id="f-sin" /><label for="f-sin">sin x</label>
         <input type="radio" name="f" id="f-gauss" /><label for="f-gauss">bell curve</label>
-        <input type="radio" name="f" id="f-soph" /><label for="f-soph">sophomore’s dream</label>
+        <input type="radio" name="f" id="f-soph" /><label for="f-soph">sophomore's dream</label>
       </fieldset>
 
       <p class="nope">
-        Your browser doesn’t speak <code>random()</code> yet, so there is no
-        confetti to throw here.
+        No confetti, sorry. This browser doesn't support CSS
+        <code>random()</code> yet.
       </p>
 
       <div class="math">
         <div class="m-pi">
           <math display="block"><mrow><msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><mn>4</mn><msqrt><mn>1</mn><mo>−</mo><msup><mi>x</mi><mn>2</mn></msup></msqrt><mspace width="0.2em"/><mi>d</mi><mi>x</mi><mo>=</mo><mi>π</mi></mrow></math>
-          <small>a quarter disc, stretched ×4</small>
+          <small>a quarter circle, stretched vertically by four</small>
         </div>
         <div class="m-sin">
           <math display="block"><mrow><msubsup><mo>∫</mo><mn>0</mn><mi>π</mi></msubsup><mi>sin</mi><mspace width="0.2em"/><mi>x</mi><mspace width="0.2em"/><mi>d</mi><mi>x</mi><mo>=</mo><mn>2</mn></mrow></math>
@@ -1180,7 +1196,7 @@
         </div>
         <div class="m-soph">
           <math display="block"><mrow><msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><msup><mi>x</mi><mrow><mo>−</mo><mi>x</mi></mrow></msup><mspace width="0.2em"/><mi>d</mi><mi>x</mi><mo>=</mo><munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><mi>∞</mi></munderover><msup><mi>n</mi><mrow><mo>−</mo><mi>n</mi></mrow></msup></mrow></math>
-          <small>Johann Bernoulli, 1697 - too good to be true, but true</small>
+          <small>Johann Bernoulli, 1697</small>
         </div>
       </div>
 
@@ -1202,7 +1218,7 @@
         <div class="big num e3" aria-hidden="true"><b></b>.<b></b></div>
         <p>
           <span class="hits"></span> of 1&#8239;000 pieces landed under the
-          curve. The box’s area is <span class="A-t"></span>, so the estimate
+          curve. The box's area is <span class="A-t"></span>, so the estimate
           is <span class="A-t"></span>&nbsp;×&nbsp;<span class="hits"></span>&nbsp;/&nbsp;1&#8239;000.
         </p>
         <a class="reroll" href="">Throw again ↻</a>
@@ -1224,18 +1240,17 @@
     </section>
 
     <p>
-      The table shows the estimate after the first 10, 100 and 1&#8239;000
-      pieces, how far off it actually is, and how far off it should
-      typically be.
+      The table shows our estimate after 10, 100 and 1&#8239;000 throws.
+      “Actual error” is our estimate minus the known answer. “Typical error”
+      is one standard error: how much estimates tend to vary across repeated
+      runs. It isn't a guarantee - your confetti can do worse.
     </p>
 
     <h2>One piece of confetti</h2>
     <p>
-      Five hundred pieces, a thousand pieces. But what if you only had one?
-      You would throw it, note where it landed, pick it up, and throw it
-      again. Below is a single piece of confetti doing exactly that, ten
-      times a second, ever since you opened this page - while CSS keeps
-      score.
+      A thousand pieces seems excessive. Let's reuse one. Throw it, count
+      the hit or miss, and throw it again. The next panel does this ten times
+      a second. Two CSS animations act as stopwatches to keep score.
     </p>
 
     <section class="engine panel" aria-label="One piece of confetti, thrown forever">
@@ -1243,7 +1258,7 @@
         <label for="f-pi">quarter circle</label>
         <label for="f-sin">sin x</label>
         <label for="f-gauss">bell curve</label>
-        <label for="f-soph">sophomore’s dream</label>
+        <label for="f-soph">sophomore's dream</label>
       </div>
       <div class="plot" aria-hidden="true">
         <div class="box">
@@ -1262,33 +1277,33 @@
         <div class="big num t-est" aria-hidden="true"><b></b>.<b></b></div>
         <p class="sr">
           So far <span class="t-hits"></span> of <span class="t-n"></span> throws
-          landed under the curve, and the box’s area is <span class="A-t"></span>.
+          landed under the curve, and the box's area is <span class="A-t"></span>.
         </p>
         <dl aria-hidden="true">
           <dt>throws</dt><dd><span class="t-n"></span></dd>
           <dt>actual error</dt><dd class="num t-err"><b></b>.<b></b></dd>
           <dt>typical error</dt><dd class="num t-sig">±<b></b>.<b></b></dd>
         </dl>
-        <p class="note">Same integrand as above - pick another and the count starts over.</p>
-        <p class="note still">Your system asks for reduced motion, so the confetti is hidden. It is still being thrown - watch the count.</p>
+        <p class="note">Same function as above. Choose another to restart the count.</p>
+        <p class="note still">Your reduced-motion setting hides the moving confetti. The calculation still runs.</p>
       </div>
     </section>
 
     <p>
-      It’s the same method, spread out over time instead of over the page.
-      The longer you watch, the closer it gets - and the slower it gets
-      closer.
+      It's the same method, one throw at a time. More independent throws
+      usually mean a better estimate, but the answer can wander further from
+      the truth before coming back. Confetti makes no promises.
     </p>
 
     <h2>How the CSS does it</h2>
 
     <h3>Where a piece lands</h3>
     <p>
-      A piece needs two coordinates, and it has to keep them: the same
-      <var>x</var> places the piece on the page <em>and</em> goes into the
-      inside-or-outside check. A bare <code>random()</code> draws a fresh
-      number in every property it appears in. A registered custom property
-      draws once per element and keeps it:
+      Each piece needs two coordinates. We need to use the same numbers to
+      position it and check whether it landed inside the curve. Otherwise,
+      we'd be counting one throw and drawing another. Registering
+      <code>--x</code> and <code>--y</code> as numeric custom properties makes
+      CSS resolve each random value there, so both calculations can reuse it:
     </p>
     <pre class="panel"><code>@property --x { syntax: "&lt;number&gt;"; inherits: false; initial-value: 0; }
 @property --y { syntax: "&lt;number&gt;"; inherits: false; initial-value: 0; }
@@ -1300,20 +1315,25 @@
   bottom: calc(var(--y) * 100%);
 }</code></pre>
     <p>
-      Each element gets its own draw, and keeps it for life. That’s what
-      makes the sampler work - and, as we’ll see, the main obstacle to
-      everything else.
+      Each piece gets its own coordinates. Replaying an animation doesn't
+      give it new ones, though. Throwing the same piece again takes a little
+      more work.
     </p>
 
     <h3>Inside or outside</h3>
     <p>
-      For the circle, a piece is inside when
+      For the unit circle, a piece is inside when
       <math><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup><mo>&lt;</mo><mn>1</mn></math>.
-      For a curve, map <var>x</var> onto the interval, evaluate the function
-      - CSS has <code>sqrt()</code>, <code>sin()</code>, <code>exp()</code>
-      and <code>pow()</code> - and compare it to the piece’s height.
-      <code>sign()</code> turns the comparison into a number, and
-      <code>max(0, …)</code> clips it to the 0 or 1 we want:
+      For the other curves, we map its horizontal coordinate onto the
+      integration interval, calculate the function's value there, and
+      compare it with the piece's height.
+    </p>
+    <p>
+      CSS has the maths we need: <code>sqrt()</code>, <code>sin()</code>,
+      <code>exp()</code> and <code>pow()</code>. Taking <code>sign()</code>
+      of the function's value minus the piece's height gives 1 below the
+      curve, 0 on it, and -1 above it. <code>max(0, …)</code> turns this into
+      1 for a hit and 0 for a miss:
     </p>
     <pre class="panel"><code>--u: calc(var(--a) + (var(--b) - var(--a)) * var(--x));
 --f: exp(-1 * var(--u) * var(--u));          /* the bell curve */
@@ -1321,54 +1341,67 @@
 
 background: color-mix(in oklab, var(--hit-c) calc(var(--hit) * 100%), var(--miss-c));</code></pre>
     <p>
-      Switching the function swaps <code>--f</code>, but not the confetti:
-      the same thousand pieces just get judged against a different curve.
+      Choose another function and CSS checks the same thousand pieces
+      against the new curve. Their positions in the plot stay the same;
+      the function, interval and box height change.
     </p>
 
-    <h3>Counting</h3>
+    <details class="panel">
+    <summary>How CSS counters calculate and display the estimate</summary>
     <p>
-      Adding up a number from a thousand elements sounds like the one thing
-      CSS can’t do. It can: that’s what
-      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Lists/Using_counters">counters</a>
-      are for. Say we throw 100 pieces at the quarter circle. Its box has
-      an area of 4, so every piece that lands under the curve adds
-      4&nbsp;/&nbsp;100&nbsp;=&nbsp;0.04 to the estimate. Counters only hold
-      whole numbers, so we count in hundred-millionths: each hit adds
-      4&#8239;000&#8239;000, and 78 hits leave the counter at
-      312&#8239;000&#8239;000 - which is 3.12. The counter doesn’t hold a
-      count; it holds the answer:
+      CSS <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Lists/Using_counters">counters</a>
+      add up the contributions from each piece. With 100 throws and a box
+      area of 4, each hit adds 4&nbsp;/&nbsp;100&nbsp;=&nbsp;0.04 to the estimate.
+    </p>
+    <p>
+      Counters only store whole numbers, so we multiply everything by
+      100,000,000. Each hit adds 4,000,000. After 78 hits, the counter holds
+      312,000,000, which represents 3.12. An unnecessarily large integer,
+      but a perfectly reasonable estimate of π.
     </p>
     <pre class="panel"><code>/* a hit is worth A / 100, in units of 10⁻⁸ */
 --w: calc(round(var(--hit) * var(--A) * 1e6));
 counter-increment: estimate var(--w);</code></pre>
     <p>
-      Nothing is special about 100: weight a hit by <var>A</var>/10 or
-      <var>A</var>/1&#8239;000 instead, and the same pieces give the
-      estimate after 10 or after 1&#8239;000 throws. That’s where the
-      table’s three rows come from. Two more counters fill in the other
-      columns. One starts at minus the exact answer, so after the confetti
-      it holds the error. The other ignores the confetti entirely: it’s
-      the textbook standard error,
-      <math><msqrt><mi>I</mi><mo>(</mo><mi>A</mi><mo>−</mo><mi>I</mi><mo>)</mo><mo>/</mo><mi>N</mi></msqrt></math>,
-      computed in <code>counter-reset</code>.
+      The table repeats this calculation for the first 10, 100 and
+      1&#8239;000 pieces. Each hit contributes <var>A</var>/<var>N</var>,
+      where <var>A</var> is the box's area and <var>N</var> is the number
+      of throws.
     </p>
     <p>
-      Printing it is the last trick. <code>@counter-style</code> pads the
-      counter to nine digits - <code>314159265</code> - and the page shows
-      it twice, once clipped to the first digit and once shifted left by a
-      digit and clipped to the next four. The decimal point between them is
-      literal text.
+      Another counter tracks the error. It starts at the negative of the
+      known integral, scaled up by the same factor. Adding the hits leaves
+      us with the estimate minus the known answer.
     </p>
+    <p>
+      The typical-error column uses
+      <math><msqrt><mi>I</mi><mo>(</mo><mi>A</mi><mo>−</mo><mi>I</mi><mo>)</mo><mo>/</mo><mi>N</mi></msqrt></math>,
+      where <var>I</var> is the known integral. This gives the standard
+      error for independent, uniformly distributed throws. CSS calculates
+      it in <code>counter-reset</code>. It doesn't use the actual hits -
+      this column describes how the method behaves across repeated runs.
+    </p>
+    <p>
+      <code>@counter-style</code> pads the counter to nine digits. For
+      example, <code>314159265</code> represents 3.14159265. We display it
+      twice: one copy is clipped to show the first digit, and the other is
+      shifted and clipped to show the next four. Put a decimal point between
+      them and we get <code>3.1415</code>.
+    </p>
+    <p>
+      The estimate counters start with an extra 5,000, equivalent to
+      0.00005, so clipping to four decimal places rounds the estimate
+      instead of truncating it.
+    </p>
+    </details>
 
     <h3>Fresh confetti on every click</h3>
     <p>
-      Because a piece keeps its numbers for life, a plain confetti button
-      would throw the identical burst on every click. Pseudo-elements are
-      the way out: CSS creates and destroys them, and a new one draws new
-      numbers. Each button flips between two hidden radio buttons, and the
-      confetti lives in <code>::before</code> in one state and in
-      <code>::after</code> in the other, so every click throws one set
-      away and creates a fresh one:
+      To get fresh confetti, the button alternates between two hidden radio
+      inputs. Clicking their labels changes which input is checked - HTML
+      handles that for us. CSS uses <code>:has()</code> to create
+      <code>::before</code> confetti in one state and <code>::after</code>
+      confetti in the other.
     </p>
     <pre class="panel"><code>.confetti i::before,
 .confetti i::after {
@@ -1382,24 +1415,29 @@ body:has(#c-b:checked) .confetti i::after { content: ""; }</code></pre>
 
     <h3>Throwing one piece, again and again</h3>
     <p>
-      The single piece has no click to rely on, and nothing else gets a
-      fresh number: <code>random()</code> inside <code>@keyframes</code> is
-      drawn once, not once per loop, and hiding, re-inserting or restyling
-      the element hands back the same value.
+      The continuous sampler needs a new position every 100 ms. Putting
+      <code>random()</code> inside <code>@keyframes</code> doesn't give us a
+      fresh number on every loop. Instead, we give random values names and
+      use animations to cycle through them.
     </p>
     <p>
-      What does work is a <em>named</em> key: <code>random(--g1-17, 0, 1)</code>
-      is one fixed value, the same everywhere in the document. So a step
-      animation can walk through a list of them, one every 100&nbsp;ms. One
-      list would repeat quickly, so there are three, 97, 89 and 83 long.
-      Their lengths share no common factor, so the lists drift past each
-      other and don’t line up the same way again for 716&#8239;539 throws.
-      <var>x</var> adds the first and third lists, <var>y</var> the second
-      and third, both mod 1. A sum of random numbers mod 1 is just as
-      random - the trick behind the
-      <a href="https://en.wikipedia.org/wiki/Wichmann%E2%80%93Hill">Wichmann–Hill generator</a>
-      from 1982 - and sharing the third list doesn’t tie <var>x</var> and
-      <var>y</var> together.
+      A call like <code>random(--g1-17, 0, 1)</code> gives a random value a
+      name. Using that name elsewhere with the same range gives us the same
+      value. Three step animations cycle through lists of named random
+      values: <code>g1</code> has 97 values, <code>g2</code> has 89, and
+      <code>g3</code> has 83. Each advances one entry every 100 ms.
+    </p>
+    <p>
+      One short list would repeat too soon. No two of these list lengths
+      share a factor greater than 1, so their positions line up again after
+      97 × 89 × 83 = 716,539 throws - nearly twenty hours.
+    </p>
+    <p>
+      To get <var>x</var>, we add the current values from <code>g1</code>
+      and <code>g3</code> and keep the fractional part. For <var>y</var>,
+      we add <code>g2</code> and <code>g3</code>. In CSS, that's
+      <code>mod(var(--g1) + var(--g3), 1)</code> for <var>x</var>, and the
+      same expression with <code>--g2</code> for <var>y</var>.
     </p>
     <pre class="panel"><code>@keyframes g1 {
   0%       { --g1: random(--g1-0, 0, 1); }
@@ -1413,23 +1451,26 @@ body:has(#c-b:checked) .confetti i::after { content: ""; }</code></pre>
   --y: mod(var(--g2) + var(--g3), 1);
 }</code></pre>
     <p>
-      It isn’t a perfect generator: after about ten thousand throws, a
-      quarter of an hour of watching, the repeats start to show.
+      The full sequence takes nearly twenty hours to repeat, but we're
+      reusing values from three short lists all along. These throws aren't
+      independent random samples. The “typical error” readout assumes
+      independence, so treat it as a reference here, not a reliable measure
+      of this animation's accuracy.
     </p>
     <p>
-      The piece you see is fifty elements running the same lists, each one
-      step later than the last, so each sits exactly where the piece landed
-      that many throws ago. Their age in throws drives everything else: the
-      newest fades in and sends out a ring, older ones slowly dim.
+      Fifty elements draw the trail. They run the same sequence with
+      staggered delays, so each marks an earlier landing. New marks fade in
+      with a ring; older marks gradually disappear.
     </p>
 
-    <h3>Keeping score without counters</h3>
+    <h3>Keeping score with animation time</h3>
     <p>
-      One element, nothing to add up - so the score is kept in time
-      instead. A child of the piece runs two long linear animations: a clock
-      that always runs, and a second clock that only runs while the piece is
-      under the curve. To find out, the child asks its parent with a
-      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Container_size_and_style_queries">container style query</a>:
+      Two CSS animations act as stopwatches. One runs continuously; the
+      other runs only while the current point is below the curve. A
+      <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Container_size_and_style_queries">container style query</a>
+      checks the parent's <code>--hit</code> value and pauses or resumes the
+      second animation. Divide its elapsed time by the first stopwatch's
+      time, then multiply by the box's area to get the estimate:
     </p>
     <pre class="panel"><code>.tally {
   animation: clk 100000s linear infinite, acc 100000s linear infinite;
@@ -1441,25 +1482,34 @@ body:has(#c-b:checked) .confetti i::after { content: ""; }</code></pre>
 
 --est: calc(var(--A) * var(--acc) / var(--clk));</code></pre>
     <p>
-      Every throw lasts the same 100&nbsp;ms, so the share of time spent
-      under the curve is the share of throws that hit. One caveat: a
-      background tab draws no frames, so the piece freezes wherever it was,
-      and your time away counts as one very long throw. Reload, or pick
-      another function, to start clean.
+      Each position is scheduled to last 100 ms. With equal time at each
+      position, the fraction of time spent below the curve equals the
+      fraction of throws that hit.
+    </p>
+    <p>
+      Browsers can throttle background tabs, disrupting this timing and
+      distorting the estimate. Reload the page or choose another function
+      to restart.
     </p>
 
     <h2>Why it is so slow</h2>
     <p>
-      Look at the typical error in the last two panels: a hundred times more
-      confetti buys one more correct digit. The single piece needs about
-      seventeen minutes to get as precise as a mere 10&#8239;000 pieces would
-      be. The error of Monte Carlo shrinks like <math><mn>1</mn><mo>/</mo><msqrt><mi>N</mi></msqrt></math>, which is
-      terrible for a one-dimensional integral - Simpson’s rule would nail
-      all four of these with a few dozen points. The method earns its keep
-      in high dimensions, where grids explode and <math><mn>1</mn><mo>/</mo><msqrt><mi>N</mi></msqrt></math> stays exactly
-      as bad as it always was, no matter how many dimensions you add. A
-      neutron at Los Alamos needed seven numbers (position, direction,
-      energy and time). A stylesheet, admittedly, is not where you’d do that.
+      For independent throws, the standard error shrinks as
+      <math><mn>1</mn><mo>/</mo><msqrt><mi>N</mi></msqrt></math>.
+      Making it ten times smaller takes a hundred times as many throws.
+      At ten throws a second, collecting 10,000 samples takes about
+      seventeen minutes. Confetti is not in a hurry.
+    </p>
+    <p>
+      For these one-dimensional integrals, other numerical methods are
+      usually much faster. Monte Carlo becomes useful in higher dimensions,
+      where adding grid points along every axis quickly gets expensive.
+      Its <math><mn>1</mn><mo>/</mo><msqrt><mi>N</mi></msqrt></math>
+      convergence rate still holds for independent samples with finite
+      variance, though the variance depends on the problem.
+    </p>
+    <p>
+      A stylesheet remains an unusual place to do this. 😉
     </p>
 
     <footer>
